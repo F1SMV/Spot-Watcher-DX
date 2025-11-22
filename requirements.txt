@@ -242,3 +242,4 @@ webencodings==0.5.1
 Werkzeug==2.2.2
 wrapt==1.14.1
 zipp==1.0.0
+feedparser

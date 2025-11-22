@@ -4,19 +4,25 @@ import threading
 import json
 import os
 import urllib.request
+import feedparser  # <--- NOUVELLE LIBRAIRIE (pense au pip install feedparser)
 from collections import deque, Counter
 from flask import Flask, render_template, jsonify
 
 # --- CONFIGURATION ---
-APP_VERSION = "v7.0-Public"
+APP_VERSION = "v7.1-RSS"
 BUILD_DATE = "22/11/2025"
 
 # LISTE DES CLUSTERS (Failover)
-# Le système tente le premier, si échec, passe au suivant.
 CLUSTERS = [
     ("dxfun.com", 8000),      # Primaire
     ("dx.f5len.org", 7300),   # Secours (F5LEN)
     ("gb7mbc.spud.club", 8000)# Secours 2
+]
+
+# NOUVEAU : TES SOURCES RSS
+RSS_URLS = [
+    "https://feeds.feedburner.com/dxzone/dx",
+    "https://feeds.feedburner.com/dxzone/hamradio"
 ]
 
 MY_CALL = "F1SMV"             # TON INDICATIF
@@ -99,11 +105,6 @@ def load_cty_dat():
         prefix_db = new_db
         print(f"--- SUCCÈS : {len(prefix_db)} préfixes chargés.")
         
-        # Tests de contrôle
-        print(f"--- TEST LZ5XX (Bulgarie) : {lookup_country('LZ5XX')[2]}")
-        print(f"--- TEST HA8XX (Hongrie)  : {lookup_country('HA8XX')[2]}")
-        print(f"--- TEST TR8CA (Gabon)    : {lookup_country('TR8CA')[2]}")
-
     except Exception as e: 
         print(f"--- Erreur CRITIQUE parsing CTY: {e}")
 
@@ -143,22 +144,43 @@ def lookup_country(callsign):
 
 # --- 3. WORKERS ---
 def info_worker():
+    """
+    Récupère les infos solaires (NOAA) ET les news RSS (FeedBurner)
+    """
     while True:
         messages = []
+        
+        # 1. Récupération Solaire (NOAA) - On garde ta base
         try:
             req = urllib.request.Request("https://services.swpc.noaa.gov/text/wwv.txt", headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=10) as r:
                 data = r.read().decode('utf-8')
                 lines = [l for l in data.split('\n') if l.strip() and not l.startswith(':') and not l.startswith('#')]
-                if lines: messages.append(f"SOLAR DATA: {lines[-1]}")
-        except Exception: pass
+                if lines: messages.append(f"SOLAR: {lines[-1]}")
+        except Exception as e:
+            print(f"Erreur NOAA: {e}")
+            messages.append("SOLAR: N/A")
         
-        if not messages: messages.append("SOLAR: N/A (Data Unavailable)")
-        
+        # 2. Récupération RSS (DX Zone) - NOUVEAU
+        print("--- Mise à jour des flux RSS ---")
+        for url in RSS_URLS:
+            try:
+                feed = feedparser.parse(url)
+                # On prend les 3 premiers articles pour ne pas saturer le ticker
+                for entry in feed.entries[:3]:
+                    titre = entry.title
+                    # Petit nettoyage si besoin
+                    messages.append(f"NEWS: {titre}")
+            except Exception as e:
+                print(f"Erreur RSS ({url}): {e}")
+
+        # 3. Infos Système
         messages.append(f"DX WATCHER {APP_VERSION} ONLINE")
-        messages.append(f"SYSTEM TIME: {time.strftime('%H:%M UTC')}")
         
-        ticker_info["text"] = "  +++  ".join(messages)
+        # On joint tout avec le séparateur
+        ticker_info["text"] = "   +++   ".join(messages)
+        
+        # Mise à jour toutes les 15 minutes (900s) pour ne pas spammer les serveurs
         time.sleep(900)
 
 def telnet_worker():
@@ -170,7 +192,6 @@ def telnet_worker():
         
         try:
             tn = telnetlib.Telnet(host, port, timeout=15)
-            # Gestion basique du login (certains demandent "login:", d'autres juste le call)
             try:
                 tn.read_until(b"login: ", timeout=5)
             except: pass
@@ -184,9 +205,7 @@ def telnet_worker():
                 try:
                     line = tn.read_until(b"\n", timeout=2).decode('ascii', errors='ignore').strip()
                     if not line:
-                        # Check timeout/déconnexion
                         if time.time() - last_ping > KEEP_ALIVE + 10:
-                            # Tester la connexion avec un ping (Enter)
                             tn.write(b"\n")
                             last_ping = time.time()
                         continue
@@ -244,14 +263,13 @@ def telnet_worker():
 
                 except Exception as e:
                     print(f"Erreur lecture boucle: {e}")
-                    break # Sort du while interne pour changer de cluster
+                    break 
 
         except Exception as e:
             print(f"--- Échec connexion {host}: {e}")
         
         print("--- Basculement vers le cluster suivant dans 5s... ---")
         time.sleep(5)
-        # Rotation circulaire dans la liste des clusters
         cluster_index = (cluster_index + 1) % len(CLUSTERS)
 
 # --- 4. ROUTES FLASK ---
