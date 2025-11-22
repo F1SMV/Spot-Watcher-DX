@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DX Watcher Ultimate</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- THEMES --- */
+        body.theme-matrix { background-color: #000 !important; color: #0f0 !important; font-family: 'Courier New', monospace; }
+        body.theme-matrix .card, body.theme-matrix .navbar { background-color: #000 !important; border-color: #0f0 !important; color: #0f0 !important; }
+        body.theme-matrix a { color: #0f0 !important; }
+        
+        body.theme-cyber { background-color: #050510; color: #0ff; }
+        body.theme-cyber .card { border: 1px solid #f0f; box-shadow: 0 0 10px #f0f; }
+        
+        body.theme-amber { background-color: #1a1a1a; color: #ffbf00; font-family: 'Courier New', monospace; }
+        body.theme-amber .card { border-color: #ffbf00; }
+
+        body.theme-ocean { background-color: #001f3f; color: #7fdbff; }
+        body.theme-ocean .card { background-color: #002850; border-color: #0074d9; }
+
+        body.theme-light { background-color: #f8f9fa; color: #212529; }
+        body.theme-light .card { background-color: #fff; border-color: #dee2e6; color: #000; }
+        body.theme-light .navbar { background-color: #0d6efd !important; }
+
+        /* --- TICKER --- */
+        .ticker-wrap { width: 100%; background-color: #111; overflow: hidden; height: 35px; line-height: 35px; border-bottom: 1px solid #333; }
+        .ticker { display: inline-block; white-space: nowrap; padding-left: 100%; animation: ticker 60s linear infinite; }
+        .ticker-item { display: inline-block; padding: 0 2rem; color: #00ffff; font-family: 'Consolas', monospace; font-weight: bold; font-size: 1.1em; }
+        @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+
+        /* --- WATCHLIST ALERT --- */
+        .watchlist-hit { background-color: #FFD700 !important; color: #000000 !important; font-weight: 900; border: 2px solid #fff; }
+        .watchlist-hit a { color: #000000 !important; text-decoration: underline; }
+
+        /* --- UI --- */
+        #map { height: 500px; width: 100%; border-radius: 0 0 8px 8px; }
+        .spot-row { font-family: 'Consolas', monospace; font-size: 0.9rem; }
+        
+        /* NO SCROLLBAR */
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="theme-default">
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary py-1">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <i class="fa-solid fa-radar me-2"></i> 
+            <div>
+                Spot Watcher DX
+                <div style="font-size: 0.6rem; color: #aaa; line-height: 1;">{{ version }} | {{ date }}</div>
+            </div>
+        </a>
+        
+        <div class="d-flex align-items-center ms-auto">
+            <div class="dropdown me-3">
+                <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fa-solid fa-paintbrush"></i> Thème
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
+                    <li><a class="dropdown-item" href="#" onclick="setTheme('default')">🌑 Défaut</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setTheme('matrix')">🟢 Matrix</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setTheme('cyber')">🟣 Cyberpunk</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setTheme('ocean')">🔵 Océan</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setTheme('amber')">🟠 Ambre</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="setTheme('light')">☀️ Light</a></li>
+                </ul>
+            </div>
+            <span class="navbar-text text-white small">
+                <i class="fa-regular fa-clock"></i> <span id="utc-clock">00:00:00 UTC</span> | {{ my_call }}
+            </span>
+        </div>
+    </div>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+    <div class="ticker"><div class="ticker-item" id="rss-content">Chargement des données solaires...</div></div>
+</div>
+
+<div class="container-fluid mt-3">
+    <div class="row">
+        <!-- GAUCHE -->
+        <div class="col-lg-8">
+            <div class="card mb-3 shadow-sm border-0">
+                <div class="card-body p-0"><div id="map"></div></div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3 shadow-sm bg-dark text-light border-secondary">
+                        <div class="card-header fw-bold border-secondary"><i class="fa-solid fa-chart-column"></i> Activité par Bande</div>
+                        <div class="card-body" style="height:250px"><canvas id="bandChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-3 shadow-sm bg-dark text-light border-secondary">
+                        <div class="card-header fw-bold border-secondary d-flex justify-content-between">
+                            <span><i class="fa-solid fa-globe"></i> Top DXCC (24h)</span>
+                            <span class="badge bg-danger">HOT</span>
+                        </div>
+                        <ul class="list-group list-group-flush small" id="top-dxcc-list" style="overflow-y: auto; height: 250px;"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DROITE -->
+        <div class="col-lg-4">
+            <!-- Watchlist -->
+            <div class="card mb-3 border-warning shadow-sm" style="background: #222;">
+                <div class="card-header bg-warning text-dark fw-bold">
+                    <i class="fa-solid fa-binoculars"></i> Watchlist
+                    <span class="float-end badge bg-dark text-warning" id="watchlist-count">0</span>
+                </div>
+                <div class="card-body p-2">
+                    <div class="input-group input-group-sm mb-2">
+                        <input type="text" id="watch-input" class="form-control bg-dark text-white border-secondary" placeholder="Ajouter Call (ex: TR8)">
+                        <button class="btn btn-warning" onclick="addWatch()">OK</button>
+                    </div>
+                    <div id="watchlist-badges" class="d-flex flex-wrap gap-1"></div>
+                </div>
+            </div>
+
+            <!-- Spots Table -->
+            <div class="card shadow-sm h-100 bg-dark border-secondary">
+                <div class="card-header border-secondary">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-white fw-bold"><i class="fa-solid fa-list"></i> Live Spots</span>
+                        <span class="badge bg-success" id="spot-count">0</span>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <select id="filter-band" class="form-select form-select-sm bg-secondary text-white border-0" onchange="fetchData()">
+                                <option value="ALL">Toutes Bandes</option>
+                                <option value="160m">160m</option><option value="80m">80m</option><option value="40m">40m</option>
+                                <option value="30m">30m</option><option value="20m">20m</option><option value="17m">17m</option>
+                                <option value="15m">15m</option><option value="12m">12m</option><option value="10m">10m</option>
+                                <option value="6m">6m</option><option value="2m">2m</option><option value="70cm">70cm</option>
+                                <option value="QO-100">QO-100</option>
+                            </select>
+                        </div>
+                        <div class="col-6"><select id="filter-mode" class="form-select form-select-sm bg-secondary text-white border-0" onchange="fetchData()"><option value="ALL">Tous Modes</option><option value="FT8">FT8</option><option value="CW">CW</option><option value="SSB">SSB</option></select></div>
+                    </div>
+                </div>
+
+                <div class="table-responsive no-scrollbar" style="height: 500px; overflow-y: auto;">
+                    <table class="table table-dark table-hover table-sm spot-row mb-0">
+                        <thead class="sticky-top bg-secondary"><tr><th>UTC</th><th>DX Call</th><th>Freq</th><th>Pays</th></tr></thead>
+                        <tbody id="spots-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // --- THEME MANAGER ---
+    function setTheme(themeName) {
+        document.body.className = 'theme-' + themeName;
+        localStorage.setItem('dxTheme', themeName);
+        if(themeName === 'light') document.documentElement.setAttribute('data-bs-theme', 'light');
+        else document.documentElement.setAttribute('data-bs-theme', 'dark');
+    }
+    setTheme(localStorage.getItem('dxTheme') || 'default');
+
+    // --- MAP ---
+    const map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    let markers = L.layerGroup().addTo(map);
+    
+    // --- WATCHLIST ---
+    let watchlist = JSON.parse(localStorage.getItem('watchlist')) || [];
+    function addWatch() {
+        const val = document.getElementById('watch-input').value.toUpperCase().trim();
+        if (val && !watchlist.includes(val)) {
+            watchlist.push(val);
+            localStorage.setItem('watchlist', JSON.stringify(watchlist));
+            updateWatchlistUI(); fetchData();
+        }
+        document.getElementById('watch-input').value = '';
+    }
+    function updateWatchlistUI() {
+        const c = document.getElementById('watchlist-badges'); c.innerHTML = '';
+        document.getElementById('watchlist-count').innerText = watchlist.length;
+        watchlist.forEach(call => {
+            c.innerHTML += `<span class="badge bg-warning text-dark cursor-pointer" onclick="removeWatch('${call}')">${call} <i class="fa fa-times"></i></span>`;
+        });
+    }
+    window.removeWatch = (call) => {
+        watchlist = watchlist.filter(x => x !== call);
+        localStorage.setItem('watchlist', JSON.stringify(watchlist));
+        updateWatchlistUI(); fetchData();
+    };
+    updateWatchlistUI();
+
+    // --- CHART CONFIG ---
+    let bandChart = null;
+    const bandColors = [
+        '#0d1b3e', '#1f2d5a', '#4b0082', '#0000ff', '#008080', '#008000', 
+        '#9acd32', '#ffff00', '#ffa500', '#ff4500', '#ff0000', '#800000', '#ff00ff'
+    ];
+    const bandLabels = ["160m","80m","40m","30m","20m","17m","15m","12m","10m","6m","2m","70cm","QO-100"];
+
+    async function fetchData() {
+        try {
+            const res = await fetch('/spots.json');
+            const allSpots = await res.json();
+            
+            fetch('/rss.json').then(r=>r.json()).then(d => {
+                if(d.ticker) document.getElementById('rss-content').innerText = d.ticker;
+            });
+
+            const fBand = document.getElementById('filter-band').value;
+            const fMode = document.getElementById('filter-mode').value;
+            const filtered = allSpots.filter(s => (fBand === 'ALL' || s.band === fBand) && (fMode === 'ALL' || s.mode === fMode));
+
+            const tbody = document.getElementById('spots-body'); tbody.innerHTML = '';
+            markers.clearLayers();
+            document.getElementById('spot-count').innerText = filtered.length;
+
+            filtered.forEach(s => {
+                let isW = watchlist.some(w => s.dx_call.includes(w));
+                let rowClass = isW ? 'watchlist-hit' : '';
+                
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr class="${rowClass}">
+                        <td>${s.time}</td>
+                        <td><a href="https://www.qrz.com/db/${s.dx_call}" target="_blank" class="text-decoration-none ${isW?'text-dark':'text-info'} fw-bold">${s.dx_call}</a></td>
+                        <td>${s.freq} <span class="badge bg-secondary" style="font-size:0.6em">${s.mode}</span></td>
+                        <td class="text-truncate" style="max-width:100px;">${s.country}</td>
+                    </tr>
+                `);
+
+                if(s.lat !== 0) {
+                    let col = isW ? '#FFD700' : '#0dcaf0'; 
+                    let rad = isW ? 8 : 3;
+                    L.circleMarker([s.lat, s.lon], { radius: rad, color: col, fillColor: col, fillOpacity: 0.8 }).addTo(markers)
+                     .bindPopup(`
+                        <div style="text-align:center; color: black;">
+                            <strong style="font-size:1.2em">${s.dx_call}</strong><br>
+                            ${s.freq} kHz (${s.mode})<br>
+                            ${s.country}
+                        </div>
+                     `);
+                }
+            });
+
+            updateChart(allSpots);
+            updateWanted();
+
+        } catch(e) { console.log(e); }
+    }
+
+    async function updateWanted() {
+        const res = await fetch('/wanted.json');
+        const data = await res.json();
+        const l = document.getElementById('top-dxcc-list'); l.innerHTML = '';
+        data.forEach(([c, n], i) => {
+            l.innerHTML += `<li class="list-group-item bg-transparent text-inherit d-flex justify-content-between py-1 border-secondary"><span>${i+1}. ${c}</span> <span class="badge bg-primary rounded-pill">${n}</span></li>`;
+        });
+    }
+
+    function updateChart(spots) {
+        let counts = {};
+        bandLabels.forEach(l => counts[l] = 0);
+        spots.forEach(s => {
+            if(counts.hasOwnProperty(s.band)) counts[s.band]++;
+            else counts['QO-100']++; // Fallback si bande inconnue (rare) pour ne pas crasher
+        });
+        
+        const data = bandLabels.map(l => counts[l]);
+        
+        if(bandChart) bandChart.destroy();
+        bandChart = new Chart(document.getElementById('bandChart'), {
+            type: 'bar',
+            data: { 
+                labels: bandLabels, 
+                datasets: [{ 
+                    label:'Spots', 
+                    data: data, 
+                    backgroundColor: bandColors, 
+                    borderWidth: 0 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: {display:false} }, 
+                scales: { 
+                    y: {grid:{color:'#333'}, beginAtZero: true}, 
+                    x: {grid:{display:false}} 
+                } 
+            }
+        });
+    }
+
+    setInterval(() => document.getElementById('utc-clock').innerText = new Date().toISOString().split('T')[1].split('.')[0] + ' UTC', 1000);
+    setInterval(fetchData, 5000);
+    fetchData();
+</script>
+</body>
+</html>
