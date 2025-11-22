@@ -6,8 +6,9 @@
 
 Conçu pour fonctionner 24h/24 sur un **Raspberry Pi**, c'est l'outil idéal pour surveiller les ouvertures de propagation, les expéditions DX (DXpeditions) et l'activité sur le satellite QO-100.
 
-![Dashboard Preview](https://via.placeholder.com/800x400?text=Capture+d+Ecran+Dashboard)
-*(Ajoutez une capture d'écran de votre interface ici)*
+
+![Aperçu du logiciel](apercu.png)
+
 
 ## ✨ Fonctionnalités
 
