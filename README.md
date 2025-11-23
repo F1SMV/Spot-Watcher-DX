@@ -1,4 +1,4 @@
-# 📡 DX Cluster Watcher (v7.2-HYBRID)
+# 📡 DX Cluster Watcher (v7.3 ULTIMATE)
 
 Un moniteur de DX Cluster en temps réel pour Radioamateurs, écrit en Python.
 Il se connecte aux clusters via Telnet, analyse les spots, et les affiche sur un tableau de bord Web moderne avec cartographie, infos solaires, flux RSS et alertes vocales.
@@ -14,6 +14,7 @@ Il se connecte aux clusters via Telnet, analyse les spots, et les affiche sur un
 *   **Infos Propagation :** Récupération des données solaires (Flux, A-Index) via NOAA.
 *   **News Radioamateur :** Fil d'actualité intégré via flux RSS (DX Zone, etc.).
 *   **Filtres Intelligents :** Détection automatique des modes (CW, SSB, FT8, RTTY) et des bandes.
+*   **chart en couleurs suivants les bandes
 
 ## 📂 Structure des Fichiers (IMPORTANT)
 

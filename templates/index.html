@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DX Watcher Ultimate</title>
+    <title>DX Watcher Ultimate version 7.3 ultimate</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -340,12 +340,28 @@
             let counts = {};
             ["160m","80m","40m","30m","20m","17m","15m","12m","10m","6m","2m","70cm","QO-100"].forEach(l => counts[l] = 0);
             allSpots.forEach(s => { if(counts.hasOwnProperty(s.band)) counts[s.band]++; else counts['QO-100']++; });
-            const data = Object.values(counts);
             
+            // --- COULEURS DES BANDES ---
+            const bandColors = {
+                "160m": "#6c757d", "80m": "#6610f2", "40m": "#0d6efd", "30m": "#198754",
+                "20m": "#ffc107", "17m": "#fd7e14", "15m": "#dc3545", "12m": "#d63384",
+                "10m": "#0dcaf0", "6m": "#20c997", "2m": "#adb5bd", "70cm": "#6c757d", "QO-100": "#ffc107"
+            };
+
+            const labels = Object.keys(counts);
+            const dataVals = Object.values(counts);
+            const bgColors = labels.map(b => bandColors[b] || '#0d6efd');
+
             if(window.myChart) window.myChart.destroy();
             window.myChart = new Chart(document.getElementById('bandChart'), {
                 type: 'bar',
-                data: { labels: Object.keys(counts), datasets: [{ data: data, backgroundColor: '#0d6efd' }] },
+                data: { 
+                    labels: labels, 
+                    datasets: [{ 
+                        data: dataVals, 
+                        backgroundColor: bgColors // Couleurs appliquées ici
+                    }] 
+                },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {display:false} }, scales: { x:{grid:{display:false}}, y:{grid:{color:'#333'}} } }
             });
             

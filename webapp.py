@@ -9,7 +9,7 @@ from collections import deque, Counter
 from flask import Flask, render_template, jsonify
 
 # --- CONFIGURATION ---
-APP_VERSION = "v7.2-HYBRID"
+APP_VERSION = "v7.3 ULTIMATE"
 BUILD_DATE = "23/11/2025"
 
 # LISTE DES CLUSTERS (Failover)
@@ -25,7 +25,7 @@ RSS_URLS = [
     "https://feeds.feedburner.com/dxzone/hamradio"
 ]
 
-MY_CALL = "F4HOK"             # J'ai remis F4HOK (ton indicatif vu dans les logs précédents)
+MY_CALL = "F1SMV"             # J'ai remis F4HOK (ton indicatif vu dans les logs précédents)
 KEEP_ALIVE = 60    
 SPOT_LIFETIME_DISPLAY = 900   # 15 minutes
 SPOT_LIFETIME_STATS = 86400   # 24 heures
