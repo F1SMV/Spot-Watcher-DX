@@ -1,78 +1,74 @@
-# 📡 Spot Watcher DX Ultimate
+# 📡 DX Cluster Watcher (v7.2-HYBRID)
 
-![Version](https://img.shields.io/badge/version-v7.2-watchlist) ![Python](https://img.shields.io/badge/python-3.x-yellow) ![License](https://img.shields.io/badge/license-MIT-green)
-
-**Spot Watcher DX** est une application web autonome conçue pour les **Radioamateurs**. Elle se connecte au réseau DX Cluster mondial via Telnet, analyse les spots en temps réel, et les affiche sur un tableau de bord moderne et réactif.
-
-Conçu pour fonctionner 24h/24 sur un **Raspberry Pi**, c'est l'outil idéal pour surveiller les ouvertures de propagation, les expéditions DX (DXpeditions) et l'activité sur le satellite QO-100.
-
-
-![Aperçu du logiciel](apercu.png)
-
+Un moniteur de DX Cluster en temps réel pour Radioamateurs, écrit en Python.
+Il se connecte aux clusters via Telnet, analyse les spots, et les affiche sur un tableau de bord Web moderne avec cartographie, infos solaires, flux RSS et alertes vocales.
 
 ## ✨ Fonctionnalités
 
-*   **🌐 Carte du Monde en Temps Réel** : Visualisation géographique des contacts (Greyline, position).
-*   **📊 Analyse de Propagation** : Graphique d'activité par bande (160m à QO-100).
-*   **📡 Support Multi-Bandes** : HF, VHF (6m, 2m), UHF (70cm) et Satellite QO-100.
-*   **🔄 Redondance Cluster** : Connexion automatique à un serveur de secours (ex: F5LEN) si le principal tombe.
-*   **🎯 Watchlist Intelligente** : Alertes visuelles et sonores (badges dorés) pour les indicatifs recherchés.
-*   **☀️ Données Solaires** : Ticker RSS intégré avec flux NOAA (SFI, A-Index, K-Index).
-*   **🎨 Thèmes Visuels** : 6 thèmes inclus (Matrix, Cyberpunk, Océan, Ambre, Light, Default).
-*   **📱 Responsive** : Fonctionne sur PC, Tablette et Mobile.
+*   **Connexion Telnet Robuste :** Connexion permanente avec reconnexion automatique et gestion de "Failover" (bascule sur un serveur de secours si le principal tombe).
+*   **Interface Web (Dashboard) :** Carte du monde dynamique, liste des spots en temps réel, statistiques par pays.
+*   **Synthèse Vocale (TTS) :** Annonce audio automatique des nouveaux spots DX (ex: "New Spot: Japan on 20 meters").
+*   **Enrichissement des données :** Résolution automatique des pays et coordonnées via `cty.dat` (mis à jour automatiquement).
+*   **Infos Propagation :** Récupération des données solaires (Flux, A-Index) via NOAA.
+*   **News Radioamateur :** Fil d'actualité intégré via flux RSS (DX Zone, etc.).
+*   **Filtres Intelligents :** Détection automatique des modes (CW, SSB, FT8, RTTY) et des bandes.
 
-## 🛠️ Matériel Recommandé
+## 📂 Structure des Fichiers (IMPORTANT)
 
-Cette application est optimisée pour :
-*   **Raspberry Pi** (3B+, 4 ou 5 recommandés).
-*   Tout serveur Linux (Ubuntu, Debian) ou même Windows.
+Pour que l'interface Web fonctionne, **la structure des dossiers doit être respectée scrupuleusement** :
 
-## 🚀 Installation
+```text
+/votre-dossier-projet/
+│
+├── webapp.py            # Le script principal (Moteur + Serveur Web)
+├── templates/           # ⚠️ DOSSIER OBLIGATOIRE pour Flask
+│   └── index.html       # L'interface Web (HTML/JS/CSS)
+│
+├── cty.dat              # Base de données pays (téléchargé automatiquement)
+└── README.md            # Ce fichier
+🚀 Installation
+1. Pré-requis
+Vous devez avoir Python 3 installé sur votre machine (Raspberry Pi, Linux, Windows, Mac).
 
-### 1. Prérequis
-Assurez-vous d'avoir Python 3 installé :
-```bash
-sudo apt update
-sudo apt install python3 python3-pip
+2. Installation des dépendances
+Ce projet nécessite Flask pour le serveur web et feedparser pour les news RSS.
 
-Pour cloner le projet
-git clone https://github.com/ERIC738/SpotWatcherDX.git
-cd SpotWatcherDX
+pip install flask feedparser
+3. Configuration
+Ouvrez le fichier webapp.py et modifiez la variable suivante au début du fichier pour mettre votre indicatif :
 
-installer les dependances
-pip3 install flask
+MY_CALL = "F1SMV"  # Remplacez par votre indicatif
+Vous pouvez aussi modifier la liste CLUSTERS si vous préférez d'autres serveurs Telnet.
 
-Ouvrez le fichier webapp.py et modifiez la ligne suivante avec votre indicatif :
-MY_CALL = "VOTRE_INDICATIF"  # Ex: F4HZN
+▶️ Démarrage
+Lancez le script depuis votre terminal :
 
-demarrez l'application 
 python3 webapp.py
+Ou si vous avez un script de démarrage :
 
-accedez à l'interface par 
-http://ADRESSE_IP_DU_PI:8000
+./start.sh
+Une fois lancé :
 
-Démarrage automatique (Systemd)
-Pour que l'application se lance au démarrage du Raspberry Pi :
+Le terminal affichera les logs de connexion et les spots reçus ([SPOT] ...).
+Ouvrez votre navigateur web à l'adresse : http://IP_DE_VOTRE_MACHINE:8000
+Exemple : http://192.168.1.76:8000 ou http://localhost:8000
+(Note : Assurez-vous que la dernière ligne de webapp.py indique bien port=8000)
 
-Créer le service : sudo nano /etc/systemd/system/dxwatcher.service
-Coller le contenu suivant (adapter le chemin) :
-[Unit]
-Description=DX Watcher Service
-After=network.target
+🛠 Dépannage
+Erreur "TemplateNotFound: index.html" :
+Vous avez oublié de créer le dossier templates ou de mettre index.html à l'intérieur. Vérifiez la structure des dossiers ci-dessus.
 
-[Service]
-User=pi
-WorkingDirectory=/home/pi/SpotWatcherDX
-ExecStart=/usr/bin/python3 /home/pi/SpotWatcherDX/webapp.py
-Restart=always
+Pas de son (Synthèse vocale) :
+La synthèse vocale dépend de votre navigateur. Assurez-vous d'avoir cliqué au moins une fois n'importe où sur la page pour autoriser l'audio (politique de sécurité des navigateurs modernes).
 
-[Install]
-WantedBy=multi-user.target
+Pas de spots qui s'affichent :
+Attendez quelques secondes après le lancement. Le script force l'affichage des 20 derniers spots (show/dx 20) au démarrage pour remplir le tableau immédiatement.
 
-Activer : sudo systemctl enable dxwatcher && sudo systemctl start dxwatcher
+Erreur de port (Address already in use) :
+Le script utilise le port 8000 par défaut. Si ce port est pris par une autre application, modifiez la dernière ligne de webapp.py ou tuez l'ancien processus.
 
-🤝 Contribution
-vous pouvez me joindre sur f1smv.eric at gmail.com
-
-📜 Licence
-Ce projet est sous licence MIT. Pensé par Eric F1SMV réalisé par GIMINI3 .Libre à vous de le modifier et de le partager.
+📜 Crédits & Version
+Version : v7.2-HYBRID
+Date : 23/11/2025
+Pensé par F1SMV Eric réalisé par GIMINI 3
+Licence : Open Source - Pour usage radioamateur.

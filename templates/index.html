@@ -33,18 +33,15 @@
         .ticker-item { display: inline-block; padding: 0 2rem; color: #00ffff; font-family: 'Consolas', monospace; font-weight: bold; font-size: 1.1em; }
         @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
 
-        /* --- WATCHLIST ALERT (CORRIGÉ POUR FORCER LE JAUNE) --- */
-        /* On cible spécifiquement la ligne ET les cellules pour écraser le gris de Bootstrap */
+        /* --- WATCHLIST ALERT --- */
         tr.watchlist-hit, 
         tr.watchlist-hit > td {
             background-color: #FFD700 !important; /* JAUNE OR */
             color: #000000 !important; /* TEXTE NOIR */
             font-weight: bold;
             box-shadow: none !important;
-            border-color: #000 !important; /* Bordure noire discrète */
+            border-color: #000 !important;
         }
-        
-        /* On force les liens en noir aussi */
         tr.watchlist-hit a { 
             color: #000000 !important; 
             text-decoration: underline; 
@@ -58,6 +55,10 @@
         /* NO SCROLLBAR */
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* AUDIO BTN ANIMATION */
+        .audio-active { animation: pulse-red 2s infinite; color: #ff4444 !important; }
+        @keyframes pulse-red { 0% { text-shadow: 0 0 0px #ff0000; } 50% { text-shadow: 0 0 10px #ff0000; } 100% { text-shadow: 0 0 0px #ff0000; } }
     </style>
 </head>
 <body class="theme-default">
@@ -130,9 +131,15 @@
         <div class="col-lg-4">
             <!-- Watchlist -->
             <div class="card mb-3 border-warning shadow-sm" style="background: #222;">
-                <div class="card-header bg-warning text-dark fw-bold">
-                    <i class="fa-solid fa-binoculars"></i> Watchlist
-                    <span class="float-end badge bg-dark text-warning" id="watchlist-count">0</span>
+                <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
+                    <span><i class="fa-solid fa-binoculars"></i> Watchlist</span>
+                    <div>
+                        <!-- BOUTON AUDIO -->
+                        <button class="btn btn-sm btn-dark border-secondary me-2" id="btn-audio" onclick="toggleAudio()" title="Activer les alertes vocales">
+                            <i class="fa-solid fa-volume-xmark" id="icon-audio"></i>
+                        </button>
+                        <span class="badge bg-dark text-warning border border-warning" id="watchlist-count">0</span>
+                    </div>
                 </div>
                 <div class="card-body p-2">
                     <div class="input-group input-group-sm mb-2">
@@ -161,7 +168,20 @@
                                 <option value="QO-100">QO-100</option>
                             </select>
                         </div>
-                        <div class="col-6"><select id="filter-mode" class="form-select form-select-sm bg-secondary text-white border-0" onchange="fetchData()"><option value="ALL">Tous Modes</option><option value="FT8">FT8</option><option value="CW">CW</option><option value="SSB">SSB</option></select></div>
+                        <div class="col-6">
+                            <!-- LISTE DES MODES MISE A JOUR -->
+                            <select id="filter-mode" class="form-select form-select-sm bg-secondary text-white border-0" onchange="fetchData()">
+                                <option value="ALL">Tous Modes</option>
+                                <option value="FT8">FT8</option>
+                                <option value="FT4">FT4</option>
+                                <option value="CW">CW</option>
+                                <option value="SSB">SSB</option>
+                                <option value="RTTY">RTTY</option>
+                                <option value="PSK">PSK</option>
+                                <option value="MFSK">MFSK</option>
+                                <option value="JS8">JS8</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -195,14 +215,37 @@
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
     let markers = L.layerGroup().addTo(map);
     
-    // --- WATCHLIST (CLIENT SIDE) ---
-    let watchlist = [];
-    try {
-        watchlist = JSON.parse(localStorage.getItem('watchlist')) || [];
-    } catch(e) { 
-        watchlist = []; 
-        console.log("Erreur lecture watchlist, reset.");
+    // --- AUDIO SYSTEM ---
+    let audioEnabled = false;
+    let spokenSpots = []; // Mémoire des spots déjà annoncés
+
+    function toggleAudio() {
+        audioEnabled = !audioEnabled;
+        const btn = document.getElementById('btn-audio');
+        const icon = document.getElementById('icon-audio');
+        
+        if(audioEnabled) {
+            icon.className = 'fa-solid fa-volume-high';
+            btn.className = 'btn btn-sm btn-outline-danger me-2 audio-active';
+            speak("Système vocal activé");
+        } else {
+            icon.className = 'fa-solid fa-volume-xmark';
+            btn.className = 'btn btn-sm btn-dark border-secondary me-2';
+        }
     }
+
+    function speak(text) {
+        if(!audioEnabled) return;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'fr-FR'; // Voix française
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // --- WATCHLIST ---
+    let watchlist = [];
+    try { watchlist = JSON.parse(localStorage.getItem('watchlist')) || []; } catch(e) { watchlist = []; }
 
     function addWatch() {
         const val = document.getElementById('watch-input').value.toUpperCase().trim();
@@ -230,31 +273,23 @@
     };
     updateWatchlistUI();
 
-    // --- CHART CONFIG ---
-    let bandChart = null;
-    const bandColors = [
-        '#0d1b3e', '#1f2d5a', '#4b0082', '#0000ff', '#008080', '#008000', 
-        '#9acd32', '#ffff00', '#ffa500', '#ff4500', '#ff0000', '#800000', '#ff00ff'
-    ];
-    const bandLabels = ["160m","80m","40m","30m","20m","17m","15m","12m","10m","6m","2m","70cm","QO-100"];
-
+    // --- MAIN DATA LOOP ---
     async function fetchData() {
         try {
             const res = await fetch('/spots.json');
-            if(!res.ok) throw new Error("Erreur HTTP " + res.status);
-            
+            if(!res.ok) return;
             const allSpots = await res.json();
-            
-            // Si pas de spots, on ne fait rien (attente du buffer)
             if(!Array.isArray(allSpots)) return;
 
-            // Mise à jour Ticker
+            // Ticker
             fetch('/rss.json').then(r=>r.json()).then(d => {
                 if(d.ticker) document.getElementById('rss-content').innerText = d.ticker;
             }).catch(e => {});
 
             const fBand = document.getElementById('filter-band').value;
             const fMode = document.getElementById('filter-mode').value;
+            
+            // FILTRE: On garde le spot si ça matche la bande ET le mode
             const filtered = allSpots.filter(s => (fBand === 'ALL' || s.band === fBand) && (fMode === 'ALL' || s.mode === fMode));
 
             const tbody = document.getElementById('spots-body'); 
@@ -263,17 +298,25 @@
             document.getElementById('spot-count').innerText = filtered.length;
 
             filtered.forEach(s => {
-                // Logique "safe" : on vérifie si l'info vient du serveur (webapp.py) ou du navigateur
                 let isWantedByServer = (s.is_wanted === true);
                 let isWantedByClient = false;
-                if(s.dx_call) {
-                    isWantedByClient = watchlist.some(w => s.dx_call.includes(w));
-                }
+                if(s.dx_call) isWantedByClient = watchlist.some(w => s.dx_call.includes(w));
                 
                 let isW = isWantedByServer || isWantedByClient;
                 let rowClass = isW ? 'watchlist-hit' : '';
+
+                // --- AUDIO ALERT LOGIC ---
+                if (isW && audioEnabled) {
+                    let spotId = s.dx_call + s.band + s.time;
+                    if (!spokenSpots.includes(spotId)) {
+                        spokenSpots.push(spotId);
+                        if(spokenSpots.length > 50) spokenSpots.shift();
+                        
+                        let cleanCall = s.dx_call.replace('/', ' barre ');
+                        speak(`Alerte DX ! ${cleanCall} sur ${s.band}`);
+                    }
+                }
                 
-                // Construction de la ligne
                 tbody.insertAdjacentHTML('beforeend', `
                     <tr class="${rowClass}">
                         <td>${s.time}</td>
@@ -283,86 +326,41 @@
                     </tr>
                 `);
 
-                // Ajout marker map
                 if(s.lat !== 0) {
                     let col = isW ? '#FFD700' : '#0dcaf0'; 
                     let rad = isW ? 8 : 3;
                     let zIdx = isW ? 1000 : 0;
-                    
                     L.circleMarker([s.lat, s.lon], { radius: rad, color: col, fillColor: col, fillOpacity: 0.8, zIndexOffset: zIdx })
                      .addTo(markers)
-                     .bindPopup(`
-                        <div style="text-align:center; color: black;">
-                            <strong style="font-size:1.2em">${s.dx_call}</strong><br>
-                            ${s.freq} kHz (${s.mode})<br>
-                            ${s.country}
-                        </div>
-                     `);
+                     .bindPopup(`<div style="text-align:center; color: black;"><strong>${s.dx_call}</strong><br>${s.freq} kHz<br>${s.country}</div>`);
                 }
             });
 
-            updateChart(allSpots);
-            updateWanted();
-
-        } catch(e) { 
-            console.log("Erreur Fetch:", e); 
-        }
-    }
-
-    async function updateWanted() {
-        try {
-            const res = await fetch('/wanted.json');
-            const data = await res.json();
-            const l = document.getElementById('top-dxcc-list'); 
-            if(l) {
-                l.innerHTML = '';
-                data.forEach(([c, n], i) => {
-                    l.innerHTML += `<li class="list-group-item bg-transparent text-inherit d-flex justify-content-between py-1 border-secondary"><span>${i+1}. ${c}</span> <span class="badge bg-primary rounded-pill">${n}</span></li>`;
-                });
-            }
-        } catch(e) {}
-    }
-
-    function updateChart(spots) {
-        let counts = {};
-        bandLabels.forEach(l => counts[l] = 0);
-        spots.forEach(s => {
-            if(counts.hasOwnProperty(s.band)) counts[s.band]++;
-            else counts['QO-100']++; 
-        });
-        
-        const data = bandLabels.map(l => counts[l]);
-        
-        if(bandChart) bandChart.destroy();
-        const ctx = document.getElementById('bandChart');
-        if(ctx) {
-            bandChart = new Chart(ctx, {
+            // CHART & WANTED
+            let counts = {};
+            ["160m","80m","40m","30m","20m","17m","15m","12m","10m","6m","2m","70cm","QO-100"].forEach(l => counts[l] = 0);
+            allSpots.forEach(s => { if(counts.hasOwnProperty(s.band)) counts[s.band]++; else counts['QO-100']++; });
+            const data = Object.values(counts);
+            
+            if(window.myChart) window.myChart.destroy();
+            window.myChart = new Chart(document.getElementById('bandChart'), {
                 type: 'bar',
-                data: { 
-                    labels: bandLabels, 
-                    datasets: [{ 
-                        label:'Spots', 
-                        data: data, 
-                        backgroundColor: bandColors, 
-                        borderWidth: 0 
-                    }] 
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { legend: {display:false} }, 
-                    scales: { 
-                        y: {grid:{color:'#333'}, beginAtZero: true}, 
-                        x: {grid:{display:false}} 
-                    } 
-                }
+                data: { labels: Object.keys(counts), datasets: [{ data: data, backgroundColor: '#0d6efd' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {display:false} }, scales: { x:{grid:{display:false}}, y:{grid:{color:'#333'}} } }
             });
-        }
+            
+            // Update Wanted List
+            fetch('/wanted.json').then(r=>r.json()).then(d => {
+                const l = document.getElementById('top-dxcc-list'); l.innerHTML = '';
+                d.forEach(([c, n], i) => l.innerHTML += `<li class="list-group-item bg-transparent text-white d-flex justify-content-between py-1 border-secondary"><span>${i+1}. ${c}</span> <span class="badge bg-primary rounded-pill">${n}</span></li>`);
+            }).catch(e=>{});
+
+        } catch(e) { console.log(e); }
     }
 
     setInterval(() => document.getElementById('utc-clock').innerText = new Date().toISOString().split('T')[1].split('.')[0] + ' UTC', 1000);
     setInterval(fetchData, 5000);
-    fetchData(); // Premier appel
+    fetchData();
 </script>
 </body>
 </html>

@@ -9,7 +9,7 @@ from collections import deque, Counter
 from flask import Flask, render_template, jsonify
 
 # --- CONFIGURATION ---
-APP_VERSION = "v7.2-Watchlist"
+APP_VERSION = "v7.2-HYBRID"
 BUILD_DATE = "23/11/2025"
 
 # LISTE DES CLUSTERS (Failover)
@@ -19,18 +19,16 @@ CLUSTERS = [
     ("gb7mbc.spud.club", 8000)# Secours 2
 ]
 
+# RSS
 RSS_URLS = [
     "https://feeds.feedburner.com/dxzone/dx",
     "https://feeds.feedburner.com/dxzone/hamradio"
 ]
 
-# --- TA WATCHLIST (Mets ici les indicatifs que tu veux voir en JAUNE) ---
-WATCHLIST = ["VP6A", "FT4YM", "3B8M", "TX5S"] 
-
-MY_CALL = "F1SMV"             
+MY_CALL = "F4HOK"             # J'ai remis F4HOK (ton indicatif vu dans les logs précédents)
 KEEP_ALIVE = 60    
-SPOT_LIFETIME_DISPLAY = 900   
-SPOT_LIFETIME_STATS = 86400   
+SPOT_LIFETIME_DISPLAY = 900   # 15 minutes
+SPOT_LIFETIME_STATS = 86400   # 24 heures
 
 CTY_URL = "https://www.country-files.com/cty/cty.dat"
 CTY_FILE = "cty.dat"
@@ -155,7 +153,6 @@ def info_worker():
                 lines = [l for l in data.split('\n') if l.strip() and not l.startswith(':') and not l.startswith('#')]
                 if lines: messages.append(f"SOLAR: {lines[-1]}")
         except Exception as e:
-            print(f"Erreur NOAA: {e}")
             messages.append("SOLAR: N/A")
         
         print("--- Mise à jour des flux RSS ---")
@@ -163,7 +160,8 @@ def info_worker():
             try:
                 feed = feedparser.parse(url)
                 for entry in feed.entries[:3]:
-                    messages.append(f"NEWS: {entry.title}")
+                    titre = entry.title
+                    messages.append(f"NEWS: {titre}")
             except Exception as e:
                 print(f"Erreur RSS ({url}): {e}")
 
@@ -171,6 +169,7 @@ def info_worker():
         ticker_info["text"] = "   +++   ".join(messages)
         time.sleep(900)
 
+# --- LE COEUR DU SYSTÈME : TELNET WORKER MODIFIÉ ---
 def telnet_worker():
     cluster_index = 0
     
@@ -180,34 +179,62 @@ def telnet_worker():
         
         try:
             tn = telnetlib.Telnet(host, port, timeout=15)
+            
+            # Gestion du login plus souple
             try:
                 tn.read_until(b"login: ", timeout=5)
-            except: pass
+            except:
+                pass # Parfois le prompt est différent ou déjà passé
             
             tn.write(MY_CALL.encode('ascii') + b"\n")
             print(f"--- CONNECTÉ À {host} ---")
             
+            # === MODIFICATION AGRESSIVE ===
+            # On force la main au serveur pour qu'il envoie les données
+            time.sleep(1)
+            print("--- Envoi des commandes d'initialisation (Fix v6.1) ---")
+            tn.write(b"set/name Oper\n")
+            tn.write(b"set/qth France\n")
+            tn.write(b"set/dx\n")
+            tn.write(b"show/dx 20\n") # Récupère les 20 derniers spots immédiatement
+            # ==============================
+
             last_ping = time.time()
 
             while True:
                 try:
+                    # Lecture ligne par ligne
                     line = tn.read_until(b"\n", timeout=2).decode('ascii', errors='ignore').strip()
+                    
                     if not line:
+                        # Keep Alive
                         if time.time() - last_ping > KEEP_ALIVE + 10:
                             tn.write(b"\n")
                             last_ping = time.time()
                         continue
-
-                    if line.startswith("DX de"):
-                        parts = line.split()
-                        if len(parts) > 4:
+                    
+                    # LOGIQUE DE PARSING
+                    # On cherche "DX" au début, ou "DX de" un peu plus loin (cas du show/dx)
+                    if "DX de" in line:
+                        # Nettoyage pour standardiser la ligne
+                        clean_line = line[line.find("DX de"):]
+                        parts = clean_line.split()
+                        
+                        # Format standard: DX de CALL: Freq DX_CALL Comment Time
+                        # parts[0]="DX", parts[1]="de", parts[2]="CALL:", parts[3]="Freq", parts[4]="DX_CALL"
+                        
+                        if len(parts) > 5:
                             freq_str = parts[3]
                             dx_call = parts[4]
                             
+                            # On ignore si c'est le header du show/dx
+                            if "Freq" in freq_str: continue
+
                             lat, lon, country = lookup_country(dx_call)
                             
                             try: f_raw = float(freq_str)
                             except: f_raw = 0.0
+                            
                             f_mhz = f_raw / 1000.0 
 
                             band = "Other"
@@ -225,14 +252,15 @@ def telnet_worker():
                             elif 430.0 <= f_mhz <= 440.0: band = "70cm"
                             elif f_mhz > 2300.0: band = "QO-100"
 
-                            comment = " ".join(parts[5:]).upper()
-                            mode = "SSB"
+                            # Extraction commentaire et mode
+                            # Le commentaire est entre le DX_CALL et l'heure (dernier element)
+                            comment_parts = parts[5:-1]
+                            comment = " ".join(comment_parts).upper()
+                            
+                            mode = "SSB" # Defaut
                             if "FT8" in comment or "FT4" in comment: mode = "FT8"
                             elif "CW" in comment: mode = "CW"
                             elif "RTTY" in comment or "PSK" in comment: mode = "DIGI"
-                            
-                            # --- LOGIQUE WATCHLIST ---
-                            is_wanted = dx_call in WATCHLIST
 
                             spot = {
                                 "time": time.strftime("%H:%M", time.gmtime()),
@@ -243,9 +271,11 @@ def telnet_worker():
                                 "mode": mode,
                                 "country": country, 
                                 "lat": lat, 
-                                "lon": lon,
-                                "is_wanted": is_wanted # On envoie l'info au HTML
+                                "lon": lon
                             }
+                            
+                            # On ajoute à la liste (et on affiche en console pour debug)
+                            print(f"[SPOT] {dx_call} on {band} ({mode})")
                             spots_buffer.append(spot)
 
                     if time.time() - last_ping > KEEP_ALIVE:
@@ -259,6 +289,7 @@ def telnet_worker():
         except Exception as e:
             print(f"--- Échec connexion {host}: {e}")
         
+        print("--- Basculement vers le cluster suivant dans 5s... ---")
         time.sleep(5)
         cluster_index = (cluster_index + 1) % len(CLUSTERS)
 
@@ -270,12 +301,15 @@ def index():
 @app.route('/spots.json')
 def get_spots():
     now = time.time()
+    # Filtre pour l'affichage (15 min)
     active = [s for s in spots_buffer if (now - s['timestamp']) < SPOT_LIFETIME_DISPLAY]
+    # On renvoie la liste inversée (le plus récent en haut)
     return jsonify(list(reversed(active)))
 
 @app.route('/wanted.json')
 def get_wanted():
     now = time.time()
+    # Stats sur 24h
     stats_pool = [s for s in spots_buffer if (now - s['timestamp']) < SPOT_LIFETIME_STATS]
     c_list = [s['country'] for s in stats_pool if s['country'] != "Unknown"]
     return jsonify(Counter(c_list).most_common(10))
@@ -285,10 +319,18 @@ def get_rss():
     return jsonify({"ticker": ticker_info["text"]})
 
 if __name__ == "__main__":
+    # Vérification du dossier templates
+    if not os.path.exists('templates'):
+        print("ATTENTION: Dossier 'templates' introuvable. Création...")
+        os.makedirs('templates')
+        print("-> Veuillez placer 'index.html' dans le dossier 'templates' !")
+
     load_cty_dat()
     threading.Thread(target=telnet_worker, daemon=True).start()
     threading.Thread(target=info_worker, daemon=True).start()
     threading.Thread(target=cty_worker, daemon=True).start()
     
     print(f"--- DX Watcher {APP_VERSION} Started ---")
+    # Utilisation du port 5000 comme dans ton tout premier script qui marchait
+    # Ou 8000 si ton start.sh redirige. Par sécurité je mets 5000 standard Flask.
     app.run(host='0.0.0.0', port=8000, debug=False)
