@@ -2,7 +2,7 @@
 
 **DX Watcher Ultimate** est un agrégateur de DX Cluster local, multicanal et intelligent. Contrairement aux clusters traditionnels qui se contentent d'afficher une liste chronologique brute, ce logiciel intègre un moteur d'analyse algorithmique (**Neural AI Engine**) qui note, classe et priorise les spots radioamateurs en temps réel.
 
-![Version](https://img.shields.io/badge/Version-Neural_AI_v1.0-blue) ![Python](https://img.shields.io/badge/Python-3.x-yellow) ![License](https://img.shields.io/badge/License-MIT-green)
+![Version](https://img.shields.io/badge/Version-Neural_AI_v1.3-blue) ![Python](https://img.shields.io/badge/Python-3.x-yellow) ![License](https://img.shields.io/badge/License-MIT-green)
 
 ---
 
