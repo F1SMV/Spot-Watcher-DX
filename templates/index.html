@@ -1,264 +1,438 @@
 <!DOCTYPE html>
-<html lang="fr" data-bs-theme="dark">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DX Neural AI v1</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>NEURAL DX CLUSTER v1.3</title>
+    
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Scripts Externes -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* --- STYLE GLOBAL --- */
-        body { background-color: #212529; color: #f8f9fa; }
+        /* --- THEMES --- */
+        :root {
+            --primary: #00f3ff;
+            --secondary: #00ff41;
+            --alert: #ff003c;
+            --bg: #050a10;
+            --panel: rgba(10, 20, 30, 0.9);
+            --text: #e0e0e0;
+            --grid: rgba(0, 243, 255, 0.1);
+        }
         
-        /* TICKER */
-        .ticker-wrap { width: 100%; background-color: #111; overflow: hidden; height: 35px; line-height: 35px; }
-        .ticker { display: inline-block; white-space: nowrap; padding-left: 100%; animation: ticker 60s linear infinite; }
-        .ticker-item { color: #00ffff; font-family: 'Consolas', monospace; font-weight: bold; }
-        @keyframes ticker { 100% { transform: translate3d(-100%, 0, 0); } }
+        [data-theme="amber"] { --primary: #ffb000; --secondary: #ffcc00; --alert: #ff4400; --bg: #100a00; --panel: rgba(30, 20, 5, 0.9); --grid: rgba(255, 176, 0, 0.15); }
+        [data-theme="matrix"] { --primary: #00ff00; --secondary: #008f11; --alert: #ff0000; --bg: #000000; --panel: rgba(0, 20, 0, 0.95); --grid: rgba(0, 255, 0, 0.1); }
+        [data-theme="cyber"] { --primary: #ff00ff; --secondary: #00ffff; --alert: #ffff00; --bg: #0a000f; --panel: rgba(20, 0, 30, 0.9); --grid: rgba(255, 0, 255, 0.15); }
+        [data-theme="light"] { --primary: #0055ff; --secondary: #00aa00; --alert: #dd0000; --bg: #f0f0f0; --panel: #ffffff; --text: #111; --grid: rgba(0,0,0,0.1); }
 
-        /* HIGHLIGHTS */
-        tr.watchlist-hit { background-color: #FFD700 !important; color: #000 !important; font-weight: bold; }
-        tr.watchlist-hit a { color: #000 !important; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Courier New', monospace; margin: 0; padding: 15px; overflow-x: hidden; transition: background 0.3s; }
         
-        /* MAP & UI */
-        #map { height: 500px; width: 100%; border-radius: 0 0 8px 8px; }
-        .spot-row { font-family: 'Consolas', monospace; font-size: 0.9rem; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 15px; text-shadow: 0 0 10px var(--primary); }
+        .title { font-size: 1.8rem; font-weight: bold; color: var(--primary); letter-spacing: 3px; }
+        .meta { font-size: 0.8rem; color: var(--secondary); display: flex; gap: 15px; align-items: center; }
         
-        /* AUDIO ANIMATION */
-        .audio-active { animation: pulse 2s infinite; color: #ff4444 !important; }
-        @keyframes pulse { 50% { text-shadow: 0 0 10px #f00; } }
+        /* Ticker */
+        .ticker-wrap { width: 100%; overflow: hidden; background: #000; border: 1px solid var(--primary); margin-bottom: 15px; height: 25px; line-height: 25px; position: relative; }
+        .ticker { display: inline-block; white-space: nowrap; animation: ticker 40s linear infinite; color: var(--secondary); font-weight: bold; font-size: 0.9rem; }
+        @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+        /* Controls */
+        .controls { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        select, button.ctrl-btn { background: #000; color: var(--primary); border: 1px solid var(--primary); padding: 4px 8px; font-family: inherit; cursor: pointer; font-weight: bold; text-transform: uppercase; font-size: 0.9rem; }
+        select:hover, button.ctrl-btn:hover { box-shadow: 0 0 10px var(--primary); }
+        
+        .voice-on { background-color: var(--alert) !important; color: #000 !important; border-color: var(--alert) !important; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 0, 60, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0); } }
+
+        /* --- LAYOUT GRID --- */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 68% 30%; /* Carte large à gauche */
+            gap: 2%;
+            align-items: start;
+        }
+
+        /* Panels */
+        .panel { background: var(--panel); border: 1px solid var(--primary); padding: 10px; box-shadow: 0 0 15px var(--grid); margin-bottom: 20px; position: relative; }
+        .panel h2 { margin-top: 0; border-bottom: 1px solid var(--primary); padding-bottom: 5px; font-size: 1.1rem; color: var(--primary); text-transform: uppercase; display: flex; justify-content: space-between; }
+        
+        /* Specific Heights */
+        .map-container { height: 500px; width: 100%; border: 1px solid var(--secondary); } /* Grande carte principale */
+        .spots-container { height: 350px; overflow-y: auto; } /* Tableau en dessous */
+        .chart-wrapper { position: relative; height: 220px; width: 100%; }
+
+        /* Map */
+        #map { height: 100%; width: 100%; }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { text-align: left; color: var(--primary); padding: 4px; border-bottom: 1px solid #333; position: sticky; top: 0; background: var(--bg); z-index: 2; }
+        td { padding: 4px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        
+        /* Modes & Scores */
+        .mode-ft8 { color: #ff00ff; }
+        .mode-cw { color: #ffff00; }
+        .mode-ssb { color: #00ff00; }
+        .high-score { color: var(--alert); font-weight: bold; text-shadow: 0 0 5px var(--alert); }
+        
+        /* WATCHLIST HIGHLIGHT */
+        tr.watchlist-match { background-color: #ffff00 !important; color: #000000 !important; font-weight: bold; }
+        tr.watchlist-match td { border-bottom: 1px solid #000; }
+        tr.watchlist-match .mode-ft8, tr.watchlist-match .mode-cw, tr.watchlist-match .mode-ssb, tr.watchlist-match .high-score { color: #000 !important; text-shadow: none !important; }
+
+        /* Inputs */
+        .watchlist-input { display: flex; gap: 5px; margin-bottom: 10px; }
+        .watchlist-input input { background: #000; border: 1px solid var(--secondary); color: #fff; padding: 4px; width: 100%; font-family: inherit; text-transform: uppercase; }
+        .watchlist-input button { background: var(--secondary); color: #000; border: none; cursor: pointer; font-weight: bold; padding: 0 8px; }
+        .watchlist-item { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #555; font-size: 0.9rem; }
+        .btn-del { color: var(--alert); cursor: pointer; font-weight: bold; border: 1px solid var(--alert); padding: 0 4px; font-size: 0.7rem; }
+        .btn-del:hover { background: var(--alert); color: #000; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: var(--primary); }
     </style>
 </head>
 <body>
-
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary py-1">
-    <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center fw-bold" href="#">
-            <i class="fa-solid fa-microchip me-2 text-info"></i> 
-            <div>
-                DX WATCHER <span class="text-warning">NEURAL AI</span>
-                <div style="font-size: 0.6rem; color: #aaa;">{{ version }}</div>
-            </div>
-        </a>
-        <div class="ms-auto text-white small">
-            <i class="fa-regular fa-clock"></i> <span id="utc-clock">00:00 UTC</span> | {{ my_call }}
+    <div class="header">
+        <div class="title">NEURAL CLUSTER <span style="font-size:0.5em">{{ version }}</span></div>
+        <div class="meta">
+            <span>OP: {{ my_call }}</span>
+            <span>DATE: {{ date }}</span>
+            <select id="themeSelect" onchange="changeTheme(this.value)">
+                <option value="neon">THEME: NEON</option>
+                <option value="amber">THEME: AMBER</option>
+                <option value="matrix">THEME: MATRIX</option>
+                <option value="cyber">THEME: CYBER</option>
+                <option value="light">THEME: LIGHT</option>
+            </select>
         </div>
     </div>
-</nav>
 
-<!-- TICKER -->
-<div class="ticker-wrap"><div class="ticker"><div class="ticker-item" id="rss-content">Initialisation du Neural Engine...</div></div></div>
+    <div class="ticker-wrap">
+        <div class="ticker" id="ticker">SYSTEM INITIALIZING RSS FEED...</div>
+    </div>
 
-<div class="container-fluid mt-3">
-    <div class="row">
-        <!-- GAUCHE -->
-        <div class="col-lg-8">
-            <!-- Carte -->
-            <div class="card mb-3 border-0"><div class="card-body p-0"><div id="map"></div></div></div>
+    <div class="controls">
+        <select id="bandFilter" onchange="updateSpots()">
+            <option value="All">BAND: ALL</option>
+            {% for b in bands %}<option value="{{ b }}">{{ b }}</option>{% endfor %}
+        </select>
+        <select id="modeFilter" onchange="updateSpots()">
+            <option value="All">MODE: ALL</option>
+            {% for m in modes %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+        </select>
+        <button id="voiceBtn" class="ctrl-btn" onclick="toggleVoice()">VOICE: OFF</button>
+    </div>
+
+    <!-- MAIN GRID LAYOUT -->
+    <div class="main-grid">
+        
+        <!-- COLONNE GAUCHE (CARTE EN HAUT + TABLEAU EN BAS) -->
+        <div class="left-col">
             
-            <div class="row">
-                <!-- Graphique -->
-                <div class="col-md-6">
-                    <div class="card mb-3 bg-dark text-light border-secondary">
-                        <div class="card-header fw-bold"><i class="fa-solid fa-chart-column"></i> Propagation par Bande</div>
-                        <div class="card-body" style="height:250px"><canvas id="bandChart"></canvas></div>
-                    </div>
-                </div>
-                <!-- Ranking IA -->
-                <div class="col-md-6">
-                    <div class="card mb-3 bg-dark text-light border-secondary">
-                        <div class="card-header fw-bold d-flex justify-content-between">
-                            <span><i class="fa-solid fa-trophy text-warning"></i> Neural Ranking</span>
-                            <span class="badge bg-danger">LIVE AI</span>
-                        </div>
-                        <ul class="list-group list-group-flush small" id="neural-list" style="overflow-y: auto; height: 250px;"></ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- DROITE -->
-        <div class="col-lg-4">
-            <!-- Watchlist -->
-            <div class="card mb-3 border-warning shadow-sm" style="background: #222;">
-                <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between">
-                    <span><i class="fa-solid fa-eye"></i> Watchlist</span>
-                    <button class="btn btn-sm btn-dark" id="btn-audio" onclick="toggleAudio()"><i class="fa-solid fa-volume-xmark" id="icon-audio"></i></button>
-                </div>
-                <div class="card-body p-2">
-                    <div class="input-group input-group-sm mb-2">
-                        <input type="text" id="watch-input" class="form-control bg-dark text-white" placeholder="Call...">
-                        <button class="btn btn-warning" onclick="addWatch()">+</button>
-                    </div>
-                    <div id="watchlist-badges" class="d-flex flex-wrap gap-1"></div>
+            <!-- 1. MAIN MAP (TACTICAL VIEW) -->
+            <div class="panel" style="padding:0; border:none;">
+                <div class="map-container">
+                    <div id="map"></div>
                 </div>
             </div>
 
-            <!-- Spots Table -->
-            <div class="card h-100 bg-dark border-secondary">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="text-white fw-bold">Live Spots</span>
-                    <span class="badge bg-success" id="spot-count">0</span>
-                </div>
-                <div class="table-responsive no-scrollbar" style="height: 500px; overflow-y: auto;">
-                    <table class="table table-dark table-hover table-sm spot-row mb-0">
-                        <thead class="sticky-top bg-secondary">
-                            <tr><th>UTC</th><th>Call</th><th>Freq</th><th>Pays</th><th class="text-end">AI</th></tr>
+            <!-- 2. LIVE STREAM TABLE -->
+            <div class="panel">
+                <h2>LIVE SPOTS STREAM</h2>
+                <div class="spots-container">
+                    <table id="spotsTable">
+                        <thead>
+                            <tr>
+                                <th>TIME</th><th>FREQ</th><th>CALL</th><th>DXCC</th><th>BAND</th><th>MODE</th><th>SCR</th>
+                            </tr>
                         </thead>
-                        <tbody id="spots-body"></tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
+
+        </div>
+
+        <!-- COLONNE DROITE (RANKING + WATCHLIST + CHART) -->
+        <div class="right-col">
+            
+            <!-- 3. TOP RANKING (AI) -->
+            <div class="panel">
+                <h2 style="color: var(--alert)">TOP RANKING (AI)</h2>
+                <table id="wantedTable">
+                    <thead><tr><th>CALL</th><th>FREQ</th><th>BND</th><th>SCR</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- 4. WATCHLIST -->
+            <div class="panel" style="border-color: var(--secondary);">
+                <h2 style="color: var(--secondary)">WATCHLIST</h2>
+                <div class="watchlist-input">
+                    <input type="text" id="newCall" placeholder="ADD CALL..." maxlength="10">
+                    <button onclick="addToWatchlist()">ADD</button>
+                </div>
+                <div id="watchlistContainer" style="height: 120px; overflow-y: auto;"></div>
+            </div>
+
+            <!-- 5. BAND ACTIVITY CHART -->
+            <div class="panel">
+                <h2>BAND ACTIVITY</h2>
+                <div class="chart-wrapper">
+                    <canvas id="bandChart"></canvas>
+                </div>
+            </div>
+
         </div>
     </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // --- GLOBALS ---
+        let map, markers = [];
+        let currentWatchlist = []; 
+        let activityChart = null;
+        let voiceEnabled = false;
+        let announcedSet = new Set(); 
+        let firstLoad = true;
 
-<script>
-    // --- AUDIO & CONFIG ---
-    let audioEnabled=false, spokenSpots=[], watchlist=JSON.parse(localStorage.getItem('watchlist')||'[]');
-    function toggleAudio() {
-        audioEnabled=!audioEnabled;
-        document.getElementById('icon-audio').className = audioEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
-        document.getElementById('btn-audio').classList.toggle('audio-active');
-    }
-    function speak(txt) { if(audioEnabled) window.speechSynthesis.speak(new SpeechSynthesisUtterance(txt)); }
+        const bandOrder = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m', '4m', '2m', '70cm'];
+        
+        // Couleurs Spectrum
+        const bandColors = [
+            '#8b0000', '#800080', '#4b0082', '#0000ff', '#00ced1', 
+            '#008000', '#adff2f', '#ffff00', '#ffa500', '#ff0000', 
+            '#ff1493', '#ff69b4', '#ffffff', '#808080'
+        ];
 
-    // --- MAP SETUP ---
-    const map = L.map('map').setView([20,0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    let markers = L.layerGroup().addTo(map);
-
-    // --- CHART SETUP (COULEURS FIXES) ---
-    const bandLabels = ["160m","80m","40m","30m","20m","17m","15m","12m","10m","6m","2m","70cm","QO-100"];
-    const bandColors = [
-        '#5D4037', // 160m Brown
-        '#7B1FA2', // 80m Purple
-        '#1A237E', // 40m Navy
-        '#004D40', // 30m Teal
-        '#1976D2', // 20m Blue
-        '#0097A7', // 17m Cyan
-        '#0288D1', // 15m Light Blue
-        '#F57C00', // 12m Orange
-        '#FFD600', // 10m Gold
-        '#C2185B', // 6m Pink
-        '#D32F2F', // 2m Red
-        '#388E3C', // 70cm Green
-        '#00E676'  // QO-100 Neon
-    ];
-    let bandChartCtx = document.getElementById('bandChart').getContext('2d');
-    let myChart = new Chart(bandChartCtx, {
-        type: 'bar',
-        data: { 
-            labels: bandLabels, 
-            datasets: [{ data: Array(13).fill(0), backgroundColor: bandColors, borderWidth: 0 }] 
-        },
-        options: { 
-            responsive:true, maintainAspectRatio:false, 
-            plugins:{legend:{display:false}}, 
-            scales:{x:{grid:{display:false}}, y:{grid:{color:'#333'}, beginAtZero:true}} 
+        // --- VOICE ---
+        function toggleVoice() {
+            voiceEnabled = !voiceEnabled;
+            const btn = document.getElementById('voiceBtn');
+            if(voiceEnabled) {
+                btn.innerText = "VOICE: ON";
+                btn.classList.add('voice-on');
+                speak("Voice online.");
+            } else {
+                btn.innerText = "VOICE: OFF";
+                btn.classList.remove('voice-on');
+            }
         }
-    });
 
-    // --- WATCHLIST LOGIC ---
-    function updateWatchlistUI() {
-        const c = document.getElementById('watchlist-badges'); c.innerHTML='';
-        watchlist.forEach(w => c.innerHTML+=`<span class="badge bg-warning text-dark cursor-pointer" onclick="removeWatch('${w}')">${w} <i class="fa fa-times"></i></span>`);
-    }
-    function addWatch() { 
-        let v = document.getElementById('watch-input').value.toUpperCase().trim(); 
-        if(v && !watchlist.includes(v)) { watchlist.push(v); localStorage.setItem('watchlist', JSON.stringify(watchlist)); updateWatchlistUI(); fetchData(); }
-    }
-    window.removeWatch = (w) => { watchlist=watchlist.filter(x=>x!==w); localStorage.setItem('watchlist', JSON.stringify(watchlist)); updateWatchlistUI(); fetchData(); };
-    updateWatchlistUI();
+        function speak(text) {
+            if(!voiceEnabled) return;
+            window.speechSynthesis.cancel();
+            let utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 1.1;
+            window.speechSynthesis.speak(utterance);
+        }
 
-    // --- MAIN LOOP ---
-    async function fetchData() {
-        try {
-            const [resSpots, resRss, resWanted] = await Promise.all([
-                fetch('/spots.json'), fetch('/rss.json'), fetch('/wanted.json')
-            ]);
-            const spots = await resSpots.json();
-            const rss = await resRss.json();
-            const ranking = await resWanted.json();
+        function checkVoiceAlerts(spot) {
+            if(firstLoad) return;
+            const key = `${spot.dx_call}-${spot.band}-${spot.time}`;
+            if(announcedSet.has(key)) return;
 
-            // 1. Ticker
-            if(rss.ticker) document.getElementById('rss-content').innerText = rss.ticker;
+            if(currentWatchlist.includes(spot.dx_call)) {
+                speak(`Watchlist alert! ${spot.dx_call} on ${spot.band}`);
+                announcedSet.add(key);
+                return;
+            }
+            if(spot.score >= 90) {
+                speak(`Priority traffic! ${spot.dx_call} on ${spot.band}`);
+                announcedSet.add(key);
+            }
+        }
 
-            // 2. Ranking IA
-            const list = document.getElementById('neural-list'); list.innerHTML = '';
-            ranking.forEach((item, i) => {
-                let badge = item.score > 80 ? 'bg-danger' : 'bg-warning text-dark';
-                list.innerHTML += `
-                    <li class="list-group-item bg-transparent text-white d-flex justify-content-between py-1 border-secondary">
-                        <span>${i+1}. <strong>${item.call}</strong> <span class="text-muted small">(${item.c})</span></span>
-                        <span class="badge ${badge} rounded-pill">${item.score}</span>
-                    </li>`;
-            });
+        // --- THEME ---
+        function changeTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('neuralTheme', themeName);
+            if(activityChart) {
+                const style = getComputedStyle(document.body);
+                activityChart.options.scales.y.grid.color = style.getPropertyValue('--grid').trim();
+                activityChart.options.scales.x.ticks.color = style.getPropertyValue('--primary').trim();
+                activityChart.options.scales.y.ticks.color = style.getPropertyValue('--primary').trim();
+                activityChart.update();
+            }
+        }
 
-            // 3. Spots & Map
-            const tbody = document.getElementById('spots-body'); 
-            tbody.innerHTML=''; markers.clearLayers();
-            document.getElementById('spot-count').innerText = spots.length;
+        // --- MAP ---
+        function initMap() {
+            map = L.map('map').setView([20, 0], 1);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+        }
+
+        // --- CHART ---
+        function initChart() {
+            const ctx = document.getElementById('bandChart');
+            if (!ctx) return;
+            const style = getComputedStyle(document.body);
             
-            let countsMap = {}; // Temp storage for chart counts
-
-            spots.forEach(s => {
-                // Compte pour le chart
-                countsMap[s.band] = (countsMap[s.band] || 0) + 1;
-
-                // Logique Watchlist / AI
-                let isW = s.is_wanted || watchlist.some(w => s.dx_call.includes(w));
-                let cls = isW ? 'watchlist-hit' : '';
-                let scoreBadge = s.score > 50 ? 'bg-danger' : 'bg-secondary';
-                
-                // Audio
-                if(isW && audioEnabled) {
-                    let sid = s.dx_call+s.band+s.time;
-                    if(!spokenSpots.includes(sid)) { spokenSpots.push(sid); speak(`Alerte DX ${s.dx_call} sur ${s.band}`); }
-                }
-
-                // Tableau
-                tbody.insertAdjacentHTML('beforeend', `
-                    <tr class="${cls}">
-                        <td>${s.time}</td>
-                        <td><a href="https://www.qrz.com/db/${s.dx_call}" target="_blank" class="fw-bold text-decoration-none text-reset">${s.dx_call}</a></td>
-                        <td>${s.freq}</td>
-                        <td class="text-truncate" style="max-width:100px;">${s.country}</td>
-                        <td class="text-end"><span class="badge ${scoreBadge}">${s.score}</span></td>
-                    </tr>
-                `);
-
-                // Map Marker
-                if(s.lat !== 0) {
-                    let col = isW ? '#FFD700' : (s.score>50?'#ff4444':'#00ff9d');
-                    L.circleMarker([s.lat, s.lon], {radius: isW?8:3, color: col, fillColor: col, fillOpacity:0.8}).addTo(markers)
-                     .bindPopup(`<div class="text-center">
-                                    <strong style="font-size:1.1em">${s.dx_call}</strong><br>
-                                    <span class="badge bg-dark border border-secondary">${s.freq} kHz</span><br>
-                                    <span class="small text-muted">Score IA: ${s.score}</span>
-                                 </div>`);
+            activityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: bandOrder,
+                    datasets: [{
+                        label: 'Spots',
+                        data: new Array(bandOrder.length).fill(0),
+                        backgroundColor: bandColors,
+                        borderColor: '#000',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: style.getPropertyValue('--grid').trim() }, ticks: { color: style.getPropertyValue('--primary').trim() } },
+                        x: { ticks: { color: style.getPropertyValue('--primary').trim(), font: { size: 10 } }, grid: { display: false } }
+                    },
+                    animation: { duration: 500 }
                 }
             });
+        }
 
-            // 4. Update Chart Data (Fixed Order)
-            let chartData = bandLabels.map(b => countsMap[b] || 0);
-            myChart.data.datasets[0].data = chartData;
-            myChart.update();
+        // --- LOGIC ---
+        function getRankingIcon(score) {
+            if(score >= 90) return '🏆';
+            if(score >= 80) return '🥇';
+            if(score >= 70) return '🥈';
+            return '';
+        }
 
-        } catch(e) { console.error("Err:", e); }
-    }
-    
-    setInterval(()=>document.getElementById('utc-clock').innerText=new Date().toISOString().substring(11,16)+' UTC', 1000);
-    setInterval(fetchData, 5000);
-    fetchData();
-</script>
+        function updateSpots() {
+            const band = document.getElementById('bandFilter').value;
+            const mode = document.getElementById('modeFilter').value;
+            
+            fetch(`/spots.json?band=${band}&mode=${mode}`)
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.querySelector('#spotsTable tbody');
+                    tbody.innerHTML = '';
+                    markers.forEach(m => map.removeLayer(m));
+                    markers = [];
+
+                    let bandCounts = {};
+                    bandOrder.forEach(b => bandCounts[b] = 0);
+
+                    data.forEach(s => {
+                        if(bandCounts.hasOwnProperty(s.band)) bandCounts[s.band]++;
+                        checkVoiceAlerts(s);
+
+                        const isWatchlisted = currentWatchlist.includes(s.dx_call);
+                        const rowClass = isWatchlisted ? 'watchlist-match' : (s.score > 80 ? 'high-score' : '');
+                        const rankIcon = getRankingIcon(s.score);
+
+                        const row = `<tr class="${rowClass}">
+                            <td>${s.time}</td>
+                            <td>${s.freq}</td>
+                            <td>${s.dx_call}</td>
+                            <td>${s.country.substring(0,10)}</td>
+                            <td>${s.band}</td>
+                            <td class="mode-${s.mode.toLowerCase()}">${s.mode}</td>
+                            <td>${s.score} ${rankIcon}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+
+                        if(s.lat !== 0 && s.lon !== 0) {
+                            const color = isWatchlisted ? '#ffff00' : (s.score > 80 ? '#ff003c' : bandColors[bandOrder.indexOf(s.band)] || '#00f3ff');
+                            const m = L.circleMarker([s.lat, s.lon], {
+                                radius: 5, color: color, fillColor: color, fillOpacity: 0.8
+                            }).bindPopup(`<b>${s.dx_call}</b><br>${s.freq} ${s.mode}`);
+                            m.addTo(map);
+                            markers.push(m);
+                        }
+                    });
+
+                    if(activityChart) {
+                        activityChart.data.datasets[0].data = bandOrder.map(b => bandCounts[b]);
+                        activityChart.update('none');
+                    }
+                    firstLoad = false;
+                });
+        }
+
+        function updateRanking() {
+            fetch('/wanted.json').then(r => r.json()).then(data => {
+                const tbody = document.querySelector('#wantedTable tbody');
+                tbody.innerHTML = '';
+                data.forEach(s => {
+                    let freq = s.freq || '---';
+                    tbody.innerHTML += `<tr>
+                        <td style="color:var(--alert);font-weight:bold">${s.call}</td>
+                        <td>${freq}</td>
+                        <td>${s.band}</td>
+                        <td>${s.score}</td>
+                    </tr>`;
+                });
+            });
+        }
+
+        function updateRSS() {
+            fetch('/rss.json')
+                .then(r => r.json())
+                .then(d => {
+                    if(d.ticker && d.ticker.length > 0) {
+                        document.getElementById('ticker').innerText = d.ticker;
+                    }
+                })
+                .catch(e => console.log("RSS Error or Wait:", e));
+        }
+
+        // --- WATCHLIST ---
+        function loadWatchlist() {
+            fetch('/watchlist.json').then(r => r.json()).then(list => {
+                currentWatchlist = list;
+                const div = document.getElementById('watchlistContainer');
+                div.innerHTML = '';
+                if(list.length === 0) div.innerHTML = '<div style="color:#555;font-style:italic;padding:5px;">Empty list...</div>';
+                list.forEach(call => {
+                    div.innerHTML += `<div class="watchlist-item"><span style="color:var(--secondary);font-weight:bold">${call}</span><span class="btn-del" onclick="removeFromWatchlist('${call}')">X</span></div>`;
+                });
+                updateSpots();
+            });
+        }
+
+        function addToWatchlist() {
+            const input = document.getElementById('newCall');
+            const call = input.value.trim();
+            if(!call) return;
+            fetch('/watchlist.json', { method: 'POST', body: JSON.stringify({call: call}) }).then(() => { input.value = ''; loadWatchlist(); });
+        }
+
+        function removeFromWatchlist(call) {
+            fetch('/watchlist.json', { method: 'DELETE', body: JSON.stringify({call: call}) }).then(() => loadWatchlist());
+        }
+
+        // --- START ---
+        const savedTheme = localStorage.getItem('neuralTheme');
+        if(savedTheme) { 
+            document.getElementById('themeSelect').value = savedTheme;
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        initMap();
+        setTimeout(initChart, 100);
+        loadWatchlist();
+        updateRanking();
+        updateRSS();
+        
+        setInterval(updateSpots, 2000);
+        setInterval(updateRanking, 5000);
+        setInterval(updateRSS, 60000);
+    </script>
 </body>
 </html>

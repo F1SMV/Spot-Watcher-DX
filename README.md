@@ -1,4 +1,4 @@
-# 📡 DX Watcher Ultimate - Neural AI Edition (v1.2)VHF/UHF
+# 📡 DX Watcher Ultimate - Neural AI Edition (v1.3)VHF/UHF
 
 **DX Watcher Ultimate** est un agrégateur de DX Cluster local, multicanal et intelligent. Contrairement aux clusters traditionnels qui se contentent d'afficher une liste chronologique brute, ce logiciel intègre un moteur d'analyse algorithmique (**Neural AI Engine**) qui note, classe et priorise les spots radioamateurs en temps réel.
 
