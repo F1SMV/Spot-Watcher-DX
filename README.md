@@ -14,7 +14,7 @@ Le **Neural DX Cluster** n'est pas un simple afficheur de spots Telnet. C'est un
 Il remplace les listes textuelles interminables par un tableau de bord visuel (Cartes, Graphiques, Alertes) inspiré des interfaces Cyberpunk/Sci-Fi.
 
 ---
-![Apercu du Dashboard] (capture.png)
+![Apercu du Dashboard](capture.png)
 ## 🌟 Fonctionnalités Clés
 
 ### 🧠 1. Neural Scoring (Le "Cerveau")
