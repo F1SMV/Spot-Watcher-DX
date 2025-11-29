@@ -32,7 +32,7 @@ Ouvrez le fichier webapp.py et modifiez la variable MY_CALL avec votre indicatif
 
     MY_CALL = "VOTRE_INDICATIF"
 
-![Apercu du Dashboard](capture.png)
+![Apercu du Dashboard](apercu.png)
 
 🚀 Démarrage
 
