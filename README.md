@@ -1,52 +1,125 @@
-NEURAL DX CLUSTER v2.2 📡
-Intelligent Dual-Spectrum DX Dashboard
+# 🛰️ NEURAL DX v3.0 -
 
-Version Python License
-🇫🇷 FRANÇAIS
+## 💡 Résumé du projet
 
-Neural DX Cluster est une application de surveillance DX nouvelle génération conçue pour les radioamateurs exigeants. Contrairement aux clusters traditionnels qui affichent une liste de texte brute, Neural DX utilise une interface graphique "Dual Spectrum" pour séparer le trafic HF (ondes courtes) du trafic VHF/UHF/Espace.
+**NEURAL DX v3.0** est une station de surveillance radioamateur en temps réel, basée sur Python/Flask pour le backend et une interface web dynamique (HTML/CSS/JavaScript). Le projet agrège et analyse les données de spots DX, les visualise sur des cartes en direct, calcule la distance des contacts par rapport à la position de l'opérateur (QRA Locator), et génère des alertes de propagation ciblées. La version `REDBULL OPS` est optimisée pour la rapidité et la clarté des données.
 
-Il analyse les spots en temps réel, détecte les ouvertures de propagation (Surges), et classe les stations par intérêt grâce à un algorithme de scoring intelligent.
-✨ Fonctionnalités Clés
 
-    🖥️ Dashboard Double Spectre :
-        Zone HF (160m - 10m) : Carte mondiale, Top Liste DX, Graphiques de propagation ionosphérique.
-        Zone VHF (6m - QO-100) : Carte locale/Europe, Top Liste Tropo/ES/EME, Graphiques d'activité spécifiques.
-    🧠 Algorithme de Scoring IA : Le système note chaque spot (0-100) en fonction de la rareté du préfixe, du mode, de la bande et des commentaires (ex: "UP", "SPLIT").
-    ⚠️ Détection de Surge (Ouvertures) : Analyse statistique glissante pour détecter les pics d'activité anormaux sur une bande (ex: ouverture soudaine du 10m ou 6m).
-    🎙️ Alertes Vocales & Watchlist : Synthèse vocale pour annoncer les ouvertures et surveillance prioritaire de vos indicatifs favoris (amis, expéditions).
-    🎨 Interface Personnalisable :
-        Thèmes visuels : Cyber, Matrix, Amber, Neon.
-        Filtres dynamiques : Par Bande et par Mode (CW, SSB, FT8, FM).
-    🗺️ Cartographie Live : Affichage des spots sur cartes interactives (Leaflet) avec distinction jour/nuit implicite via le flux.
 
-🛠️ Installation
+---
 
-    Prérequis : Python 3.x installé sur votre machine.
-    Installation des dépendances :
+## ✨ Fonctionnalités clés
 
-pip install flask feedparser
+* **Calcul de distance personnalisé :** Affiche la distance en **kilomètres** entre le QRA de l'opérateur et chaque spot/entité, y compris dans les tableaux *Top DX Wanted*.
+* **Temporisation QRA :** Le message de validation/erreur du QRA Locator saisi (`Valid / Valide`) s'efface automatiquement après **40 secondes**.
+* **Cartographie dynamique (HF & VHF/UHF) :** Visualisation des spots en temps réel via des cartes Leaflet distinctes.
+* **Live Streams & Top DX Wanted :** Tableaux d'activité avec colonnes de distance resserrées et chiffres en couleur d'accentuation.
+* **Watchlist & Alertes Vocales :** Surveillance d'indicatifs spécifiques avec notification audio et mise en surbrillance.
+* **Alertes de Propagation (Surge) :** Détection et signalisation des pics d'activité sur les bandes.
+* **Historique 24H :** Graphique dédié à l'activité sur les bandes magiques (**12m, 10m, 6m**) avec alerte visuelle d'ouverture.
+* **Filtres dynamiques :** Filtrage des spots par **bande** et **mode** (CW, SSB, FT8, etc.).
 
-Configuration :
-Ouvrez le fichier webapp.py et modifiez la variable MY_CALL avec votre indicatif :
+---
 
-    MY_CALL = "VOTRE_INDICATIF"
+## 🏗️ Architecture technique
 
+Le projet utilise une architecture client-serveur simple :
+
+| Composant | Technologie | Rôle |
+| :--- | :--- | :--- |
+| **Backend** | Python (Flask) | Gestion des données, connexion au DX Cluster (Telnet), calculs de score (AI Score), mise en cache, et service des endpoints JSON. |
+| **Frontend** | HTML/CSS/JS | Interface utilisateur. Leaflet pour la cartographie, Chart.js pour les graphiques, Vanilla JS pour la mise à jour dynamique et les interactions (QRA, filtres). |
+| **Data Flow** | JSON, Telnet | Flask récupère les spots du Cluster et les formate en JSON. Le JavaScript interroge les endpoints Flask (`/spots.json`, `/wanted.json`, etc.) toutes les 3 secondes pour mettre à jour l'interface. |
+
+---
+
+## 🛠️ Installation et configuration
+
+### Dépendances
+
+Ce projet nécessite les bibliothèques Python suivantes :
+
+* `flask`
+* `requests`
+* `telnetlib`
+* `json`
+* `os`
+* `threading`
+* `feedparser` (pour les RSS)
+* `geopy` (ou une librairie de géocoding/distance si la fonction n'est pas codée manuellement)
+
+### Commandes utiles
+
+| Commande | Description |
+| :--- | :--- |
+| `pip install -r requirements.txt` | Installe toutes les dépendances Python nécessaires. |
+| `python webapp.py` | Démarre le serveur Flask sur `http://localhost:8000`. |
+
+### Configuration initiale
+
+Avant l'exécution, vous devez modifier la section de configuration de base dans `webapp.py` :
+
+1.  **Ouvrez `webapp.py`**
+2.  **Mettez à jour les constantes suivantes :**
+
+    ```python
+    # webapp.py
+    MY_CALL = "VOTRE_INDICATIF"  # <-- Indispensable
+    WEB_PORT = 8000
+    QRA_DEFAULT = "JN33"  # <-- Votre QRA par défaut (pour les calculs de distance)
+
+    # Configuration Telnet DX Cluster
+    TELNET_HOST = "cluster.example.com"
+    TELNET_PORT = 73
+    ```
+
+### Lancement
+
+1.  Assurez-vous que toutes les dépendances sont installées.
+2.  Lancez le serveur :
+    ```bash
+    python webapp.py
+    ```
+3.  Ouvrez votre navigateur à l'adresse fournie par l'application (par défaut : `http://127.0.0.1:8000`).
+
+---
 ![Apercu du Dashboard](apercu.png)
 
-🚀 Démarrage
+## 🚀 Utilisation de l'interface
 
-    Lancez l'application :
+### 1. Saisie du QRA Locator
 
-    python webapp.py
+Dans la section **COMMAND DECK** :
 
-    Ouvrez votre navigateur web et allez à l'adresse :
-    http://localhost:8000
+1.  Entrez votre QRA Locator (ex: `JN33`, `JN33BB`).
+2.  Cliquez sur **GO**.
+3.  Le système :
+    * Centre la carte sur votre position.
+    * Met à jour tous les tableaux en calculant la distance.
+    * Affiche **"Valid / Valide"** pendant 40 secondes.
 
-Le système va automatiquement télécharger la base de données pays (cty.dat), se connecter aux clusters Telnet et commencer à peupler les cartes.
+### 2. Gestion des filtres
 
+* Utilisez les listes déroulantes **FILTERS** pour affiner l'affichage des spots dans les sections *LIVE STREAM* et sur les cartes (ex: sélectionner `20m` ou `FT8`).
 
-📜 License
+### 3. Watchlist
 
-MIT License - Feel free to modify and share.
-Created for the Amateur Radio Community pensé par F1SMV, réalisé par gimini3 #codevibing joignable sur mon fil twitter
+* Entrez un indicatif (ex: `K1TTT`) dans le champ **WATCHLIST** et cliquez sur **ADD**.
+* Les spots pour cet indicatif seront mis en évidence en jaune et déclencheront une alerte vocale (si **VOICE: ON**).
+
+### 4. Systèmes d'alerte
+
+* **SURGE :** Une bannière rouge apparaît si le nombre de spots sur une bande dépasse le seuil défini dans `webapp.py`.
+* **OUVERTURE DETECTEE :** Le panneau *PROPAGATION HISTORY* alerte si l'activité sur les bandes 12m, 10m ou 6m dépasse un seuil récent.
+
+### 5. Demarrage
+
+lancez l'application ./start.sh dans le repertoire radio-spo-watcher-dx
+le systeme va automatiquement chargerla base cty.dat et mettre a jour la carte dès reception des spots
+
+enjoy DX !
+
+### Licence MIT
+
+feel free to modify and share . Created for the Amateur Radio Communauty by Eric F1SMV à l'aide de GIMINI3 #codevibing vous pouvez me joindre via mon fil X
+

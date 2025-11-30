@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEURAL DX v2.2 - YELLOW OPS</title>
+    <title>NEURAL DX v3.0 - REDBULL OPS</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -18,6 +18,7 @@
             --border: 1px solid #333;
             --wl-bg: #ffeb3b; /* Jaune vif */
             --wl-text: #000000;
+            --open-color: #d35400; /* Couleur pour l'alerte d'ouverture (12m/10m/6m) */
         }
         
         /* THEMES */
@@ -28,8 +29,12 @@
         body { background-color: var(--bg-color); color: var(--text-main); font-family: 'Share Tech Mono', monospace; margin: 0; overflow-x: hidden; }
         
         /* HEADER */
-        header { display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; background: #000; border-bottom: 1px solid #222; }
+        header { 
+            display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; 
+            background: #000; border-bottom: 1px solid #222; 
+        }
         h1 { font-family: 'Orbitron', sans-serif; color: var(--accent); margin: 0; font-size: 1.4rem; text-shadow: 0 0 10px var(--accent); }
+        .time-display { font-size: 0.8rem; text-align: right; } /* STYLE HEURE */
         
         /* TICKER */
         .ticker-wrap {
@@ -75,6 +80,10 @@
             display: grid; grid-template-columns: 50% 50%; gap: 10px; padding: 0 10px 10px 10px;
             height: 35vh; min-height: 300px;
         }
+        .tertiary-grid { /* GRILLE 24H */
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 10px 10px 10px;
+            height: 30vh; min-height: 250px;
+        }
 
         .panel { background: var(--panel-bg); border: var(--border); padding: 0; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         .panel h3 { margin: 0; padding: 8px; background: #151515; font-size: 0.9rem; border-bottom: 1px solid #333; color: #ddd; }
@@ -87,7 +96,8 @@
         /* SPOT ROWS */
         .spot-row { 
             display: grid; 
-            grid-template-columns: 70px 60px 100px auto; 
+            /* Resserrement de la colonne km (60px) */
+            grid-template-columns: 70px 60px 100px auto 60px; 
             gap: 10px; 
             padding: 4px 8px; 
             border-bottom: 1px solid #222; 
@@ -110,31 +120,50 @@
         .spot-band { text-align: center; border-radius: 3px; color: #000; font-weight: bold; font-size: 0.8rem; padding: 1px 0; }
         .spot-call { font-weight: bold; color: #fff; letter-spacing: 1px; }
         .spot-country { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #888; }
+        
+        /* STYLE DISTANCE */
+        .spot-distance {
+            text-align: right;
+            color: var(--accent); /* Couleur d'accentuation */
+            font-weight: bold;
+        }
 
         /* ALERTS */
         .surge-banner { display: none; background: var(--alert); color: #fff; font-size: 0.8rem; padding: 2px 8px; border-radius: 2px; animation: blink 1s infinite; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
         @keyframes blink { 50% { opacity: 0.5; } }
+        
+        /* NOUVEAU STYLE ALERTE OUVERTURE */
+        .open-alert { 
+            background: var(--panel-bg); color: var(--open-color); border: 2px dashed var(--open-color); 
+            padding: 10px; margin: 10px; text-align: center; font-size: 1.1em; font-weight: bold;
+        }
+        
+        /* QRA FEEDBACK */
+        .qra-valid { color: #0f0; } /* Vert */
+        .qra-invalid { color: var(--alert); } /* Rouge */
 
     </style>
 </head>
 <body>
 
 <header>
-    <h1>NEURAL DX <span style="font-size:0.6em; opacity:0.7; color:#fff">{{ version }}</span></h1>
+    <h1>NEURAL DX <span style="font-size:0.6em; opacity:0.7; color:#fff">v3.0</span></h1>
+    <div class="time-display">
+        <span id="utc-time"></span><br>
+        <span id="local-time"></span>
+    </div>
     <div class="control-group">
         <button onclick="toggleTheme()">THEME</button>
         <button onclick="toggleVoice()">VOICE: <span id="voice-status">OFF</span></button>
     </div>
 </header>
 
-<!-- TICKER -->
 <div class="ticker-wrap">
     <div class="ticker-move" id="ticker-content">
         <div class="ticker-item">INITIALISATION DU SYSTEME...</div>
     </div>
 </div>
 
-<!-- COMMAND DECK -->
 <div class="command-deck">
     <div class="control-group">
         <span>FILTERS:</span>
@@ -154,6 +183,14 @@
             <option value="SSTV">SSTV</option>
         </select>
     </div>
+    
+    <div class="control-group" style="border-left: 1px solid #333; padding-left: 20px;">
+        <span>QRA LOCATOR:</span>
+        <input type="text" id="qra-input" placeholder="JN33" style="width: 70px; text-transform: uppercase;" maxlength="6" onkeyup="clearQraFeedback()">
+        <button onclick="goToQra()">GO</button>
+        <span id="qra-feedback" style="margin-left: 10px; font-size: 0.8rem; font-weight: bold;"></span> 
+    </div>
+
     <div class="control-group" style="margin-left: auto; border-left: 1px solid #333; padding-left: 20px;">
         <span>WATCHLIST:</span>
         <input type="text" id="wl-input" placeholder="Call..." style="width: 70px; text-transform: uppercase;">
@@ -162,7 +199,6 @@
     </div>
 </div>
 
-<!-- ================= HF SECTOR (Inclut 6m) ================= -->
 <div class="sector-container hf-style">
     <div class="sector-title">
         📡 HF GLOBAL & MAGIC BAND (160m - 6m) 
@@ -175,6 +211,9 @@
         </div>
         <div class="panel">
             <h3>🏆 TOP DX WANTED</h3>
+            <div style="font-weight: bold; padding: 4px 8px; background: #151515; display: grid; grid-template-columns: 70px 60px 100px auto 60px; gap: 10px;">
+                <span>Score</span><span>Band</span><span>Call</span><span>Country</span><span style="text-align:right;">km</span>
+            </div>
             <div id="wanted-hf" class="scroll-list"></div>
         </div>
     </div>
@@ -182,6 +221,9 @@
     <div class="secondary-grid">
         <div class="panel">
             <h3>🌊 LIVE STREAM</h3>
+            <div style="font-weight: bold; padding: 4px 8px; background: #151515; display: grid; grid-template-columns: 70px 60px 100px auto 60px; gap: 10px;">
+                <span>Freq</span><span>Band</span><span>Call</span><span>Country</span><span style="text-align:right;">km</span>
+            </div>
             <div id="list-hf" class="scroll-list"></div>
         </div>
         <div class="panel">
@@ -193,7 +235,25 @@
     </div>
 </div>
 
-<!-- ================= VHF SECTOR ================= -->
+<div class="sector-container hf-style">
+    <div class="sector-title">
+        📊 PROPAGATION HISTORY (12m / 10m / 6m) 24H
+    </div>
+    
+    <div class="tertiary-grid">
+        <div class="panel">
+            <div id="open-alert-panel" class="open-alert">
+                SCANNING FOR OPENINGS...
+            </div>
+        </div>
+        <div class="panel">
+            <h3>HOURLY SPOTS (12m/10m/6m)</h3>
+            <div class="chart-wrapper">
+                <canvas id="chart-history"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="sector-container vhf-style">
     <div class="sector-title">
         🛰️ VHF / UHF / SPACE 
@@ -206,6 +266,9 @@
         </div>
         <div class="panel">
             <h3>🚀 TOP VHF WANTED</h3>
+            <div style="font-weight: bold; padding: 4px 8px; background: #151515; display: grid; grid-template-columns: 70px 60px 100px auto 60px; gap: 10px;">
+                <span>Score</span><span>Band</span><span>Call</span><span>Country</span><span style="text-align:right;">km</span>
+            </div>
             <div id="wanted-vhf" class="scroll-list"></div>
         </div>
     </div>
@@ -213,6 +276,9 @@
     <div class="secondary-grid">
         <div class="panel">
             <h3>🌊 LIVE STREAM</h3>
+            <div style="font-weight: bold; padding: 4px 8px; background: #151515; display: grid; grid-template-columns: 70px 60px 100px auto 60px; gap: 10px;">
+                <span>Freq</span><span>Band</span><span>Call</span><span>Country</span><span style="text-align:right;">km</span>
+            </div>
             <div id="list-vhf" class="scroll-list"></div>
         </div>
         <div class="panel">
@@ -224,10 +290,152 @@
     </div>
 </div>
 
+
 <script>
     const BAND_COLORS = {{ band_colors|tojson }};
     const HF_BANDS = {{ hf_bands|tojson }};
     const VHF_BANDS = {{ vhf_bands|tojson }};
+    const HISTORY_BANDS = ['12m', '10m', '6m']; 
+
+    // COORDONNÉES DE DÉPART DE L'UTILISATEUR (par défaut JN33)
+    const DEFAULT_QRA = 'JN33';
+    let userLatLng = null;
+    
+    // Pour gérer la temporisation du feedback QRA (40 secondes)
+    let qraFeedbackTimeout = null; 
+
+    // --- FONCTIONS GÉOMÉTRIQUES ---
+
+    // 1. Conversion QRA Locator -> Lat/Lon
+    function qraToLatLng(qra) {
+        qra = qra.toUpperCase();
+        if (qra.length < 4) return null;
+        
+        let lon = -180, lat = -90;
+        
+        // 1. Field (Ex: JN) -> 18° par caractère (A=0)
+        lon += (qra.charCodeAt(0) - 65) * 20;
+        lat += (qra.charCodeAt(1) - 65) * 10;
+        
+        if (qra.length >= 4) {
+            // 2. Square (Ex: 33) -> 2° par chiffre
+            lon += parseInt(qra[2]) * 2;
+            lat += parseInt(qra[3]) * 1;
+        }
+
+        if (qra.length >= 6) {
+            // 3. Subsquare (Ex: XX) -> 5 minutes de lat/lon (1/24eme de degré)
+            lon += (qra.charCodeAt(4) - 65) * (2/24);
+            lat += (qra.charCodeAt(5) - 65) * (1/24);
+            // On centre au milieu de la sous-case
+            lon += (1/24);
+            lat += (1/48);
+        } else {
+             // On centre au milieu de la case de 2x1 degrés
+            lon += 1;
+            lat += 0.5;
+        }
+
+        return [lat, lon];
+    }
+    
+    // 2. Calcul de la distance (Formule de Haversine)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        if (lat1 === undefined || lon1 === undefined || lat2 === undefined || lon2 === undefined) return null;
+        const R = 6371; // Rayon de la Terre en kilomètres
+        const toRad = (x) => x * Math.PI / 180;
+        
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        
+        return R * c; // Distance en km
+    }
+
+
+    // --- LOGIQUE QRA LOCATOR ET CARTE ---
+
+    function isValidQra(qra) {
+        // Validation basique: 4 ou 6 caractères
+        if (qra.length === 4) {
+            return /^[A-R][A-R]\d\d$/.test(qra);
+        }
+        if (qra.length === 6) {
+            return /^[A-R][A-R]\d\d[A-X][A-X]$/.test(qra);
+        }
+        return false;
+    }
+    
+    function clearQraFeedback() {
+        const feedbackSpan = document.getElementById('qra-feedback');
+        feedbackSpan.innerText = "";
+        feedbackSpan.className = "";
+        qraFeedbackTimeout = null; // Réinitialise l'ID du timeout
+    }
+
+    function goToQra() {
+        const qraInput = document.getElementById('qra-input');
+        const feedbackSpan = document.getElementById('qra-feedback');
+        const qra = qraInput.value.trim().toUpperCase();
+
+        // Annule le timeout précédent si l'utilisateur appuie rapidement sur GO
+        if (qraFeedbackTimeout) {
+            clearTimeout(qraFeedbackTimeout);
+            qraFeedbackTimeout = null;
+        }
+
+        feedbackSpan.innerText = "";
+        feedbackSpan.className = "";
+
+        if (!isValidQra(qra)) {
+            feedbackSpan.innerText = "Invalid / Invalide";
+            feedbackSpan.classList.add('qra-invalid');
+            
+            // Définit le nouveau timeout de 40 secondes
+            qraFeedbackTimeout = setTimeout(clearQraFeedback, 40000);
+            return;
+        }
+        
+        const latLon = qraToLatLng(qra);
+
+        if (latLon) {
+            // Success Feedback
+            feedbackSpan.innerText = "Valid / Valide";
+            feedbackSpan.classList.add('qra-valid');
+            
+            // Définit le nouveau timeout de 40 secondes
+            qraFeedbackTimeout = setTimeout(clearQraFeedback, 40000);
+
+            // Stocke la position de l'utilisateur pour le calcul de distance
+            userLatLng = latLon; 
+            
+            // Determine the map and zoom level
+            let targetMap = mapHF;
+            let zoomLevel = qra.length === 4 ? 6 : 9; 
+            
+            // Si le QRA est dans la zone Europe/Proche
+            if (latLon[0] >= 30 && latLon[0] <= 60 && latLon[1] >= -10 && latLon[1] <= 30) {
+                 targetMap = mapVHF;
+                 zoomLevel = qra.length === 4 ? 7 : 10;
+            }
+
+            targetMap.setView(latLon, zoomLevel, { animate: true });
+            
+            // Si le QRA est validé, on relance updateData pour recalculer les distances
+            updateData(); 
+            
+        } else {
+            feedbackSpan.innerText = "Error / Erreur";
+            feedbackSpan.classList.add('qra-invalid');
+            qraFeedbackTimeout = setTimeout(clearQraFeedback, 40000);
+        }
+    }
+
 
     const mapHF = L.map('map-hf', { attributionControl: false }).setView([25, 0], 2);
     const mapVHF = L.map('map-vhf', { attributionControl: false }).setView([48, 10], 3);
@@ -240,8 +448,9 @@
     let voiceEnabled = false;
     let watchlist = [];
     let lastTickerText = "";
+    let historyChartData = {};
 
-    // Charts
+    // Charts (Configuration inchangée)
     const commonOptions = {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
@@ -261,11 +470,52 @@
             options: commonOptions
         });
     }
+    
+    function createHistoryChart(id) {
+         const ctx = document.getElementById(id).getContext('2d');
+         return new Chart(ctx, {
+            type: 'bar',
+            data: { 
+                labels: [], 
+                datasets: HISTORY_BANDS.map(band => ({
+                    label: band,
+                    data: [],
+                    backgroundColor: BAND_COLORS[band],
+                    borderRadius: 2
+                }))
+            },
+            options: {
+                ...commonOptions,
+                scales: {
+                    ...commonOptions.scales,
+                    x: {
+                        grid: { color: '#222' }, 
+                        ticks: { 
+                            color: '#888', 
+                            font: {size: 8},
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: true, position: 'top', labels: { color: '#ddd' } },
+                },
+                animation: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                indexAxis: 'x'
+            }
+        });
+    }
 
     const chartHF = createChart('chart-hf', HF_BANDS);
     const chartVHF = createChart('chart-vhf', VHF_BANDS);
+    const chartHistory = createHistoryChart('chart-history'); 
 
-    // UI Utils
+    // UI Utils (inchangées)
     const themes = ['', 'matrix', 'amber', 'neon'];
     let currentTheme = 0;
     function toggleTheme() {
@@ -286,8 +536,23 @@
         u.lang = 'en-US'; u.rate = 1.2; u.pitch = 0.9;
         window.speechSynthesis.speak(u);
     }
+    
+    function updateTimeDisplay() {
+        const utcDate = new Date();
+        const localDate = new Date();
+        
+        const formatOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
 
-    // Watchlist
+        // UTC Time
+        const utcTime = utcDate.toLocaleTimeString('fr-FR', {...formatOptions, timeZone: 'UTC' });
+        document.getElementById('utc-time').innerText = `UTC: ${utcTime}`;
+
+        // Local Time
+        const localTime = localDate.toLocaleTimeString('fr-FR', formatOptions);
+        document.getElementById('local-time').innerText = `LOCAL: ${localTime}`;
+    }
+
+    // Watchlist (inchangées)
     async function loadWatchlist() {
         const r = await fetch('/watchlist.json');
         watchlist = await r.json();
@@ -310,10 +575,20 @@
         loadWatchlist();
     }
 
-    // Render Row (Updated with Yellow Highlight)
+    // Render Row - LIVE STREAM
     function createSpotRow(s) {
         const isWatched = watchlist.includes(s.dx_call);
         const rowClass = isWatched ? 'spot-row watched' : 'spot-row';
+        
+        // Calcul de la distance
+        let distance = '';
+        if (userLatLng && s.lat !== undefined && s.lon !== undefined) {
+            const dist = calculateDistance(userLatLng[0], userLatLng[1], s.lat, s.lon);
+            if (dist !== null) {
+                // Utilise toLocaleString pour les séparateurs de milliers (ex: 12 456km)
+                distance = `${Math.round(dist).toLocaleString('fr-FR')}km`;
+            }
+        }
         
         return `
             <div class="${rowClass}">
@@ -321,44 +596,59 @@
                 <span class="spot-band" style="background:${s.color}">${s.band}</span>
                 <span class="spot-call">${s.dx_call}</span>
                 <span class="spot-country">${s.country}</span>
+                <span class="spot-distance">${distance}</span>
             </div>`;
     }
 
+    // Render Row - TOP DX WANTED (MODIFIÉ pour inclure la distance)
     function createWantedRow(s) {
+        // Calcul de la distance (identique à createSpotRow)
+        let distance = '';
+        if (userLatLng && s.lat !== undefined && s.lon !== undefined) {
+            const dist = calculateDistance(userLatLng[0], userLatLng[1], s.lat, s.lon);
+            if (dist !== null) {
+                distance = `${Math.round(dist).toLocaleString('fr-FR')}km`;
+            }
+        }
+
         return `
             <div class="spot-row" style="border-left: 3px solid ${s.color}">
                 <span class="spot-freq" style="color:#666">${s.score}pts</span>
                 <span class="spot-band" style="background:${s.color}">${s.band}</span>
                 <span class="spot-call">${s.dx_call}</span>
                 <span class="spot-country">${s.country}</span>
-            </div>`;
+                <span class="spot-distance">${distance}</span> </div>`;
     }
 
     // Main Loop
     async function updateData() {
+        updateTimeDisplay(); 
+        
         const fBand = document.getElementById('filter-band').value;
         const fMode = document.getElementById('filter-mode').value;
         
         try {
-            const [rSpots, rWanted, rSurge, rRss] = await Promise.all([
+            const [rSpots, rWanted, rSurge, rRss, rHistory] = await Promise.all([
                 fetch(`/spots.json?band=${fBand}&mode=${fMode}`),
                 fetch('/wanted.json'),
                 fetch('/surge.json'),
-                fetch('/rss.json')
+                fetch('/rss.json'),
+                fetch('/history.json') 
             ]);
 
             const spots = await rSpots.json();
             const wanted = await rWanted.json();
             const surge = await rSurge.json();
             const rss = await rRss.json();
+            historyChartData = await rHistory.json(); 
 
-            // RSS Update
+            // RSS Update 
             if (rss.ticker !== lastTickerText) {
                 document.getElementById('ticker-content').innerHTML = `<div class="ticker-item">${rss.ticker}</div>`;
                 lastTickerText = rss.ticker;
             }
 
-            // Clear
+            // Clear 
             document.getElementById('list-hf').innerHTML = '';
             document.getElementById('list-vhf').innerHTML = '';
             markersHF.forEach(m => mapHF.removeLayer(m)); markersHF = [];
@@ -366,19 +656,18 @@
             
             const statsHF = {}, statsVHF = {};
 
-            // Process Spots
+            // Process Spots 
             spots.forEach(s => {
                 if(fBand !== 'All' && s.band !== fBand) return;
                 if(fMode !== 'All' && s.mode !== fMode) return;
 
-                // Note: Backend sends type based on list inclusion. Since we moved 6m to HF list in backend,
-                // s.type will be 'HF' for 6m spots automatically.
                 const isVHF = s.type === 'VHF';
                 const targetList = isVHF ? 'list-vhf' : 'list-hf';
-                const targetMap = isVHF ? mapVHF : mapHF;
 
                 document.getElementById(targetList).insertAdjacentHTML('beforeend', createSpotRow(s));
-
+                
+                // Markers logic (inchangée)
+                const targetMap = isVHF ? mapVHF : mapHF;
                 const m = L.circleMarker([s.lat, s.lon], {
                     radius: 4, color: s.color, fillColor: s.color, fillOpacity: 0.9, weight: 1
                 }).bindPopup(`<b>${s.dx_call}</b><br>${s.freq} (${s.mode})<br>${s.country}`);
@@ -394,17 +683,27 @@
                 }
             });
 
-            // Charts
+            // Charts 
             chartHF.data.datasets[0].data = HF_BANDS.map(b => statsHF[b] || 0);
             chartHF.update();
             chartVHF.data.datasets[0].data = VHF_BANDS.map(b => statsVHF[b] || 0);
             chartVHF.update();
+            
+            // Mise à jour du Chart Historique 24H
+            chartHistory.data.labels = historyChartData.labels;
+            
+            let totalSpotsLastHour = 0;
+            chartHistory.data.datasets.forEach(dataset => {
+                dataset.data = historyChartData.data[dataset.label] || [];
+                totalSpotsLastHour += dataset.data[dataset.data.length - 1] || 0;
+            });
+            chartHistory.update();
 
-            // Wanted
+            // Wanted 
             document.getElementById('wanted-hf').innerHTML = wanted.hf.map(createWantedRow).join('');
             document.getElementById('wanted-vhf').innerHTML = wanted.vhf.map(createWantedRow).join('');
 
-            // Updated Surge Logic (Display Specific Bands)
+            // Updated Surge Logic 
             const hfSurges = surge.surges.filter(b => HF_BANDS.includes(b));
             const vhfSurges = surge.surges.filter(b => VHF_BANDS.includes(b));
             
@@ -421,11 +720,38 @@
             } else { vhfAlert.style.display = 'none'; }
 
             if((hfSurges.length || vhfSurges.length) && voiceEnabled && Math.random() > 0.9) speak("Propagation alert.");
+            
+            // Alerte d'ouverture
+            const openAlertPanel = document.getElementById('open-alert-panel');
+            let openingBands = HISTORY_BANDS.filter(band => {
+                const dataList = historyChartData.data[band] || [];
+                const lastHourSpots = dataList[dataList.length - 1] || 0;
+                // On considère qu'il y a ouverture si > 5 spots dans la dernière heure
+                return lastHourSpots > 5; 
+            });
+
+            if (openingBands.length > 0) {
+                openAlertPanel.innerHTML = `🚨 **OUVERTURE DETECTEE** 🚨<br>**${openingBands.join(' / ')}**`;
+                openAlertPanel.style.backgroundColor = 'var(--open-color)';
+                openAlertPanel.style.color = 'var(--wl-text)';
+                openAlertPanel.style.animation = 'blink 1s infinite';
+            } else {
+                openAlertPanel.innerHTML = `SCANNING FOR OPENINGS...`;
+                openAlertPanel.style.backgroundColor = 'var(--panel-bg)';
+                openAlertPanel.style.color = 'var(--open-color)';
+                openAlertPanel.style.animation = 'none';
+            }
+
 
         } catch(e) { console.error(e); }
     }
+    
+    // --- INITIALISATION ---
+    // Initialise la position de l'utilisateur avec un QRA par défaut
+    userLatLng = qraToLatLng(DEFAULT_QRA);
 
     loadWatchlist();
+    setInterval(updateTimeDisplay, 1000); 
     setInterval(updateData, 3000);
     updateData();
 
