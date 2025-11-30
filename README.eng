@@ -1,51 +1,108 @@
-🇬🇧 ENGLISH
+🛰️ NEURAL DX v3.0 - Real-Time DX Monitor
+💡 Project Summary
+NEURAL DX v3.0 is a real-time Amateur Radio monitoring station, built on a Python/Flask backend and a dynamic web interface (HTML/CSS/JavaScript).
 
-Neural DX Cluster is a next-gen DX monitoring application designed for serious ham radio operators. Unlike traditional clusters that simply display raw text lists, Neural DX uses a "Dual Spectrum" GUI to separate HF traffic (Shortwave) from VHF/UHF/Space traffic.
+The project's goal is to aggregate and analyze DX spot data, visualize them on live maps, calculate the distance of contacts relative to the operator's position (QRA Locator), and generate targeted propagation alerts. This version is highly optimized for speed and data clarity.
 
-It analyzes spots in real-time, detects propagation openings (Surges), and ranks stations based on interest using an intelligent scoring algorithm.
 ✨ Key Features
+Custom Distance Calculation: Displays the distance in kilometers between the operator's QRA and every spot/entity, including within the Top DX Wanted tables.
 
-    🖥️ Dual Spectrum Dashboard:
-        HF Sector (160m - 10m): Global map, Top DX List, Ionospheric propagation charts.
-        VHF Sector (6m - QO-100): Local/Regional map, Top Tropo/ES/EME List, Specific activity charts.
-    🧠 AI Scoring Algorithm: The system scores every spot (0-100) based on prefix rarity, mode, band, and comments (e.g., "UP", "SPLIT").
-    ⚠️ Surge Detection: Sliding statistical analysis to detect abnormal activity spikes on a band (e.g., sudden 10m or 6m opening).
-    🎙️ Voice Alerts & Watchlist: Text-to-speech announcements for openings and priority monitoring for your favorite callsigns (friends, DXpeditions).
-    🎨 Customizable Interface:
-        Visual Themes: Cyber, Matrix, Amber, Neon.
-        Dynamic Filters: By Band and Mode (CW, SSB, FT8, FT4, FM).
-    🗺️ Live Mapping: Spots displayed on interactive maps (Leaflet).
+QRA Locator Timeout: The QRA Locator validation/error message (Valid / Valide) automatically disappears after 40 seconds.
 
-🛠️ Installation
+Dynamic Mapping (HF & VHF/UHF): Real-time spot visualization using separate Leaflet maps.
 
-    Prerequisites: Python 3.x installed on your machine.
-    Install dependencies:
+Live Streams & Top DX Wanted: Activity tables featuring compact distance columns and accented color digits.
 
-pip install flask feedparser
+Watchlist & Voice Alerts: Monitoring of specific call signs with audio notification and highlighting.
 
-Configuration:
-Open webapp.py and change the MY_CALL variable to your callsign:
+Propagation Alerts (Surge): Detection and signaling of peak activity on bands.
 
-    MY_CALL = "YOUR_CALLSIGN"
+24H History: Dedicated chart for activity on the Magic Bands (12m, 10m, 6m) with a visual band opening alert.
 
-🚀 Running the App
+Dynamic Filters: Filtering of spots by band and mode (CW, SSB, FT8, etc.).
 
-    Start the application:
+Technical ArchitectureThe project uses a simple client-server architecture:
 
-    python webapp.py
+ComponentTechnologyRôleBackendPython (Flask)Data management, connection to the DX Cluster (Telnet), score calculation (AI Score), 
+caching, and servicing JSON endpoints.FrontendHTML/CSS/JSUser Interface. Leaflet for mapping, Chart.js for charts, Vanilla JS for dynamic updates and interactions 
+(QRA, filters).Data FlowJSON, TelnetFlask retrieves spots from the Cluster and formats them into JSON. JavaScript queries the Flask endpoints (/spots.json, /wanted.json, etc.) 
+every 3 seconds to update the interface.
 
-    Open your web browser and navigate to:
-    http://localhost:8000
+Installation and Configuration
+Prerequisites
+You need Python 3.x installed on your Raspberry Pi (or other host machine).
 
-The system will automatically download the country database (cty.dat), connect to Telnet clusters, and begin populating the maps.
-📂 Project Structure
+Dependencies
+This project requires the following Python libraries:
 
-    webapp.py: The backend core (Flask, Telnet management, AI Logic).
-    templates/index.html: The frontend interface (HTML5, CSS Grid, JS, Leaflet, Chart.js).
-    cty.dat: Country prefix database (auto-downloaded).
-    watchlist.json: Stores your tracked callsigns (auto-generated).
+Bash
 
-📜 License
+flask
+requests
+telnetlib
+json
+os
+threading
+feedparser
+geopy 
+Installation
+Clone the Repository:
 
-MIT License - Feel free to modify and share.
-Created for the Amateur Radio Community. Conceived by F1SMV, created by gimini3 #codevibing
+Bash
+
+git clone https://github.com/YourUsername/radio-spo-watcher-dx.git
+cd radio-spo-watcher-dx
+Install Dependencies:
+
+Bash
+
+pip install -r requirements.txt
+
+Configuration initiale
+Before execution, you must modify the core configuration section in webapp.py:
+
+Open webapp.py
+
+Update the following constants:
+
+Python
+
+# webapp.py
+MY_CALL = "YOUR_CALLSIGN"  # <-- Essential
+WEB_PORT = 8000
+QRA_DEFAULT = "JN33"  # <-- Your default QRA (for distance calculations)
+
+# Telnet DX Cluster Configuration (Example)
+TELNET_HOST = "cluster.example.com"
+TELNET_PORT = 73
+Launch
+Ensure all dependencies are installed and configuration is complete.
+
+Launch the application using the startup script:
+
+./start.sh
+
+Interface Usage Guide
+1. Set Your QRA Locator
+In the COMMAND DECK control panel:
+
+Enter your QRA Locator (e.g., JN33, JN33BB).
+
+Click on GO.
+
+The system will center the map and update all distance calculations based on your location.
+
+2. Watchlist Management
+Enter a call sign (e.g., K1TTT) in the WATCHLIST field and click ADD.
+
+Spots for this call sign will be highlighted in yellow and trigger a voice alert (if VOICE: ON).
+
+3. Alert Systems
+SURGE: A banner appears when a significant burst of activity is detected on a specific band.
+
+OUVERTURE DETECTEE (OPENING DETECTED): The PROPAGATION HISTORY panel visually alerts if the Magic Bands (12m/10m/6m) are actively open.
+
+📄 Licence
+This project is released under the MIT License.
+
+Feel free to modify and share. Created for the Amateur Radio Community by Eric F1SMV with the help of GIMINI3 #codevibing. You can reach me via my X feed.

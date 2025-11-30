@@ -96,13 +96,18 @@
         /* SPOT ROWS */
         .spot-row { 
             display: grid; 
-            /* Resserrement de la colonne km (60px) */
-            grid-template-columns: 70px 60px 100px auto 60px; 
+            /* AJOUT DE 50px POUR LE MODE (3ème colonne) */
+            grid-template-columns: 70px 60px 50px 100px auto 60px; 
             gap: 10px; 
             padding: 4px 8px; 
             border-bottom: 1px solid #222; 
             align-items: center;
         }
+        /* Style spécifique pour la grille des WANTED (5 colonnes) */
+        .wanted-row-grid {
+             grid-template-columns: 70px 60px 100px auto 60px !important;
+        }
+        
         .spot-row:hover { background: #1a1a1a; color: #fff; }
         
         /* STYLE WATCHLIST MATCH (JAUNE) */
@@ -118,7 +123,23 @@
 
         .spot-freq { color: var(--accent); text-align: right; font-family: monospace; }
         .spot-band { text-align: center; border-radius: 3px; color: #000; font-weight: bold; font-size: 0.8rem; padding: 1px 0; }
-        .spot-call { font-weight: bold; color: #fff; letter-spacing: 1px; }
+        
+        /* NOUVEAU STYLE PASTILLE MODE */
+        .spot-mode { 
+            text-align: center; 
+            font-size: 0.75rem; 
+            color: #fff; 
+            background: #333; 
+            border: 1px solid #555; 
+            border-radius: 3px; 
+            padding: 1px 3px; 
+            white-space: nowrap; 
+        }
+        
+        /* STYLE POUR L'INDICATIF (lien) */
+        .spot-call a { font-weight: bold; color: #fff; letter-spacing: 1px; text-decoration: none; }
+        .spot-call a:hover { color: var(--accent); text-decoration: underline; }
+        
         .spot-country { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #888; }
         
         /* STYLE DISTANCE */
@@ -221,8 +242,8 @@
     <div class="secondary-grid">
         <div class="panel">
             <h3>🌊 LIVE STREAM</h3>
-            <div style="font-weight: bold; padding: 4px 8px; background: #151515; display: grid; grid-template-columns: 70px 60px 100px auto 60px; gap: 10px;">
-                <span>Freq</span><span>Band</span><span>Call</span><span>Country</span><span style="text-align:right;">km</span>
+            <div style="font-weight: bold; padding: 4px 8px; background: #151515; display: grid; grid-template-columns: 70px 60px 50px 100px auto 60px; gap: 10px;">
+                <span>Freq</span><span>Band</span><span>Mode</span><span>Call</span><span>Country</span><span style="text-align:right;">km</span>
             </div>
             <div id="list-hf" class="scroll-list"></div>
         </div>
@@ -276,8 +297,8 @@
     <div class="secondary-grid">
         <div class="panel">
             <h3>🌊 LIVE STREAM</h3>
-            <div style="font-weight: bold; padding: 4px 8px; background: #151515; display: grid; grid-template-columns: 70px 60px 100px auto 60px; gap: 10px;">
-                <span>Freq</span><span>Band</span><span>Call</span><span>Country</span><span style="text-align:right;">km</span>
+            <div style="font-weight: bold; padding: 4px 8px; background: #151515; display: grid; grid-template-columns: 70px 60px 50px 100px auto 60px; gap: 10px;">
+                <span>Freq</span><span>Band</span><span>Mode</span><span>Call</span><span>Country</span><span style="text-align:right;">km</span>
             </div>
             <div id="list-vhf" class="scroll-list"></div>
         </div>
@@ -575,7 +596,7 @@
         loadWatchlist();
     }
 
-    // Render Row - LIVE STREAM
+    // Render Row - LIVE STREAM (AJOUT DU MODE)
     function createSpotRow(s) {
         const isWatched = watchlist.includes(s.dx_call);
         const rowClass = isWatched ? 'spot-row watched' : 'spot-row';
@@ -594,15 +615,15 @@
             <div class="${rowClass}">
                 <span class="spot-freq">${s.freq}</span>
                 <span class="spot-band" style="background:${s.color}">${s.band}</span>
-                <span class="spot-call">${s.dx_call}</span>
+                <span class="spot-mode">${s.mode}</span> <span class="spot-call"><a href="https://qrz.com/db/${s.dx_call}" target="_blank">${s.dx_call}</a></span>
                 <span class="spot-country">${s.country}</span>
                 <span class="spot-distance">${distance}</span>
             </div>`;
     }
 
-    // Render Row - TOP DX WANTED (MODIFIÉ pour inclure la distance)
+    // Render Row - TOP DX WANTED (Pas de Mode, on réutilise la grille 5 colonnes)
     function createWantedRow(s) {
-        // Calcul de la distance (identique à createSpotRow)
+        // Calcul de la distance
         let distance = '';
         if (userLatLng && s.lat !== undefined && s.lon !== undefined) {
             const dist = calculateDistance(userLatLng[0], userLatLng[1], s.lat, s.lon);
@@ -612,12 +633,13 @@
         }
 
         return `
-            <div class="spot-row" style="border-left: 3px solid ${s.color}">
+            <div class="spot-row wanted-row-grid" style="border-left: 3px solid ${s.color}">
                 <span class="spot-freq" style="color:#666">${s.score}pts</span>
                 <span class="spot-band" style="background:${s.color}">${s.band}</span>
-                <span class="spot-call">${s.dx_call}</span>
+                <span class="spot-call"><a href="https://qrz.com/db/${s.dx_call}" target="_blank">${s.dx_call}</a></span>
                 <span class="spot-country">${s.country}</span>
-                <span class="spot-distance">${distance}</span> </div>`;
+                <span class="spot-distance">${distance}</span>
+            </div>`;
     }
 
     // Main Loop
