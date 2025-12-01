@@ -1,6 +1,6 @@
-🛰️ NEURAL DX v3.0 - Real-Time DX Monitor
+🛰️ NEURAL DX v3.1 - Real-Time DX Monitor
 💡 Project Summary
-NEURAL DX v3.0 is a real-time Amateur Radio monitoring station, built on a Python/Flask backend and a dynamic web interface (HTML/CSS/JavaScript).
+NEURAL DX v3.1 is a real-time Amateur Radio monitoring station, built on a Python/Flask backend and a dynamic web interface (HTML/CSS/JavaScript).
 
 The project's goal is to aggregate and analyze DX spot data, visualize them on live maps, calculate the distance of contacts relative to the operator's position (QRA Locator), and generate targeted propagation alerts. This version is highly optimized for speed and data clarity.
 
@@ -19,7 +19,7 @@ Propagation Alerts (Surge): Detection and signaling of peak activity on bands.
 
 24H History: Dedicated chart for activity on the Magic Bands (12m, 10m, 6m) with a visual band opening alert.
 
-Dynamic Filters: Filtering of spots by band and mode (CW, SSB, FT8, etc.).
+Dynamic Filters: Filtering of spots by band and mode (CW, SSB, FT8, MSK144, SSTV, etc.).
 
 Technical ArchitectureThe project uses a simple client-server architecture:
 

@@ -1,8 +1,8 @@
-# 🛰️ NEURAL DX v3.0 -
+# 🛰️ NEURAL DX v3.1 -
 
 ## 💡 Résumé du projet
 
-**NEURAL DX v3.0** est une station de surveillance radioamateur en temps réel, basée sur Python/Flask pour le backend et une interface web dynamique (HTML/CSS/JavaScript). Le projet agrège et analyse les données de spots DX, les visualise sur des cartes en direct, calcule la distance des contacts par rapport à la position de l'opérateur (QRA Locator), et génère des alertes de propagation ciblées. La version est optimisée pour la rapidité et la clarté des données.
+**NEURAL DX v3.1** est une station de surveillance radioamateur en temps réel, basée sur Python/Flask pour le backend et une interface web dynamique (HTML/CSS/JavaScript). Le projet agrège et analyse les données de spots DX, les visualise sur des cartes en direct, calcule la distance des contacts par rapport à la position de l'opérateur (QRA Locator), et génère des alertes de propagation ciblées. La version est optimisée pour la rapidité et la clarté des données.
 
 
 
@@ -17,7 +17,7 @@
 * **Watchlist & Alertes Vocales :** Surveillance d'indicatifs spécifiques avec notification audio et mise en surbrillance.
 * **Alertes de Propagation (Surge) :** Détection et signalisation des pics d'activité sur les bandes.
 * **Historique 24H :** Graphique dédié à l'activité sur les bandes magiques (**12m, 10m, 6m**) avec alerte visuelle d'ouverture.
-* **Filtres dynamiques :** Filtrage des spots par **bande** et **mode** (CW, SSB, FT8, etc.).
+* **Filtres dynamiques :** Filtrage des spots par **bande** et **mode** (CW, SSB, FT8, MSK144, SSTV, etc.).
 
 ---
 
