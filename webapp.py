@@ -10,7 +10,7 @@ from collections import deque
 from flask import Flask, render_template, jsonify, request, abort
 
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "NEURAL AI v3.2 - " # CHANGEMENT DE VERSION
+APP_VERSION = "NEURAL AI v3.3 - " # CHANGEMENT DE VERSION
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -65,6 +65,21 @@ watchlist = set()
 # NOUVEAU: Historique des spots par heure (24 heures)
 history_24h = {band: [0] * 24 for band in HISTORY_BANDS}
 history_lock = threading.Lock()
+
+# --- PLAGES DE FREQUENCES CW MISES A JOUR (CORRECTION DEMANDEE) ---
+CW_RANGES = [
+    # Bandes HF (Metres, Freq Mhz min, Freq Mhz max)
+    ('160m', 1.810, 1.838),
+    ('80m', 3.500, 3.560),
+    ('40m', 7.000, 7.035),
+    ('30m', 10.100, 10.134),
+    ('20m', 14.000, 14.069),
+    ('17m', 18.068, 18.095),
+    ('15m', 21.000, 21.070),
+    ('12m', 24.890, 24.913),
+    ('10m', 28.000, 28.070),
+]
+
 
 # --- SSL BYPASS ---
 try:
@@ -185,37 +200,52 @@ def get_band_and_mode_smart(freq_float, comment):
     
     # --- AUTO-DETECTION PAR FREQUENCE (Priorité maximale) ---
     
-    # 1. MSK144 (2m: 144.360 MHz +/- 20 kHz)
-    if band == "2m" and 144340.0 <= f <= 144380.0:
+    # Conversion de la fréquence en MHz pour les plages CW/FT8 (plus lisible)
+    f_mhz = f / 1000.0 
+    mode = "SSB" # Mode par défaut
+    
+    # 1. Détection CW (Priorité la plus haute après MSK144/FT8)
+    for cw_band, min_mhz, max_mhz in CW_RANGES:
+        if cw_band == band and min_mhz <= f_mhz <= max_mhz:
+            mode = "CW"
+            # On continue pour vérifier si c'est plutôt FT8 ou MSK144 dans la même plage (Priorité 2)
+            break
+        
+    # 2. MSK144 (2m: 144.360 MHz +/- 20 kHz)
+    # 144340.0 kHz à 144380.0 kHz -> 144.340 MHz à 144.380 MHz
+    if band == "2m" and 144.340 <= f_mhz <= 144.380:
         mode = "MSK144"
         return band, mode # Priorité absolue
         
-    # 2. FT8 (HF/VHF)
-    if (3557.0 <= f <= 3587.0 or    # 80m FT8 (3572 +/- 15 kHz)
-        7069.0 <= f <= 7079.0 or    # 40m FT8 (7074 +/- 5 kHz)
-        10130.0 <= f <= 10140.0 or  # 30m FT8 (10135 +/- 5 kHz)
-        14071.0 <= f <= 14077.0 or  # 20m FT8 (14074 +/- 3 kHz)
-        18097.0 <= f <= 18103.0 or  # 17m FT8 (18100 +/- 3 kHz)
-        21071.0 <= f <= 21077.0 or  # 15m FT8 (21074 +/- 3 kHz)
-        24913.0 <= f <= 24919.0 or  # 12m FT8 (24916 +/- 3 kHz)
-        28069.0 <= f <= 28079.0):   # 10m FT8 (28074 +/- 5 kHz)
+    # 3. FT8 (HF/VHF)
+    if (3.557 <= f_mhz <= 3.587 or    # 80m FT8 (3.572 +/- 15 kHz)
+        7.069 <= f_mhz <= 7.079 or    # 40m FT8 (7.074 +/- 5 kHz)
+        10.130 <= f_mhz <= 10.140 or  # 30m FT8 (10.135 +/- 5 kHz)
+        14.071 <= f_mhz <= 14.077 or  # 20m FT8 (14.074 +/- 3 kHz)
+        18.097 <= f_mhz <= 18.103 or  # 17m FT8 (18.100 +/- 3 kHz)
+        21.071 <= f_mhz <= 21.077 or  # 15m FT8 (21.074 +/- 3 kHz)
+        24.913 <= f_mhz <= 24.919 or  # 12m FT8 (24.916 +/- 3 kHz)
+        28.069 <= f_mhz <= 28.079):   # 10m FT8 (28.074 +/- 5 kHz)
         mode = "FT8"
-        return band, mode # Priorité absolue
+        return band, mode # Priorité absolue pour les segments FT8
 
-    # --- 3. DETECTION PAR COMMENTAIRE (Si non FT8/MSK144 par fréquence) ---
+    # --- 4. DETECTION PAR COMMENTAIRE (Si non CW/FT8/MSK144 par fréquence) ---
+    # Si le mode est déjà CW (détecté au point 1), on ne change rien sauf si le commentaire indique un mode numérique non FT8/FT4.
     
-    mode = "SSB"
-    if "FT8" in comment: mode = "FT8" # Détection FT8 hors segment par commentaire
-    elif "FT4" in comment: mode = "FT4"
-    elif "CW" in comment: mode = "CW"
-    elif "FM" in comment: mode = "FM"
-    elif "SSTV" in comment: mode = "SSTV"
-    elif "PSK31" in comment: mode = "PSK31"
-    elif "RTTY" in comment: mode = "RTTY"
+    if mode != "CW":
+        mode = "SSB" # Rétablissement du mode par défaut si pas CW par fréquence
+        if "FT8" in comment: mode = "FT8" 
+        elif "FT4" in comment: mode = "FT4"
+        elif "CW" in comment: mode = "CW"
+        elif "FM" in comment: mode = "FM"
+        elif "SSTV" in comment: mode = "SSTV"
+        elif "PSK31" in comment: mode = "PSK31"
+        elif "RTTY" in comment: mode = "RTTY"
         
-    # --- 4. CORRECTION FINALE CW ---
-    if band in ["30m", "20m"] and f < 14100 and mode=="SSB": 
-        mode = "CW"
+    # --- 5. CORRECTION FINALE CW (Supprimé car remplacé par la vérification CW_RANGES) ---
+    # L'ancienne correction était:
+    # if band in ["30m", "20m"] and f < 14100 and mode=="SSB": mode = "CW"
+    # Elle est maintenant remplacée par la vérification stricte du CW_RANGES (Point 1).
     
     return band, mode
 
