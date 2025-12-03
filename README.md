@@ -8,7 +8,7 @@
 
 ## ✨ Fonctionnalités clés
 
-* **DRSE (DX Risk Scoring Engine) & Alerte Priorité (Nouveau v3.4) :** Intégration du score de priorité de DX (SPD). Les spots avec un score élevé (SPD >= 70) sont immédiatement signalés par un **clignotement agressif** et une **bordure rouge vif épaisse** sur le Live Stream et le Top DX Wanted, garantissant une visibilité maximale.
+* **DRSE (DX Risk Scoring Engine) & Alerte Priorité (depuis la version 3.4) :** Intégration du score de priorité de DX (SPD). Les spots avec un score élevé (SPD >= 70) sont immédiatement signalés par un **clignotement agressif** et une **bordure rouge vif épaisse** sur le Live Stream et le Top DX Wanted, garantissant une visibilité maximale.
 * **SPD dans le Live Stream (Nouveau v3.4) :** Le **Score de Priorité de DX (SPD)** est affiché dans une colonne dédiée du tableau Live Stream, avec un fond rouge pour les cibles prioritaires.
 * **Calcul de distance personnalisé :** Affiche la distance en **kilomètres** entre le QRA de l'opérateur et chaque spot/entité, y compris dans les tableaux *Top DX Wanted*.
 * **Temporisation QRA :** Le message de validation/erreur du QRA Locator saisi (`Valid / Valide`) s'efface automatiquement après **40 secondes**.
@@ -20,7 +20,7 @@
 * **Filtres dynamiques :** Filtrage des spots par **bande** et **mode** (CW, SSB, FT8, MSK144, SSTV, etc.).
 * **Correction mineure tri mode ft8**
 * **application plan de bande cw strict**
-* ** calendrier meteorites intégré pour le trafic 2 m
+* **calendrier meteorites intégré pour le trafic 2 m
 
 ---
 ![Apercu du Dashboard](apercu.png)
