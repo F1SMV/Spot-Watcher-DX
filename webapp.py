@@ -8,28 +8,41 @@ import feedparser
 import ssl
 import math 
 from collections import deque
-from flask import Flask, render_template, jsonify, request, abort
+from flask import Flask, render_template, jsonify, request, abort, redirect, url_for 
 
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "NEURAL AI v3.4 - DRSE" # Mise à jour
+APP_VERSION = "NEURAL AI v3.5 - DX/MS READY"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
 SPOT_LIFETIME = 1800 
-SPD_THRESHOLD = 70 # NOUVEAU: Score de Priorité de DX (SPD) Seuil
+SPD_THRESHOLD = 70
 TOP_RANKING_LIMIT = 10 
+DEFAULT_QRA = "JN23"
 
 # --- CONFIGURATION SURGE ---
 SURGE_WINDOW = 900
 SURGE_THRESHOLD = 3.0
 MIN_SPOTS_FOR_SURGE = 3
 
+# --- CONFIGURATION ASTRO/MÉTEOR SCATTER ---
+METEOR_SHOWERS = [
+    {"name": "Quadrantides", "start": (1, 1), "end": (1, 7), "peak": (1, 3)},
+    {"name": "Lyrides", "start": (4, 16), "end": (4, 25), "peak": (4, 22)},
+    {"name": "Êta Aquarides", "start": (4, 20), "end": (5, 30), "peak": (5, 6)},
+    {"name": "Perséides", "start": (7, 15), "end": (8, 24), "peak": (8, 12)},
+    {"name": "Orionides", "start": (10, 1), "end": (11, 7), "peak": (10, 21)},
+    {"name": "Léonides", "start": (11, 10), "end": (11, 23), "peak": (11, 17)},
+    {"name": "Géminides", "start": (12, 4), "end": (12, 17), "peak": (12, 14)},
+]
+MSK144_FREQ = 144.360  
+MSK144_TOLERANCE_KHZ = 10 / 1000
+
 # --- DEFINITIONS BANDES ---
 HF_BANDS = ['160m', '80m', '60m', '40m', '30m', '20m', '17m', '15m', '12m', '10m', '6m']
 VHF_BANDS = ['4m', '2m', '70cm', '23cm', '13cm', 'QO-100']
 HISTORY_BANDS = ['12m', '10m', '6m'] 
 
-# Palette officielle
 BAND_COLORS = {
     '160m': '#5c4b51', '80m': '#8e44ad', '60m': '#2c3e50',
     '40m': '#2980b9', '30m': '#16a085', '20m': '#27ae60',
@@ -41,20 +54,19 @@ BAND_COLORS = {
     'QO-100': '#00a8ff' 
 }
 
-# Flux RSS
+# --- DX CLUSTER CONFIGURATION (Fonctionnelle avec Failover) ---
 RSS_URLS = ["https://www.dx-world.net/feed/"]
-
 CLUSTERS = [
     ("dxfun.com", 8000),
     ("dx.f5len.org", 7300),
     ("gb7mbc.spud.club", 8000)
 ]
-
 CTY_URL = "https://www.country-files.com/cty/cty.dat"
 CTY_FILE = "cty.dat"
 SOLAR_URL = "https://services.swpc.noaa.gov/text/wwv.txt"
 WATCHLIST_FILE = "watchlist.json"
 
+# --- CACHES GLOBAUX et INITIALISATION QTH ---
 app = Flask(__name__)
 
 spots_buffer = deque(maxlen=6000)
@@ -62,21 +74,18 @@ band_history = {}
 prefix_db = {}
 ticker_info = {"text": "SYSTEM INITIALIZATION..."}
 watchlist = set()
+surge_bands = [] 
 
 history_24h = {band: [0] * 24 for band in HISTORY_BANDS}
 history_lock = threading.Lock()
+surge_lock = threading.Lock()
+
 
 # --- PLAGES DE FREQUENCES CW MISES A JOUR ---
 CW_RANGES = [
-    ('160m', 1.810, 1.838),
-    ('80m', 3.500, 3.560),
-    ('40m', 7.000, 7.035),
-    ('30m', 10.100, 10.134),
-    ('20m', 14.000, 14.069),
-    ('17m', 18.068, 18.095),
-    ('15m', 21.000, 21.070),
-    ('12m', 24.890, 24.913),
-    ('10m', 28.000, 28.070),
+    ('160m', 1.810, 1.838), ('80m', 3.500, 3.560), ('40m', 7.000, 7.035),
+    ('30m', 10.100, 10.134), ('20m', 14.000, 14.069), ('17m', 18.068, 18.095),
+    ('15m', 21.000, 21.070), ('12m', 24.890, 24.913), ('10m', 28.000, 28.070),
 ]
 
 
@@ -85,6 +94,65 @@ try:
     _create_unverified_https_context = ssl._create_unverified_context
 except AttributeError: pass
 else: ssl._create_default_https_context = _create_unverified_https_context
+
+
+# --- FONCTIONS UTILITAIRES ET DE TRAITEMENT ---
+
+def qra_to_lat_lon(qra):
+    """ Convertit un QRA locator en latitude et longitude. """
+    try:
+        qra = qra.upper().strip()
+        if len(qra) < 4: return None, None
+        
+        lon = -180 + (ord(qra[0]) - ord('A')) * 20
+        lat = -90 + (ord(qra[1]) - ord('A')) * 10
+        
+        if len(qra) >= 4:
+            lon += int(qra[2]) * 2
+            lat += int(qra[3]) * 1
+        
+        if len(qra) >= 6:
+            lon += (ord(qra[4]) - ord('A')) * (2/24) + (1/24)
+            lat += (ord(qra[5]) - ord('A')) * (1/24) + (1/48)
+        else:
+            lon += 1
+            lat += 0.5
+            
+        return lat, lon
+    except:
+        return None, None
+
+# Initialisation du QTH utilisateur (doit être fait après la définition de qra_to_lat_lon)
+user_qra = DEFAULT_QRA
+initial_lat, initial_lon = qra_to_lat_lon(DEFAULT_QRA)
+user_lat = initial_lat if initial_lat is not None else 43.10
+user_lon = initial_lon if initial_lon is not None else 5.88
+
+
+def is_meteor_shower_active():
+    """ Vérifie si la date actuelle est dans une période d'essaim de météores (UTC). """
+    now = time.gmtime(time.time())
+    current_month = now.tm_mon
+    current_day = now.tm_mday
+
+    for shower in METEOR_SHOWERS:
+        start_m, start_d = shower["start"]
+        end_m, end_d = shower["end"]
+
+        if start_m == end_m: 
+            if current_month == start_m and start_d <= current_day <= end_d:
+                return True, shower["name"]
+        
+        elif start_m < end_m: 
+            if current_month == start_m and current_day >= start_d:
+                return True, shower["name"]
+            if current_month == end_m and current_day <= end_d:
+                return True, shower["name"]
+            if start_m < current_month < end_m:
+                return True, shower["name"]
+        
+    return False, None
+
 
 # --- Watchlist (fonctions inchangées) ---
 def load_watchlist():
@@ -102,33 +170,76 @@ def save_watchlist():
             json.dump(sorted(list(watchlist)), f, indent=2)
     except: pass
 
-# --- SURGE (fonctions inchangées) ---
+# --- SURGE & HISTORY (avec mise à jour) ---
 def record_surge_data(band):
     if band not in band_history: band_history[band] = deque()
     band_history[band].append(time.time())
 
-    if band in HISTORY_BANDS:
-        with history_lock:
-            current_hour = time.gmtime(time.time()).tm_hour
-            history_24h[band][current_hour] += 1
-
 def analyze_surges():
+    """ Calcule les surges HF/VHF standard ET gère les surges MSK144. """
+    
+    # Correction: global doit être la première ligne si on modifie la variable globale
+    global surge_bands 
     current_time = time.time()
     active_surges = []
-    for band, timestamps in list(band_history.items()):
-        while timestamps and timestamps[0] < current_time - SURGE_WINDOW:
-            timestamps.popleft()
-        count_total = len(timestamps)
-        if count_total < 5: continue 
-        avg_rate = count_total / (SURGE_WINDOW / 60.0)
-        recent_count = sum(1 for t in timestamps if t > current_time - 60)
-        if recent_count > (avg_rate * SURGE_THRESHOLD) and recent_count >= MIN_SPOTS_FOR_SURGE:
-            active_surges.append(band)
+
+    # --- 1. LOGIQUE MSK144 / METEOR SCATTER ---
+    is_active, shower_name = is_meteor_shower_active()
+    ms_surge_name = f"MSK144: {shower_name}" if is_active else "MSK144: Inactive"
+    
+    with surge_lock:
+        # A. Détection MSK144
+        recent_ms_spots = [
+            s for s in spots_buffer 
+            if s.get('band') == '2m' and s.get('mode') == 'MSK144' and (current_time - s['timestamp']) < 900
+        ]
+        
+        if is_active and len(recent_ms_spots) >= 3:
+            if ms_surge_name not in surge_bands:
+                surge_bands.append(ms_surge_name)
+                print(f"ALERTE MSK144: Surge MS détectée pendant les {shower_name}!")
+
+        # B. Nettoyage MSK144 (Si l'essaim est terminé ou l'activité est retombée)
+        if ms_surge_name in surge_bands and (not is_active or len(recent_ms_spots) < 2):
+            surge_bands.remove(ms_surge_name)
+            
+        # --- 2. LOGIQUE HF/VHF STANDARD ---
+        bands_to_remove = []
+        for surge_name in surge_bands:
+            if surge_name.startswith("MSK144:"): continue
+
+            band = surge_name 
+            
+            timestamps = band_history.get(band, deque())
+            while timestamps and timestamps[0] < current_time - SURGE_WINDOW:
+                timestamps.popleft()
+            
+            count_total = len(timestamps)
+            if count_total < 5: 
+                bands_to_remove.append(band)
+                continue 
+                
+            avg_rate = count_total / (SURGE_WINDOW / 60.0)
+            recent_count = sum(1 for t in timestamps if t > current_time - 60)
+            
+            if recent_count > (avg_rate * SURGE_THRESHOLD) and recent_count >= MIN_SPOTS_FOR_SURGE:
+                if band not in surge_bands:
+                    surge_bands.append(band)
+            else:
+                bands_to_remove.append(band)
+
+        active_surges = [s for s in surge_bands if s not in bands_to_remove]
+        
+        surge_bands = [s for s in surge_bands if s not in bands_to_remove]
+        
+        if ms_surge_name in surge_bands and ms_surge_name not in active_surges:
+             active_surges.append(ms_surge_name)
+
     return active_surges
+
 
 # --- MOTEUR DRSE (Score de Priorité de DX) ---
 def calculate_distance(lat1, lon1, lat2, lon2):
-    """Calcule la distance en km entre deux points GPS (formule Haversine)."""
     R = 6371 
     phi1 = math.radians(lat1)
     phi2 = math.radians(lat2)
@@ -140,18 +251,12 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
     return R * c
 
-# Coordonnées du QTH de l'opérateur (F1SMV) - Simulé
-QTH_LAT = 43.10 
-QTH_LON = 5.88
-
 def calculate_spd_score(call, band, mode, comment, country, lat, lon):
-    """
-    Calcule le Score de Priorité de DX (SPD) en utilisant le Moteur DRSE.
-    """
+    global user_lat, user_lon
+    
     score = 10 
     call = call.upper(); comment = (comment or "").upper()
     
-    # 1. RARETÉ DXCC (Base)
     RARE_PREFIXES = [
         'DP0', 'DP1', 'RI1', '8J1', 'VP8', 'KC4', 
         '3Y', 'P5', 'BS7', 'CE0', 'CY9', 'EZ', 'FT5', 'FT8', 'VK0', 
@@ -166,21 +271,18 @@ def calculate_spd_score(call, band, mode, comment, country, lat, lon):
             is_rare = True
             break 
     
-    # 2. QUALITÉ DU SPOT
     if 'UP' in comment or 'SPLIT' in comment: score += 15 
     if 'DX' in comment: score += 5
     if 'QRZ' in comment: score -= 10 
     if mode == 'CW': score += 10
     if 'PIRATE' in comment: score = 0
     
-    # 3. GÉOMÉTRIE DE PROPAGATION (Distance)
     if lat != 0.0 and lon != 0.0:
-        dist_km = calculate_distance(QTH_LAT, QTH_LON, lat, lon)
+        dist_km = calculate_distance(user_lat, user_lon, lat, lon)
         if dist_km > 1000:
             distance_bonus = min(20, 20 * math.log10(dist_km / 1000))
             score += distance_bonus
     
-    # 4. BOOSTS SPÉCIFIQUES (Band)
     if band == 'QO-100': score += 40
     elif band in VHF_BANDS: score += 30 
     
@@ -225,7 +327,7 @@ def get_band_and_mode_smart(freq_float, comment):
             mode = "CW"
             break
         
-    if band == "2m" and 144.340 <= f_mhz <= 144.380:
+    if band == "2m" and abs(f_mhz - MSK144_FREQ) <= MSK144_TOLERANCE_KHZ:
         mode = "MSK144"
         return band, mode 
         
@@ -280,18 +382,17 @@ def get_country_info(call):
                 longest = len(sub); best = prefix_db[sub]
     return best
 
-# --- WORKERS (inchangés) ---
+# --- WORKERS ---
 def history_maintenance_worker():
     global history_24h
     while True:
         now_utc = time.gmtime(time.time())
-        next_hour = (now_utc.tm_hour + 1) % 24
         sleep_seconds = (3600 - (now_utc.tm_min * 60 + now_utc.tm_sec)) + 5 
         time.sleep(sleep_seconds) 
+        
         with history_lock:
-            for band in HISTORY_BANDS:
-                history_24h[band] = history_24h[band][1:] + [0]
-            print(f"HISTORY 24H: Shifted and reset hour {next_hour}")
+            history_24h = {band: hist[1:] + [0] for band, hist in history_24h.items()}
+            print(f"[{time.strftime('%H:%M:%S', time.gmtime())}] HISTORY 24H: Shifted and reset hour.")
 
 def ticker_worker():
     while True:
@@ -316,22 +417,28 @@ def telnet_worker():
     idx = 0
     while True:
         host, port = CLUSTERS[idx]
-        print(f"Connexion Cluster: {host}:{port}")
+        print(f"[{time.strftime('%H:%M:%S')}] Tentative de connexion au Cluster: {host}:{port} ({idx + 1}/{len(CLUSTERS)})")
         try:
             tn = telnetlib.Telnet(host, port, timeout=15)
             try: tn.read_until(b"login: ", timeout=5)
             except: pass
             tn.write(MY_CALL.encode('ascii') + b"\n")
             time.sleep(1)
-            tn.write(b"show/dx 50\n")
+            tn.write(b"show/dx 50\n") 
             
+            print(f"[{time.strftime('%H:%M:%S')}] Connexion établie sur {host}:{port}. Écoute des spots en cours.")
             last_ping = time.time()
+            
             while True:
                 try: line = tn.read_until(b"\n", timeout=2).decode('ascii', errors='ignore').strip()
                 except: line = ""
+                
                 if not line:
                     if time.time() - last_ping > KEEP_ALIVE: 
                         tn.write(b"\n"); last_ping = time.time()
+                    
+                    analyze_surges() 
+                    
                     continue
                 
                 if "DX de" in line:
@@ -349,7 +456,6 @@ def telnet_worker():
                         band, mode = get_band_and_mode_smart(freq_raw, comment)
                         info = get_country_info(dx_call)
                         
-                        # Utilisation du nouveau moteur DRSE
                         spd_score = calculate_spd_score(dx_call, band, mode, comment, info['c'], info['lat'], info['lon'])
                         color = BAND_COLORS.get(band, '#00f3ff')
                         
@@ -360,28 +466,59 @@ def telnet_worker():
                             "freq": freq_str, "dx_call": dx_call, "band": band, "mode": mode,
                             "country": info['c'], "lat": info['lat'], "lon": info['lon'],
                             "score": spd_score, 
-                            # is_wanted: vrai si le score SPD dépasse le seuil (Tâche 2 et 4)
                             "is_wanted": spd_score >= SPD_THRESHOLD,
                             "via_eme": ("EME" in comment),
                             "color": color,
                             "type": "VHF" if band in VHF_BANDS else "HF"
                         }
                         spots_buffer.append(spot_obj)
-                        print(f"SPOT: {dx_call} ({band}) -> SPD: {spd_score} pts (Wanted: {spot_obj['is_wanted']})")
+                        print(f"SPOT: {dx_call} ({band}, {mode}) -> SPD: {spd_score} pts (Wanted: {spot_obj['is_wanted']})")
                     except Exception as e: 
-                        # print(f"Parse Error: {e}") # Debug seulement
-                        pass
-        except: pass
-        time.sleep(5)
+                        pass 
+                        
+        except Exception as e: 
+            print(f"[{time.strftime('%H:%M:%S')}] ERREUR CRITIQUE Cluster {host}:{port}: {e}. Basculement.")
+            time.sleep(5)
+            
         idx = (idx + 1) % len(CLUSTERS)
+
 
 # --- ROUTES ---
 @app.route('/')
 def index():
-    # Passage du nouveau seuil au frontend (SPD_THRESHOLD)
     return render_template('index.html', version=APP_VERSION, my_call=MY_CALL, 
                            hf_bands=HF_BANDS, vhf_bands=VHF_BANDS, band_colors=BAND_COLORS,
-                           spd_threshold=SPD_THRESHOLD) 
+                           spd_threshold=SPD_THRESHOLD, user_qra=user_qra) 
+
+@app.route('/update_qra', methods=['POST'])
+def update_qra():
+    global user_qra, user_lat, user_lon
+    
+    new_qra = request.form.get('qra_locator', '').upper().strip()
+    
+    if not new_qra:
+        return redirect(url_for('index'))
+    
+    new_lat, new_lon = qra_to_lat_lon(new_qra)
+    
+    valid = new_lat is not None and new_lon is not None
+    
+    if valid:
+        user_qra = new_qra
+        user_lat = new_lat
+        user_lon = new_lon
+        print(f"[{time.strftime('%H:%M:%S')}] QTH mis à jour: {user_qra} ({user_lat:.2f}, {user_lon:.2f})")
+    
+    return redirect(url_for('index')) 
+
+@app.route('/user_location.json')
+def get_user_location():
+    global user_qra, user_lat, user_lon
+    return jsonify({
+        'qra': user_qra,
+        'lat': user_lat,
+        'lon': user_lon
+    })
 
 @app.route('/spots.json')
 def get_spots():
@@ -400,7 +537,8 @@ def get_spots():
 
 @app.route('/surge.json')
 def get_surge_status():
-    return jsonify({"surges": analyze_surges(), "timestamp": time.time()})
+    active_surges = analyze_surges()
+    return jsonify({"surges": active_surges, "timestamp": time.time()})
 
 @app.route('/wanted.json')
 def get_ranking():
@@ -408,7 +546,6 @@ def get_ranking():
     active = [s for s in spots_buffer if (now - s['timestamp']) < SPOT_LIFETIME]
     
     def get_top_for_list(spot_list):
-        # Tri basé sur le nouveau SPD_SCORE
         ranked = sorted(spot_list, key=lambda x: x['score'], reverse=True)
         seen, top = set(), []
         for s in ranked:
@@ -455,7 +592,7 @@ def get_history():
     current_data = {}
     for band in HISTORY_BANDS:
         hist_list = data[band]
-        rotated = hist_list[now_hour+1:] + hist_list[:now_hour+1]
+        rotated = hist_list[(now_hour + 1) % 24:] + hist_list[:(now_hour + 1) % 24]
         current_data[band] = rotated
         
     return jsonify({"labels": labels, "data": current_data})
@@ -464,7 +601,13 @@ def get_history():
 if __name__ == "__main__":
     load_cty_dat()
     load_watchlist()
+    
+    print(f"\n--- {APP_VERSION} ---")
+    print(f"QTH de départ: {user_qra} ({user_lat:.2f}, {user_lon:.2f})")
+    
     threading.Thread(target=telnet_worker, daemon=True).start()
     threading.Thread(target=ticker_worker, daemon=True).start()
     threading.Thread(target=history_maintenance_worker, daemon=True).start() 
-    app.run(host='0.0.0.0', port=WEB_PORT, debug=False)
+    
+    print(f"Server starting on http://0.0.0.0:{WEB_PORT}")
+    app.run(host='0.0.0.0', port=WEB_PORT, debug=False, use_reloader=False)

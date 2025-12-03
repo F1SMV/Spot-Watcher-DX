@@ -1,8 +1,8 @@
-# 🛰️ NEURAL DX v3.4 - **DRSE (DX Risk Scoring Engine)**
+# 🛰️ NEURAL DX v3.5 - **calendrier Metorites integré 2 m**
 
 ## 💡 Résumé du projet
 
-**NEURAL DX v3.4** est une station de surveillance radioamateur en temps réel, basée sur Python/Flask pour le backend et une interface web dynamique (HTML/CSS/JavaScript). Le projet agrège et analyse les données de spots DX, les visualise sur des cartes en direct, calcule la distance des contacts par rapport à la position de l'opérateur (QRA Locator), et génère des alertes de propagation ciblées. La version intègre un système d'alerte visuelle agressive pour les cibles prioritaires.
+**NEURAL DX v3.5** est une station de surveillance radioamateur en temps réel, basée sur Python/Flask pour le backend et une interface web dynamique (HTML/CSS/JavaScript). Le projet agrège et analyse les données de spots DX, les visualise sur des cartes en direct, calcule la distance des contacts par rapport à la position de l'opérateur (QRA Locator), et génère des alertes de propagation ciblées. La version intègre un système d'alerte visuelle agressive pour les cibles prioritaires.
 
 ---
 
@@ -20,6 +20,7 @@
 * **Filtres dynamiques :** Filtrage des spots par **bande** et **mode** (CW, SSB, FT8, MSK144, SSTV, etc.).
 * **Correction mineure tri mode ft8**
 * **application plan de bande cw strict**
+* ** calendrier meteorites intégré pour le trafic 2 m
 
 ---
 ![Apercu du Dashboard](apercu.png)

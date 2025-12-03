@@ -1,13 +1,14 @@
 Markdown
 
-[cite_star[cite: 51] 🛰️ NEURAL DX v3.4 - **DRSE (DX Risk Scoring Engine)**
+[cite_star[cite: 51] 🛰️ NEURAL DX v3.5 - **ms integration calendar**
 
 💡 Project Summary
-[cite_start]NEURAL DX v3.4 is a real-time Amateur Radio monitoring station, built on a Python/Flask backend and a dynamic web interface (HTML/CSS/JavaScript)[cite: 51]. [cite_start]The project's goal is to aggregate and analyze DX spot data, visualize them on live maps, calculate the distance of contacts relative to the operator's position (QRA Locator), and generate targeted propagation alerts[cite: 52]. [cite_start]This version is highly optimized for speed and data clarity and includes an aggressive visual alert system for priority targets[cite: 53].
+[cite_start]NEURAL DX v3.5 is a real-time Amateur Radio monitoring station, built on a Python/Flask backend and a dynamic web interface (HTML/CSS/JavaScript)[cite: 51]. [cite_start]The project's goal is to aggregate and analyze DX spot data, visualize them on live maps, calculate the distance of contacts relative to the operator's position (QRA Locator), and generate targeted propagation alerts[cite: 52]. [cite_start]This version is highly optimized for speed and data clarity and includes an aggressive visual alert system for priority targets[cite: 53].
 
 ---
 
 ✨ Key Features
+* ** ms (for 2 m) calendar integrated
 * **DRSE (DX Risk Scoring Engine) & Priority Alert (New v3.4):** Integration of the DX Priority Score (SPD). Spots with a high score (SPD >= 70) are immediately signaled by an **aggressive flashing** and a **thick bright red border** on the Live Stream and Top DX Wanted, ensuring maximum visibility.
 * **SPD in the Live Stream (New v3.4):** The **DX Priority Score (SPD)** is displayed in a dedicated column of the Live Stream table, with a red background for priority targets.
 * [cite_start]Custom Distance Calculation: Displays the distance in kilometers between the operator's QRA and every spot/entity, including within the Top DX Wanted tables[cite: 54].
@@ -18,6 +19,7 @@ Markdown
 * [cite_start]Propagation Alerts (Surge): Detection and signaling of peak activity on bands[cite: 59].
 * [cite_start]24H History: Dedicated chart for activity on the Magic Bands (12m, 10m, 6m) with a visual band opening alert[cite: 60].
 * [cite_start]Dynamic Filters: Filtering of spots by band and mode (CW, SSB, FT8, MSK144, SSTV, etc.)[cite: 61].
+
 
 ---
 
