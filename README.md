@@ -93,4 +93,4 @@ Les principaux paramètres de l'application se trouvent au début du fichier `we
 | `SPOT_LIFETIME` | Durée pendant laquelle un spot reste actif (en secondes). | 1800 (30 minutes) |
 
 ---
-*Feel free to modify and share. Created by F1SMV Eric for Ham Radio Communauty with #GIMINI3.*
+*Feel free to modify and share. Created by F1SMV Eric for Ham Radio Communauty with #GIMINI3.* vous pouvez me joindre via X
