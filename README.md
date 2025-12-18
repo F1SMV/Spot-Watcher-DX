@@ -1,4 +1,4 @@
-# 📡 DX Cluster Dashboard – v4.4
+# 📡 DX Cluster Dashboard – v4.5
 
 Dashboard web temps réel pour radioamateurs, connecté à un DX Cluster via Telnet.  
 Conçu pour la **veille DX**, la **visualisation géographique**, l’**analyse d’activité**, et l’**interaction directe** avec le cluster (spot manuel, synthèse vocale, etc.).
@@ -57,6 +57,8 @@ Conçu pour la **veille DX**, la **visualisation géographique**, l’**analyse 
 - Watchlist de calls
 - Alertes visuelles et vocales
 - API REST prête pour automatisation
+
+### 📡 ajout des indices solaires 
 
 ---
 

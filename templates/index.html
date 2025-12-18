@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEURAL DX v4.4 - 30min History</title>
+    <title>NEURAL DX v4.5 - 30min History</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -360,7 +360,7 @@
 </head>
 <body>
     <div id="header">
-        <div id="title">NEURAL DX WATCHER V4.4</div>
+        <div id="title">NEURAL DX WATCHER V4.5</div>
         <div id="controls">
             <span id="indicators">
                 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -529,7 +529,23 @@
             <div id="surge-panel" class="panel" data-panel-id="surge">
                 <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> SURGE ALERTS ⚡</div>
                 <div id="surge-container">No active surges...</div>
+            
+            <div id="solar-panel" class="panel" data-panel-id="solar">
+                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> SOLAR INDICES ☀️</div>
+                <div id="solar-content">
+                    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:baseline;">
+                        <div class="indicator-item">SFI: <span id="solar-sfi">--</span></div>
+                        <div class="indicator-item">A: <span id="solar-a">--</span></div>
+                        <div class="indicator-item">K: <span id="solar-k">--</span></div>
+                    </div>
+                    <div style="margin-top:6px; font-size:0.85em; opacity:0.85;">
+                        Updated (UTC): <span id="solar-updated">--</span>
+                    </div>
+                    <div id="solar-error" style="margin-top:6px; font-size:0.85em; color: var(--alert); display:none;"></div>
+                </div>
             </div>
+
+</div>
             <div id="qth-panel" class="panel" data-panel-id="qth">
                 <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> QTH & CONFIG</div>
                 <form id="qra-form">
@@ -1025,7 +1041,38 @@
 
 
         // --- MISE A JOUR DES DONNÉES ---
-        async function updateData() {
+        
+        // --- SOLAR INDICES ---
+        async function fetchSolar() {
+            try {
+                const r = await fetch('/solar.json', { cache: 'no-store' });
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                const d = await r.json();
+
+                const sfi = (d.sfi === null || d.sfi === undefined) ? 'N/A' : d.sfi;
+                const a = (d.a === null || d.a === undefined) ? 'N/A' : d.a;
+                const k = (d.k === null || d.k === undefined) ? 'N/A' : d.k;
+                const updated = d.updated_utc || 'N/A';
+
+                document.getElementById('solar-sfi').textContent = sfi;
+                document.getElementById('solar-a').textContent = a;
+                document.getElementById('solar-k').textContent = k;
+                document.getElementById('solar-updated').textContent = updated;
+
+                const err = document.getElementById('solar-error');
+                err.style.display = 'none';
+                err.textContent = '';
+            } catch (e) {
+                console.error('Solar fetch failed:', e);
+                const err = document.getElementById('solar-error');
+                if (err) {
+                    err.textContent = 'Solar data unavailable';
+                    err.style.display = 'block';
+                }
+            }
+        }
+
+async function updateData() {
             console.log("Fetching new data...");
             await updateSpots('hf');
             await updateSpots('vhf');
@@ -1338,6 +1385,10 @@
 
              // Appel principal de mise à jour toutes les 30 secondes
              setInterval(updateData, 30000);
+
+             // Solar indices: initial load + hourly refresh
+             try { await fetchSolar(); } catch(e) {}
+             setInterval(fetchSolar, 3600000);
 
              document.getElementById('qra-form').addEventListener('submit', async function(event) {
                  event.preventDefault();

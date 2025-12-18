@@ -11,7 +11,7 @@ import re
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from collections import deque, Counter
-from flask import Flask, render_template, jsonify, request, abort, redirect, url_for
+from flask import Flask, render_template, jsonify, request, abort, redirect, url_for, Response
 
 
 # --- CLUSTER TX (Spot) ---
@@ -19,7 +19,7 @@ tn_lock = threading.Lock()
 tn_current = None  # telnetlib.Telnet when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "NEURAL AI v4.4 - Spotter + update cty.dat auto + send spots"
+APP_VERSION = "NEURAL AI v4.5 - Spotter + update cty.dat auto + send spots"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -89,11 +89,75 @@ CTY_FILE = "cty.dat"
 WATCHLIST_FILE = "watchlist.json"
 SOLAR_URL = "https://services.swpc.noaa.gov/text/wwv.txt"
 
+# --- SOLAR (XML) FETCHER ---
+def fetch_solar_from_wwv_txt():
+    """
+    Fetch solar indices from NOAA SWPC wwv.txt and update solar_cache + solar_xml_cache.
+    Runs hourly in solar_worker().
+    """
+    global solar_cache, solar_xml_cache
+    try:
+        req = urllib.request.Request(SOLAR_URL, headers={'User-Agent': 'Mozilla/5.0', 'Accept': '*/*'})
+        with urllib.request.urlopen(req, timeout=15) as r:
+            raw = r.read().decode('utf-8', errors='ignore')
+
+        # Robust parsing (wwv.txt format varies)
+        sfi = a_idx = k_idx = "N/A"
+
+        # Common patterns
+        m_sfi = re.search(r"Solar\s+flux\s*[:=]?\s*([0-9]+)", raw, re.IGNORECASE)
+        if m_sfi:
+            sfi = m_sfi.group(1)
+
+        m_a = re.search(r"\bA[-\s]?index\s*[:=]?\s*([0-9]+)", raw, re.IGNORECASE)
+        if m_a:
+            a_idx = m_a.group(1)
+
+        m_k = re.search(r"\bK[-\s]?index\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)", raw, re.IGNORECASE)
+        if m_k:
+            k_idx = m_k.group(1)
+
+        # Timestamp
+        ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+        with solar_lock:
+            solar_cache = {"sfi": sfi, "a": a_idx, "k": k_idx, "ts_utc": ts}
+            solar_xml_cache = (
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<solar>'
+                f'<sfi>{sfi}</sfi>'
+                f'<a>{a_idx}</a>'
+                f'<k>{k_idx}</k>'
+                f'<updated_utc>{ts}</updated_utc>'
+                '</solar>'
+            )
+        logger.info(f"SOLAR updated (xml): SFI={sfi} A={a_idx} K={k_idx}")
+
+    except Exception as e:
+        logger.error(f"SolarWorker: impossible de récupérer/produire solar.xml: {e}")
+
+def solar_worker():
+    threading.current_thread().name = 'SolarWorker'
+    logger.info("SolarWorker démarré (update solar.xml toutes les heures).")
+    # run once immediately
+    fetch_solar_from_wwv_txt()
+    while True:
+        time.sleep(3600)
+        fetch_solar_from_wwv_txt()
+# --- END SOLAR (XML) FETCHER ---
+
+
 # --- CACHES GLOBAUX et INITIALISATION QTH ---
 spots_buffer = deque(maxlen=6000)
 band_history = {}
 prefix_db = {}
 ticker_info = {"text": "SYSTEM INITIALIZATION... (Waiting for RSS/Solar data)"}
+
+# --- SOLAR CACHE (XML/JSON) ---
+solar_lock = threading.Lock()
+solar_cache = {"sfi": "N/A", "a": "N/A", "k": "N/A", "ts_utc": None}
+solar_xml_cache = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><solar><sfi>N/A</sfi><a>N/A</a><k>N/A</k><updated_utc></updated_utc></solar>"
+# --- END SOLAR CACHE ---
 watchlist = set()
 surge_bands = []
 history_30min = {band: [0] * HISTORY_SLOTS for band in HISTORY_BANDS}
@@ -916,6 +980,24 @@ def manage_watchlist():
 def get_rss():
     return jsonify({"ticker": ticker_info["text"]})
 
+
+# --- SOLAR ROUTES (XML + JSON) ---
+@app.route('/solar.xml')
+@app.route('/api/solar.xml')
+def get_solar_xml():
+    with solar_lock:
+        xml = solar_xml_cache
+    return Response(xml, mimetype='application/xml; charset=utf-8')
+
+@app.route('/solar.json')
+@app.route('/api/solar.json')
+def get_solar_json():
+    with solar_lock:
+        data = dict(solar_cache)
+    return jsonify(data)
+# --- END SOLAR ROUTES ---
+
+
 @app.route('/history.json')
 def get_history():
     now_utc = time.gmtime(time.time())
@@ -974,6 +1056,7 @@ if __name__ == "__main__":
 
     threading.Thread(target=telnet_worker, daemon=True).start()
     threading.Thread(target=ticker_worker, daemon=True).start()
+    threading.Thread(target=solar_worker, daemon=True).start()
     threading.Thread(target=history_maintenance_worker, daemon=True).start()
 
     logger.info("Tous les Workers ont été démarrés. Lancement du serveur Flask...")
