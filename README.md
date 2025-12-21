@@ -1,131 +1,114 @@
-# 📡 DX Cluster Dashboard – v4.5
+📡 DX Cluster Dashboard – v4.6 (Neural AI Edition)
 
-Dashboard web temps réel pour radioamateurs, connecté à un DX Cluster via Telnet.  
-Conçu pour la **veille DX**, la **visualisation géographique**, l’**analyse d’activité**, et l’**interaction directe** avec le cluster (spot manuel, synthèse vocale, etc.).
+Dashboard web temps réel nouvelle génération pour radioamateurs, piloté par un moteur d'analyse statistique et connecté à un DX Cluster via Telnet.
 
----
+Conçu pour la veille DX proactive, la visualisation géographique avancée, et l'optimisation de propagation.
+🚀 Quoi de neuf dans la v4.6 ?
 
-## 🚀 Fonctionnalités principales
+Cette version introduit le label "Neural AI", ajoutant une couche d'intelligence et d'analyse aux données brutes du cluster :
+🧠 Moteur de Score SPD (Spot Priority/Difficulty)
 
-### 🔗 Connexion DX Cluster
-- Connexion Telnet persistante à un DX Cluster (ex : dxfun.com)
-- Récupération continue des spots
-- Gestion automatique de la reconnexion
+    Attribution d'un score de 0 à 100 pour chaque spot basé sur la rareté du préfixe, le mode (bonus CW), la distance et les commentaires (Split, Up, DX).
 
-### 🗺️ Carte DX mondiale
-- Affichage en temps réel des stations spotées
-- Géolocalisation basée sur **DXCC / cty.dat**
-- Mise à jour automatique du fichier `cty.dat` au démarrage (download + parsing)
-- Clustering visuel des spots pour lisibilité
+    Identification immédiate des stations "Wanted" (Score > 70).
 
-### 📊 Statistiques & graphiques
-- Histogramme d’activité sur **12 heures**
-- Bandes actives en temps réel
-- Détection de surges / pics d’activité
-- Historique exploitable côté front
+🗺️ AI Path Optimizer & Grayline
 
-### 🧲 Panneaux (pavés) dynamiques
-- **Layout multi-colonnes**
-- Tous les pavés sont **drag & drop**
-- Position mémorisée (localStorage)
-- Architecture modulaire (ajout de panneaux facile)
+    Visualisation de trajet : Calcul et affichage du trajet optimal vs trajet long (Long Path) pour chaque spot.
 
-### ☀️ Indices solaires
-- Pavé dédié (SFI, A, K, etc.)
-- Rafraîchissement automatique (toutes les heures)
-- Données XML parsées côté backend
+    Analyse de propagation : Recommandations basées sur la Grayline pour éviter l'absorption ionosphérique.
 
-### 🗣️ Synthèse vocale (TTS)
-- Annonce vocale des nouveaux spots
-- Langues supportées :
-  - 🇫🇷 Français (fr-FR)
-  - 🇬🇧 English (en-US)
-  - 🇪🇸 Español (es-ES)
-  - 🇮🇱 עברית (he-IL)
-- Fonctionne sur desktop et mobile (après interaction utilisateur)
+📊 Statistiques DXCC 24h & Rareté
 
-### ✍️ Spot manuel
-- Pavé “Spot Manuel”
-- Saisie :
-  - Indicatif
-  - Fréquence (MHz ou kHz)
-  - Commentaire
-- Envoi direct vers le DX Cluster
-- Retour d’état immédiat
+    Nouveau tableau de bord analytique incluant :
 
-### 📡 Watchlist & alertes
-- Watchlist de calls
-- Alertes visuelles et vocales
-- API REST prête pour automatisation
+        Nombre d'entités DXCC uniques contactées/vues en 24h.
 
-### 📡 ajout des indices solaires 
+        Taux de rareté global (Rarity Rate %).
 
----
+        Liste dynamique des calls "Longue Distance" (> 10 000 km).
 
-## 🧠 Architecture
+🌠 Monitoring Meteor Scatter (MS)
 
-- **Backend** : Python / Flask
-- **Frontend** : HTML + JavaScript (vanilla)
-- **Cartographie** : Leaflet
-- **Données DXCC** : `cty.dat` (auto-téléchargé)
-- **API** :
-  - `/spots.json`
-  - `/history.json`
-  - `/live_bands.json`
-  - `/surge.json`
-  - `/rss.json`
-  - `/spot` (POST)
-  - Compatibilité `/api/*`
+    Intégration du calendrier des essaims météoritiques (Perséides, Léonides, etc.).
 
----
+    Détection automatique d'activité MSK144 sur 2m avec alertes de "Surge" dédiées.
 
-## 📸 Aperçu
+🛠️ Fonctionnalités Historiques
+🔗 Connectivité Cluster
+
+    Connexion Telnet persistante multi-source (dxfun.com, cluster.dx.de, etc.) avec reconnexion auto.
+
+    Envoi de spots manuels directement depuis l'interface.
+
+☀️ Données Solaires NOAA
+
+    Récupération en temps réel des indices SFI, A et K depuis les serveurs de la NOAA.
+
+    Export des données solaires via API aux formats XML et JSON.
+
+🗣️ Synthèse Vocale & Alertes
+
+    Annonce vocale multilingue (FR, EN, ES, HE) des nouveaux spots.
+
+    Gestion d'une Watchlist personnalisée avec notifications visuelles.
+
+📊 Interface Modulaire
+
+    Dashboard en colonnes avec pavés Drag & Drop.
+
+    Histogrammes d'activité sur 12 heures par bande.
+
+🧠 Architecture Technique
+
+    Backend : Python 3.x / Flask
+
+    Traitement : Multithreading (Workers dédiés pour Telnet, Solaire, RSS et Statistiques).
+
+    Frontend : HTML5 / JavaScript Vanilla / Leaflet (Cartographie).
+
+    Bases de données : Géolocalisation via cty.dat (mise à jour auto) et watchlist.json.
+
+Nouvelles Routes API v4.6 :
+
+    /dxcc_stats_24h.json : Données analytiques journalières.
+
+    /ai_path_data.json : Coordonnées pour l'optimiseur de trajet.
+
+    /api/solar.xml : Flux XML des données solaires pour intégration tierce.
+
+📸 Aperçu
 
 ![Apercu du Dashboard](apercu.png)
 
----
 
-## 🛠️ Installation rapide
+(Légende : Visualisation des spots avec scores SPD et trajectoires AI)
+🛠️ Installation
+Bash
 
-```bash
+# Cloner le dépôt
 git clone https://github.com/Eric738/Spot-Watcher-DX.git
-ou gh repo clone Eric738/Spot-Watcher-DX
-cd dx-cluster-dashboard
+cd Spot-Watcher-DX
+
+# Créer l'environnement virtuel
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # Sur Windows: venv\Scripts\activate
+
+# Installer les dépendances
 pip install -r requirements.txt
+
+# Lancer l'application
 python webapp.py
 
-Puis ouvrir :
-👉 http://127.0.0.1:8000
-⚠️ Notes importantes
+Puis ouvrez votre navigateur sur : http://localhost:8000
+🧩 Évolutions à venir
 
-    Le premier déclenchement de la synthèse vocale nécessite un clic utilisateur (restriction navigateur).
+    [ ] Intégration réelle du moteur de corrélation cognitive (Pattern Matching).
 
-    Sur mobile, vérifier que le moteur TTS est bien installé (Android / iOS).
+    [ ] Export des logs au format ADIF pour carnet de trafic.
 
-    Le fichier cty.dat est téléchargé automatiquement s’il est absent ou invalide.
+    [ ] Heatmap de propagation basée sur le rapport signal/bruit (si disponible via cluster).
 
-🧩 Évolutions possibles
+Développé par F1SMV Eric avec l'assistance de Gemini/ChatGPT pour la communauté Radioamateur.
 
-    Filtrage avancé par mode / bande
-
-    Heatmap DX par zone
-
-    Analyse de propagation anormale
-
-    Export CSV / ADIF
-
-    Intégration SDR / WSJT-X
-
-Feel free to modify and share.
-Created by F1SMV Eric for Ham Radio Communauty with #GIMINI3 #chatGPT.
-Vous pouvez me joindre via X.
-
-
----
-
-
-
-
-ChatGPT can make mistakes. Check important info. See Cookie Preferences.
+73's et bon DX !

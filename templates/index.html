@@ -1,15 +1,16 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEURAL DX v4.5 - 30min History</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>NEURAL DX v4.6 - 30min History</title>
+<link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet"/>
+<style>
         /* Variables de Thème par Défaut (SoftTech V4.1 Original) */
         :root {
             --bg-color: #050505;
@@ -106,9 +107,17 @@
             100% { transform: translate(-100%, 0); }
         }
         #main-container {
-            display: flex;
-            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(320px, 1fr));
             gap: 10px;
+            padding: 10px;
+            align-items: start;
+        }
+        @media (max-width: 1100px){
+            #main-container{ grid-template-columns: repeat(2, minmax(280px, 1fr)); }
+        }
+        @media (max-width: 760px){
+            #main-container{ grid-template-columns: 1fr; }
         }
         .column {
             flex: 1;
@@ -356,240 +365,310 @@
             height: 250px;
             width: 100%;
         }
+
+        /* =========================
+           SOLAR panel : couleurs + micro animation + explications
+           ========================= */
+        .solar-chip{
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+            padding:2px 10px;
+            border-radius:999px;
+            font-size:12px;
+            border:1px solid rgba(0,243,255,.25);
+            background:rgba(0,243,255,.06);
+            margin-top:8px;
+            width: fit-content;
+        }
+        .solar-chip::before{
+            content:"";
+            width:8px;
+            height:8px;
+            border-radius:50%;
+            background: var(--accent);
+            box-shadow: 0 0 10px rgba(0,243,255,.35);
+            animation: solarPulse 1.6s ease-in-out infinite;
+        }
+        @keyframes solarPulse{
+            0%,100%{ transform: scale(1); opacity:.65; }
+            50%{ transform: scale(1.35); opacity:1; }
+        }
+
+        .chip-poor{ color:#ff4d4d; border-color:rgba(255,77,77,.35); background:rgba(255,77,77,.08); }
+        .chip-fair{ color:#ffd24d; border-color:rgba(255,210,77,.35); background:rgba(255,210,77,.08); }
+        .chip-good{ color:#4dff88; border-color:rgba(77,255,136,.35); background:rgba(77,255,136,.08); }
+        .chip-exc{  color:#00eaff; border-color:rgba(0,234,255,.35); background:rgba(0,234,255,.08); }
+
+        .solar-value-color-poor{ color:#ff4d4d !important; }
+        .solar-value-color-fair{ color:#ffd24d !important; }
+        .solar-value-color-good{ color:#4dff88 !important; }
+        .solar-value-color-exc{  color:#00eaff !important; }
+
+        .solar-updated{
+            margin-top:6px;
+            font-size:0.85em;
+            opacity:0.9;
+            color: var(--accent);
+        }
+        .solar-explain{
+            margin-top:8px;
+            font-size:0.82em;
+            opacity:0.85;
+            line-height:1.35;
+        }
+        .solar-explain b{ color: #ddd; }
+
+        .hf-pred{
+            margin-top:6px;
+            font-size:0.85em;
+            opacity:0.9;
+        }
+        .hf-pred span{
+            color: var(--accent);
+            font-weight:bold;
+        }
     </style>
 </head>
 <body>
-    <div id="header">
-        <div id="title">NEURAL DX WATCHER V4.5</div>
-        <div id="controls">
-            <span id="indicators">
-                <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
-                <div class="indicator-item">UTC: <span id="utc-time"></span></div>
-                <div class="indicator-item">LOC: <span id="local-time"></span></div>
-                <div class="indicator-item">MODE: <span id="display-mode">SoftTech</span></div>
-                
-                <a href="analysis.html" class="icon-button" title="Visualiser les algorithmes d'analyse">📊 AI INSIGHT</a>
-            </span>
-            <select id="voice-distance-filter" title="Filtrer les annonces vocales par distance">
-                <option value="ALL">Voice Dist: ALL</option>
-                <option value="LOW">Voice Dist: < 5000 km</option>
-                <option value="MID">Voice Dist: 5000 - 10000 km</option>
-                <option value="HIGH">Voice Dist: > 10000 km</option>
-            </select>
-            <select id="voice-language-filter" title="Sélectionner la langue de l'annonce vocale">
-                <option value="fr-FR">Voice Lang: FR</option>
-                <option value="en-US">Voice Lang: EN</option>
-                <option value="es-ES">Voice Lang: ES</option>
-                <option value="he-IL">Voice Lang: HE</option>   
-            </select>
-            <button id="synth-toggle-button" onclick="toggleVoiceSynth()" title="Activer/Désactiver la synthèse vocale">🔊 VOICE ON</button>
-            <button class="icon-button" onclick="toggleTheme()" title="Changer de thème">🔆</button>
-        </div>
-    </div>
-
-    <div id="ticker-container">
-        <div id="ticker-content">SYSTEM INITIALIZATION...</div>
-    </div>
-    <div id="main-container">
-        <div class="column" id="col1">
-            <div id="watchlist-panel" class="panel" data-panel-id="watchlist">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> WATCHLIST</div>
-
-                <form id="add-wl-form" style="display: flex; gap: 5px; margin-bottom: 10px;">
-                    <input type="text" id="wl_callsign" placeholder="Callsign à ajouter" style="flex-grow: 1; padding: 5px; border: 1px solid #555; background-color: #333; color: var(--text-main); text-transform: uppercase;" required>
-                    <button type="submit" style="padding: 5px 10px; background-color: var(--accent); color: var(--panel-bg); border: none; cursor: pointer;">Add</button>
-                </form>
-
-                <div id="watchlist-container">
-                    <table class="wl-table">
-                        <thead>
-                            <tr>
-                                <th>Call</th>
-                                <th>Band</th>
-                                <th>Mode</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="watchlist-body">
-                            <tr><td colspan="4" style="text-align: center;">Loading Watchlist...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            
-            <div id="spotter-panel" class="panel" data-panel-id="spotter">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> SPOT MANUEL</div>
-                <div class="panel-body">
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:end;">
-                        <div>
-                            <label style="display:block; font-size:.85em; opacity:.8; margin-bottom:4px;">Indicatif (CALL)</label>
-                            <input id="spot-call" type="text" placeholder="ex: DU2W" style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#eee; border-radius:6px; text-transform:uppercase;">
-                        </div>
-                        <div>
-                            <label style="display:block; font-size:.85em; opacity:.8; margin-bottom:4px;">Fréquence (MHz ou kHz)</label>
-                            <input id="spot-freq" type="text" placeholder="ex: 14.074 ou 14074.0" style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#eee; border-radius:6px;">
-                        </div>
-                        <div style="grid-column:1 / -1;">
-                            <label style="display:block; font-size:.85em; opacity:.8; margin-bottom:4px;">Commentaire (optionnel)</label>
-                            <input id="spot-comment" type="text" placeholder="ex: FT4, loud, QO-100, etc." style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#eee; border-radius:6px;">
-                        </div>
-                        <div style="grid-column:1 / -1; display:flex; gap:8px; align-items:center;">
-                            <button id="spot-send" style="padding:10px 14px; border-radius:8px; border:1px solid #355; background:rgba(0,243,255,.12); color:#e8ffff; cursor:pointer;">
+<div id="header">
+<div id="title">NEURAL DX WATCHER V4.6</div>
+<div id="controls">
+<span id="indicators">
+<div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
+<div class="indicator-item">UTC: <span id="utc-time"></span></div>
+<div class="indicator-item">LOC: <span id="local-time"></span></div>
+<div class="indicator-item">MODE: <span id="display-mode">SoftTech</span></div>
+<a class="icon-button" href="analysis.html" title="Visualiser les algorithmes d'analyse">📊 AI INSIGHT</a>
+</span>
+<select id="voice-distance-filter" title="Filtrer les annonces vocales par distance">
+<option value="ALL">Voice Dist: ALL</option>
+<option value="LOW">Voice Dist: &lt; 5000 km</option>
+<option value="MID">Voice Dist: 5000 - 10000 km</option>
+<option value="HIGH">Voice Dist: &gt; 10000 km</option>
+</select>
+<select id="voice-language-filter" title="Sélectionner la langue de l'annonce vocale">
+<option value="fr-FR">Voice Lang: FR</option>
+<option value="en-US">Voice Lang: EN</option>
+<option value="es-ES">Voice Lang: ES</option>
+<option value="he-IL">Voice Lang: HE</option>
+</select>
+<button id="synth-toggle-button" onclick="toggleVoiceSynth()" title="Activer/Désactiver la synthèse vocale">🔊 VOICE ON</button>
+<button class="icon-button" onclick="toggleTheme()" title="Changer de thème">🔆</button>
+</div>
+</div>
+<div id="ticker-container">
+<div id="ticker-content">SYSTEM INITIALIZATION...</div>
+</div>
+<div id="main-container">
+<div class="column" id="col1">
+<div class="panel" data-panel-id="watchlist" id="watchlist-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> WATCHLIST</div>
+<form id="add-wl-form" style="display: flex; gap: 5px; margin-bottom: 10px;">
+<input id="wl_callsign" placeholder="Callsign à ajouter" required="" style="flex-grow: 1; padding: 5px; border: 1px solid #555; background-color: #333; color: var(--text-main); text-transform: uppercase;" type="text"/>
+<button style="padding: 5px 10px; background-color: var(--accent); color: var(--panel-bg); border: none; cursor: pointer;" type="submit">Add</button>
+</form>
+<div id="watchlist-container">
+<table class="wl-table">
+<thead>
+<tr>
+<th>Call</th>
+<th>Band</th>
+<th>Mode</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="watchlist-body">
+<tr><td colspan="4" style="text-align: center;">Loading Watchlist...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="panel" data-panel-id="spotter" id="spotter-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> SPOT MANUEL</div>
+<div class="panel-body">
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:end;">
+<div>
+<label style="display:block; font-size:.85em; opacity:.8; margin-bottom:4px;">Indicatif (CALL)</label>
+<input id="spot-call" placeholder="ex: DU2W" style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#eee; border-radius:6px; text-transform:uppercase;" type="text"/>
+</div>
+<div>
+<label style="display:block; font-size:.85em; opacity:.8; margin-bottom:4px;">Fréquence (MHz ou kHz)</label>
+<input id="spot-freq" placeholder="ex: 14.074 ou 14074.0" style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#eee; border-radius:6px;" type="text"/>
+</div>
+<div style="grid-column:1 / -1;">
+<label style="display:block; font-size:.85em; opacity:.8; margin-bottom:4px;">Commentaire (optionnel)</label>
+<input id="spot-comment" placeholder="ex: FT4, loud, QO-100, etc." style="width:100%; padding:8px; background:#111; border:1px solid #333; color:#eee; border-radius:6px;" type="text"/>
+</div>
+<div style="grid-column:1 / -1; display:flex; gap:8px; align-items:center;">
+<button id="spot-send" style="padding:10px 14px; border-radius:8px; border:1px solid #355; background:rgba(0,243,255,.12); color:#e8ffff; cursor:pointer;">
                                 📡 SPOT
                             </button>
-                            <span id="spot-status" style="font-size:.9em; opacity:.85;"></span>
-                        </div>
-                    </div>
-                    <div style="margin-top:8px; font-size:.8em; opacity:.65;">
+<span id="spot-status" style="font-size:.9em; opacity:.85;"></span>
+</div>
+</div>
+<div style="margin-top:8px; font-size:.8em; opacity:.65;">
                         Astuce : si tu saisis <b>14.074</b> (MHz), ça sera envoyé au cluster en <b>14074.0</b>. Si tu saisis déjà <b>14074.0</b>, c’est envoyé tel quel.
                     </div>
-                </div>
-            </div>
-
-
-<div id="spots-hf-panel" class="panel" data-panel-id="spots-hf">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> DX SPOTS HF</div>
-                <div class="filter-controls">
-                    <select id="hf-band-filter">
-                        <option value="All">All Bands</option>
+</div>
+</div>
+<div class="panel" data-panel-id="spots-hf" id="spots-hf-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> DX SPOTS HF</div>
+<div class="filter-controls">
+<select id="hf-band-filter">
+<option value="All">All Bands</option>
                         {% for band in hf_bands %}
                             <option value="{{ band }}">{{ band }}</option>
                         {% endfor %}
                     </select>
-                    <select id="hf-mode-filter">
-                        <option value="All">All Modes</option>
-                        <option value="FT8">FT8</option>
-                        <option value="CW">CW</option>
-                        <option value="SSB">SSB</option>
-                        <option value="FT4">FT4</option>
-                    </select>
-                </div>
-                <div id="spots-container-hf">
-                    <table class="spot-table">
-                        <thead>
-                            <tr>
-                                <th>Time</th><th>Freq</th><th>Call</th><th>Band</th><th>Mode</th><th title="Score de Priorité DX">SPD</th><th>Dist (km)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="spots-body-hf">
-                            <tr><td colspan="7" style="text-align: center;">Waiting for spots...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="spots-vhf-panel" class="panel" data-panel-id="spots-vhf">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> DX SPOTS VHF/UHF</div>
-                <div class="filter-controls">
-                    <select id="vhf-band-filter">
-                        <option value="All">All Bands</option>
+<select id="hf-mode-filter">
+<option value="All">All Modes</option>
+<option value="FT8">FT8</option>
+<option value="CW">CW</option>
+<option value="SSB">SSB</option>
+<option value="FT4">FT4</option>
+<option value="RTTY">RTTY</option>
+<option value="SSTV">SSTV</option>
+<option value="DIGI">DIGI</option>
+</select>
+</div>
+<div id="spots-container-hf">
+<table class="spot-table">
+<thead>
+<tr>
+<th>Time</th><th>Freq</th><th>Call</th><th>Band</th><th>Mode</th><th title="Score de Priorité DX">SPD</th><th>Dist (km)</th>
+</tr>
+</thead>
+<tbody id="spots-body-hf">
+<tr><td colspan="7" style="text-align: center;">Waiting for spots...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="panel" data-panel-id="spots-vhf" id="spots-vhf-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> DX SPOTS VHF/UHF</div>
+<div class="filter-controls">
+<select id="vhf-band-filter">
+<option value="All">All Bands</option>
                         {% for band in vhf_bands %}
                             <option value="{{ band }}">{{ band }}</option>
                         {% endfor %}
                     </select>
-                    <select id="vhf-mode-filter">
-                        <option value="All">All Modes</option>
-                        <option value="FT8">FT8</option>
-                        <option value="MSK144">MSK144</option>
-                        <option value="CW">CW</option>
-                        <option value="SSB">SSB</option>
-                        <option value="FM">FM</option>
-                    </select>
-                </div>
-                <div id="spots-container-vhf">
-                    <table class="spot-table">
-                        <thead>
-                            <tr>
-                                <th>Time</th><th>Freq</th><th>Call</th><th>Band</th><th>Mode</th><th title="Score de Priorité DX">SPD</th><th>Dist (km)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="spots-body-vhf">
-                            <tr><td colspan="7" style="text-align: center;">Waiting for spots...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="wanted-panel" class="panel" data-panel-id="wanted">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> DX WANTED (TOP 10)</div>
-                <div style="display: flex; gap: 20px;">
-                    <div style="flex: 1;">
-                        <h4 style="color: var(--accent);">HF</h4>
-                        <ul id="ranking-hf" class="ranking-list"><li>Loading...</li></ul>
-                    </div>
-                    <div style="flex: 1;">
-                        <h4 style="color: var(--accent);">VHF/UHF</h4>
-                        <ul id="ranking-vhf" class="ranking-list"><li>Loading...</li></ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="column" id="col2">
-            <div id="surge-panel" class="panel" data-panel-id="surge">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> SURGE ALERTS ⚡</div>
-                <div id="surge-container">No active surges...</div>
-            
-            <div id="solar-panel" class="panel" data-panel-id="solar">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> SOLAR INDICES ☀️</div>
-                <div id="solar-content">
-                    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:baseline;">
-                        <div class="indicator-item">SFI: <span id="solar-sfi">--</span></div>
-                        <div class="indicator-item">A: <span id="solar-a">--</span></div>
-                        <div class="indicator-item">K: <span id="solar-k">--</span></div>
-                    </div>
-                    <div style="margin-top:6px; font-size:0.85em; opacity:0.85;">
-                        Updated (UTC): <span id="solar-updated">--</span>
-                    </div>
-                    <div id="solar-error" style="margin-top:6px; font-size:0.85em; color: var(--alert); display:none;"></div>
-                </div>
-            </div>
-
+<select id="vhf-mode-filter">
+<option value="All">All Modes</option>
+<option value="FT8">FT8</option>
+<option value="MSK144">MSK144</option>
+<option value="CW">CW</option>
+<option value="SSB">SSB</option>
+<option value="FM">FM</option>
+</select>
 </div>
-            <div id="qth-panel" class="panel" data-panel-id="qth">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> QTH & CONFIG</div>
-                <form id="qra-form">
-                    <label for="qra_locator">Set QRA:</label>
-                    <input type="text" id="qra_locator" name="qra_locator" placeholder="JN23" required>
-                    <button type="submit">Update</button>
-                </form>
-                <p style="margin-top: 10px; font-size: 0.8em; color: #888;">
+<div id="spots-container-vhf">
+<table class="spot-table">
+<thead>
+<tr>
+<th>Time</th><th>Freq</th><th>Call</th><th>Band</th><th>Mode</th><th title="Score de Priorité DX">SPD</th><th>Dist (km)</th>
+</tr>
+</thead>
+<tbody id="spots-body-vhf">
+<tr><td colspan="7" style="text-align: center;">Waiting for spots...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="panel" data-panel-id="wanted" id="wanted-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> DX WANTED (TOP 10)</div>
+<div style="display: flex; gap: 20px;">
+<div style="flex: 1;">
+<h4 style="color: var(--accent);">HF</h4>
+<ul class="ranking-list" id="ranking-hf"><li>Loading...</li></ul>
+</div>
+<div style="flex: 1;">
+<h4 style="color: var(--accent);">VHF/UHF</h4>
+<ul class="ranking-list" id="ranking-vhf"><li>Loading...</li></ul>
+</div>
+</div>
+</div>
+</div>
+
+<div class="column" id="col2">
+<div class="panel map-panel" data-panel-id="map-hf" id="map-hf-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> DX MAP HF ({{ hf_bands|length }} Bands)</div>
+<div class="map-area" id="map-hf"></div>
+</div>
+<div class="panel map-panel" data-panel-id="map-vhf" id="map-vhf-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> DX MAP VHF/UHF ({{ vhf_bands|length }} Bands)</div>
+<div class="map-area" id="map-vhf"></div>
+</div>
+</div>
+
+<div class="column" id="col3">
+<div class="panel" data-panel-id="surge" id="surge-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> SURGE ALERTS ⚡</div>
+<div id="surge-container">No active surges...</div>
+</div>
+
+<div class="panel" data-panel-id="solar" id="solar-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> SOLAR INDICES ☀️</div>
+<div id="solar-content">
+<div style="display:flex; gap:16px; flex-wrap:wrap; align-items:baseline;">
+<div class="indicator-item">SFI: <span id="solar-sfi">--</span></div>
+<div class="indicator-item">A: <span id="solar-a">--</span></div>
+<div class="indicator-item">K: <span id="solar-k">--</span></div>
+</div>
+
+<div id="solar-chip" class="solar-chip">SFI Status: --</div>
+
+<div id="hf-prediction" class="hf-pred">HF: <span>--</span></div>
+
+<div class="solar-updated">
+                        Updated (UTC): <span id="solar-updated">--</span>
+</div>
+
+<div class="solar-explain">
+<b>FR</b> : <b>SFI</b> élevé = plus de chances d’ouverture HF (10–12–15m). <b>A</b> et <b>K</b> mesurent l’agitation géomagnétique : plus c’est haut, plus la propagation peut devenir instable.<br/>
+<b>EN</b> : Higher <b>SFI</b> often helps HF openings (10–12–15m). <b>A</b> and <b>K</b> indicate geomagnetic disturbance: higher values can mean less stable propagation.
+</div>
+
+<div id="solar-error" style="margin-top:6px; font-size:0.85em; color: var(--alert); display:none;"></div>
+</div>
+</div>
+
+<div class="panel" data-panel-id="qth" id="qth-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> QTH &amp; CONFIG</div>
+<form id="qra-form">
+<label for="qra_locator">Set QRA:</label>
+<input id="qra_locator" name="qra_locator" placeholder="JN23" required="" type="text"/>
+<button type="submit">Update</button>
+</form>
+<p style="margin-top: 10px; font-size: 0.8em; color: #888;">
                     My Call: {{ my_call }} | SPD Threshold: {{ spd_threshold }} | Version: {{ version }}
                 </p>
-            </div>
+</div>
 
-            <div id="map-hf-panel" class="panel map-panel" data-panel-id="map-hf">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> DX MAP HF ({{ hf_bands|length }} Bands)</div>
-                <div id="map-hf" class="map-area"></div>
-            </div>
-            <div id="map-vhf-panel" class="panel map-panel" data-panel-id="map-vhf">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> DX MAP VHF/UHF ({{ vhf_bands|length }} Bands)</div>
-                <div id="map-vhf" class="map-area"></div>
-            </div>
+<div class="panel" data-panel-id="chart-history" id="chart-history-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> HISTORIQUE 30MIN (12H)</div>
+<div class="chart-container">
+<canvas id="historyChart"></canvas>
+</div>
+</div>
 
-            <div id="chart-history-panel" class="panel" data-panel-id="chart-history">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> HISTORIQUE 30MIN (12H)</div>
-                <div class="chart-container">
-                    <canvas id="historyChart"></canvas>
-                </div>
-            </div>
+<div class="panel" data-panel-id="chart-live-hf" id="chart-live-hf-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> LIVE BAND ACTIVITY (HF)</div>
+<div style="height: 200px;"><canvas id="liveHFChart"></canvas></div>
+</div>
 
-            <div id="chart-live-hf-panel" class="panel" data-panel-id="chart-live-hf">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> LIVE BAND ACTIVITY (HF)</div>
-                <div style="height: 200px;"><canvas id="liveHFChart"></canvas></div>
-            </div>
-            <div id="chart-live-vhf-panel" class="panel" data-panel-id="chart-live-vhf">
-                <div class="panel-header"><span class="dd-handle" title="Drag & Drop">⋮⋮</span> LIVE BAND ACTIVITY (VHF)</div>
-                <div style="height: 200px;"><canvas id="liveVHFChart"></canvas></div>
-            </div>
-        </div>
-    </div>
+<div class="panel" data-panel-id="chart-live-vhf" id="chart-live-vhf-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> LIVE BAND ACTIVITY (VHF)</div>
+<div style="height: 200px;"><canvas id="liveVHFChart"></canvas></div>
+</div>
+</div>
+</div>
 
-    <script>
+<script>
         // --- VARIABLES GLOBALES (DU BACKEND) ---
         const MY_CALL = '{{ my_call }}';
         const SPD_THRESHOLD = {{ spd_threshold }};
-        // NOTE: HF_BANDS, VHF_BANDS, BAND_COLORS sont supposées être parsées correctement par Jinja2 ou votre moteur de template
         const DEFAULT_QRA = '{{ user_qra }}';
 
         // --- ÉTATS GLOBAUX (CLIENT) ---
@@ -680,46 +759,46 @@
         }
 
         function announceSpot(spot) {
-    if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
+            if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
 
-    const spotKey = `${spot.dx_call}-${spot.freq}-${spot.time}`;
-    if (announcedSpots.has(spotKey)) return;
-    if (!isDistanceFiltered(spot.distance_km)) return;
+            const spotKey = `${spot.dx_call}-${spot.freq}-${spot.time}`;
+            if (announcedSpots.has(spotKey)) return;
+            if (!isDistanceFiltered(spot.distance_km)) return;
 
-    announcedSpots.add(spotKey);
+            announcedSpots.add(spotKey);
 
-    const message = new SpeechSynthesisUtterance();
-    message.lang = voiceLanguageFilter;
-    message.rate = 1.0;
+            const message = new SpeechSynthesisUtterance();
+            message.lang = voiceLanguageFilter;
+            message.rate = 1.0;
 
-    if (voiceLanguageFilter === 'fr-FR') {
-        message.text =
-            `Spot détecté : ${spot.dx_call} sur ${spot.band}, ` +
-            `mode ${spot.mode}, fréquence ${spot.freq}. ` +
-            `Distance ${spot.distance_km.toFixed(0)} kilomètres.`;
+            if (voiceLanguageFilter === 'fr-FR') {
+                message.text =
+                    `Spot détecté : ${spot.dx_call} sur ${spot.band}, ` +
+                    `mode ${spot.mode}, fréquence ${spot.freq}. ` +
+                    `Distance ${spot.distance_km.toFixed(0)} kilomètres.`;
 
-    } else if (voiceLanguageFilter === 'es-ES') {
-        message.text =
-            `Spot detectado: ${spot.dx_call} en la banda ${spot.band}, ` +
-            `modo ${spot.mode}, frecuencia ${spot.freq}. ` +
-            `Distancia ${spot.distance_km.toFixed(0)} kilómetros.`;
+            } else if (voiceLanguageFilter === 'es-ES') {
+                message.text =
+                    `Spot detectado: ${spot.dx_call} en la banda ${spot.band}, ` +
+                    `modo ${spot.mode}, frecuencia ${spot.freq}. ` +
+                    `Distancia ${spot.distance_km.toFixed(0)} kilómetros.`;
 
-    } else if (voiceLanguageFilter === 'he-IL') {
-        message.text =
-            `זוהתה תחנה ${spot.dx_call} ` +
-            `בתחום ${spot.band}, מצב ${spot.mode}, ` +
-            `תדר ${spot.freq}. ` +
-            `מרחק ${spot.distance_km.toFixed(0)} קילומטרים.`;
+            } else if (voiceLanguageFilter === 'he-IL') {
+                message.text =
+                    `זוהתה תחנה ${spot.dx_call} ` +
+                    `בתחום ${spot.band}, מצב ${spot.mode}, ` +
+                    `תדר ${spot.freq}. ` +
+                    `מרחק ${spot.distance_km.toFixed(0)} קילומטרים.`;
 
-    } else {
-        message.text =
-            `DX spot: ${spot.dx_call} on ${spot.band} band, ` +
-            `mode ${spot.mode}, frequency ${spot.freq}. ` +
-            `Distance ${spot.distance_km.toFixed(0)} kilometers.`;
-    }
+            } else {
+                message.text =
+                    `DX spot: ${spot.dx_call} on ${spot.band} band, ` +
+                    `mode ${spot.mode}, frequency ${spot.freq}. ` +
+                    `Distance ${spot.distance_km.toFixed(0)} kilometers.`;
+            }
 
-    window.speechSynthesis.speak(message);
-}
+            window.speechSynthesis.speak(message);
+        }
 
         // --- WATCHLIST ---
         async function loadWatchlist() {
@@ -851,13 +930,11 @@
 
         // --- GRAPHIQUES (CHARTS.JS) ---
         function initCharts() {
-            // Utilise la fonction getCssVar pour l'initialisation des couleurs
             const mainColor = getCssVar('--text-main');
             const accentColor = getCssVar('--accent');
 
-            Chart.defaults.color = mainColor; // Définit la couleur par défaut pour les ticks, etc.
+            Chart.defaults.color = mainColor;
             Chart.defaults.font.family = 'Share Tech Mono', 'monospace';
-
 
             const chartOptions = {
                 responsive: true,
@@ -865,18 +942,13 @@
                 plugins: {
                     legend: {
                         position: 'top',
-                        labels: {
-                            color: mainColor,  // COULEUR DYNAMIQUE
-                        }
+                        labels: { color: mainColor }
                     },
                     title: {
                         display: true,
                         text: 'HISTORIQUE DES SPOTS (30MIN/12H)',
-                        color: accentColor, // COULEUR DYNAMIQUE ACCENT
-                        font: {
-                            size: 14,
-                            family: "'Orbitron', sans-serif"
-                        }
+                        color: accentColor,
+                        font: { size: 14, family: "'Orbitron', sans-serif" }
                     },
                     tooltip: {
                         mode: 'index',
@@ -890,78 +962,34 @@
                 },
                 scales: {
                     x: {
-                        ticks: {
-                            color: mainColor,  // COULEUR DYNAMIQUE
-                        },
-                        title: {
-                            display: true,
-                            text: 'Heure (UTC - 30min)',
-                            color: mainColor // COULEUR DYNAMIQUE
-                        },
-                        grid: {
-                            color: '#333'
-                        }
+                        ticks: { color: mainColor },
+                        title: { display: true, text: 'Heure (UTC - 30min)', color: mainColor },
+                        grid: { color: '#333' }
                     },
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            color: mainColor,  // COULEUR DYNAMIQUE
-                        },
-                        title: {
-                            display: true,
-                            text: 'Nombre de spots',
-                            color: mainColor  // COULEUR DYNAMIQUE
-                        },
-                        grid: {
-                            color: '#333'
-                        }
+                        ticks: { color: mainColor },
+                        title: { display: true, text: 'Nombre de spots', color: mainColor },
+                        grid: { color: '#333' }
                     }
                 }
             };
 
-            // 1. History Chart (30min/12h) - Line Chart
             const historyCtx = document.getElementById('historyChart').getContext('2d');
-            historyChart = new Chart(historyCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: []
-                },
-                options: chartOptions
-            });
+            historyChart = new Chart(historyCtx, { type: 'line', data: { labels: [], datasets: [] }, options: chartOptions });
 
-            // 2. Live HF Chart (Bar Chart) - Cloner les options pour éviter les références
             const liveHFCtx = document.getElementById('liveHFChart').getContext('2d');
-            liveHFChart = new Chart(liveHFCtx, {
-                type: 'bar',
-                data: {
-                    labels: [],
-                    datasets: []
-                },
-                options: JSON.parse(JSON.stringify(chartOptions))
-            });
+            liveHFChart = new Chart(liveHFCtx, { type: 'bar', data: { labels: [], datasets: [] }, options: JSON.parse(JSON.stringify(chartOptions)) });
 
-            // 3. Live VHF Chart (Bar Chart) - Cloner les options
             const liveVHFCtx = document.getElementById('liveVHFChart').getContext('2d');
-            liveVHFChart = new Chart(liveVHFCtx, {
-                type: 'bar',
-                data: {
-                    labels: [],
-                    datasets: []
-                },
-                options: JSON.parse(JSON.stringify(chartOptions))
-            });
+            liveVHFChart = new Chart(liveVHFCtx, { type: 'bar', data: { labels: [], datasets: [] }, options: JSON.parse(JSON.stringify(chartOptions)) });
         }
 
-        // NOUVEAU: Fonction de mise à jour des couleurs des graphiques après un changement de thème
         function updateChartColors() {
              const mainColor = getCssVar('--text-main');
              const accentColor = getCssVar('--accent');
-            
-             // 1. Update Global Defaults (pour les nouveaux éléments)
              Chart.defaults.color = mainColor;
-             
-             // 2. Update History Chart (et force la mise à jour des couleurs non-défaut)
+
              if (historyChart) {
                  historyChart.options.plugins.legend.labels.color = mainColor;
                  historyChart.options.plugins.title.color = accentColor;
@@ -972,7 +1000,6 @@
                  historyChart.options.plugins.tooltip.borderColor = accentColor;
                  historyChart.update();
              }
-             // 3. Update Live Charts (ils héritent déjà des defaults, mais on force l'update)
              if (liveHFChart) { 
                 liveHFChart.options.plugins.title.color = accentColor;
                 liveHFChart.options.scales.x.ticks.color = mainColor;
@@ -987,24 +1014,20 @@
              }
         }
 
-
         function updateHistoryChart(data) {
-            // Remplacez cette variable par la version parsée par Jinja2
             const BAND_COLORS_JS = JSON.parse('{{ band_colors | tojson }}'); 
 
             const bands = Object.keys(data.data);
-            const datasets = bands.map(band => {
-                return {
-                    label: band.toUpperCase(),
-                    data: data.data[band],
-                    borderColor: BAND_COLORS_JS[band] || '#ccc',
-                    backgroundColor: (BAND_COLORS_JS[band] || '#ccc') + '33',
-                    tension: 0.3,
-                    fill: true,
-                    pointRadius: 3,
-                    pointBackgroundColor: BAND_COLORS_JS[band] || '#ccc'
-                };
-            });
+            const datasets = bands.map(band => ({
+                label: band.toUpperCase(),
+                data: data.data[band],
+                borderColor: BAND_COLORS_JS[band] || '#ccc',
+                backgroundColor: (BAND_COLORS_JS[band] || '#ccc') + '33',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 3,
+                pointBackgroundColor: BAND_COLORS_JS[band] || '#ccc'
+            }));
 
             historyChart.data.labels = data.labels;
             historyChart.data.datasets = datasets;
@@ -1026,22 +1049,44 @@
             chart.update();
         }
 
-        // --- GESTION DES SPOTS ANNONCÉS ---
         function clearExpiredAnnouncedSpots(allActiveSpots) {
              const activeKeys = new Set(allActiveSpots.map(s => `${s.dx_call}-${s.freq}-${s.time}`));
-             
              const newAnnouncedSpots = new Set();
-             announcedSpots.forEach(key => {
-                 if (activeKeys.has(key)) {
-                     newAnnouncedSpots.add(key);
-                 }
-             });
+             announcedSpots.forEach(key => { if (activeKeys.has(key)) newAnnouncedSpots.add(key); });
              announcedSpots = newAnnouncedSpots; 
         }
 
+        // =========================
+        // SOLAR: status + HF prediction + update time robust
+        // =========================
+        function pickSolarUpdated(d){
+            return d.updated_utc || d.ts_utc || d.ts || d.timestamp || d.time || d.updated || d.last_update || null;
+        }
+        function sfiStatus(v){
+            if (v < 90)  return ["POOR", "chip-poor", "solar-value-color-poor"];
+            if (v < 120) return ["FAIR", "chip-fair", "solar-value-color-fair"];
+            if (v < 160) return ["GOOD", "chip-good", "solar-value-color-good"];
+            return ["EXCELLENT", "chip-exc", "solar-value-color-exc"];
+        }
+        function geomagStatusAK(a, k){
+            // simple & lisible: on prend le "pire" des deux
+            // Quiet: A<=10 & K<=2 / Unsettled: A<=20 & K<=4 / Storm: sinon
+            const aNum = Number(a);
+            const kNum = Number(k);
+            if (!Number.isNaN(aNum) && !Number.isNaN(kNum)) {
+                if (aNum <= 10 && kNum <= 2) return ["QUIET", "solar-value-color-good"];
+                if (aNum <= 20 && kNum <= 4) return ["UNSETTLED", "solar-value-color-fair"];
+                return ["STORM", "solar-value-color-poor"];
+            }
+            return ["--", ""];
+        }
+        function hfPrediction(sfi){
+            if (sfi < 90)  return "10–12m: CLOSED · 15–20m: FAIR · 40–80m: GOOD (Night)";
+            if (sfi < 120) return "10–12m: UNSTABLE · 15–20m: GOOD · 40–80m: NIGHT ONLY";
+            if (sfi < 160) return "10–12m: OPEN · 15–20m: VERY GOOD · 40–80m: NIGHT";
+            return "10–12m: WIDE OPEN · 15–20m: EXCELLENT · 40–80m: LIMITED";
+        }
 
-        // --- MISE A JOUR DES DONNÉES ---
-        
         // --- SOLAR INDICES ---
         async function fetchSolar() {
             try {
@@ -1049,15 +1094,51 @@
                 if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const d = await r.json();
 
-                const sfi = (d.sfi === null || d.sfi === undefined) ? 'N/A' : d.sfi;
-                const a = (d.a === null || d.a === undefined) ? 'N/A' : d.a;
-                const k = (d.k === null || d.k === undefined) ? 'N/A' : d.k;
-                const updated = d.updated_utc || 'N/A';
+                const sfiRaw = (d.sfi === null || d.sfi === undefined) ? 'N/A' : d.sfi;
+                const aRaw   = (d.a   === null || d.a   === undefined) ? 'N/A' : d.a;
+                const kRaw   = (d.k   === null || d.k   === undefined) ? 'N/A' : d.k;
 
-                document.getElementById('solar-sfi').textContent = sfi;
-                document.getElementById('solar-a').textContent = a;
-                document.getElementById('solar-k').textContent = k;
+                // Heure: robuste (corrige ton bug "updated_utc uniquement")
+                const updated = pickSolarUpdated(d) || 'N/A';
+
+                const elSfi = document.getElementById('solar-sfi');
+                const elA   = document.getElementById('solar-a');
+                const elK   = document.getElementById('solar-k');
+
+                elSfi.textContent = sfiRaw;
+                elA.textContent   = aRaw;
+                elK.textContent   = kRaw;
                 document.getElementById('solar-updated').textContent = updated;
+
+                // Reset classes
+                elSfi.className = "";
+                elA.className = "";
+                elK.className = "";
+
+                // SFI status
+                const sfiNum = Number(sfiRaw);
+                const chip = document.getElementById('solar-chip');
+                const pred = document.getElementById('hf-prediction');
+
+                if (!Number.isNaN(sfiNum)) {
+                    const [label, chipCls, valueCls] = sfiStatus(sfiNum);
+                    chip.textContent = `SFI Status: ${label}`;
+                    chip.className = `solar-chip ${chipCls}`;
+                    elSfi.classList.add(valueCls);
+                    pred.innerHTML = `HF: <span>${hfPrediction(sfiNum)}</span>`;
+                } else {
+                    chip.textContent = `SFI Status: --`;
+                    chip.className = "solar-chip";
+                    pred.innerHTML = `HF: <span>--</span>`;
+                }
+
+                // A/K status tint (simple)
+                const [akLabel, akCls] = geomagStatusAK(aRaw, kRaw);
+                if (akCls) {
+                    elA.classList.add(akCls);
+                    elK.classList.add(akCls);
+                }
+                // (optionnel) tu pourrais afficher akLabel si tu veux, mais tu n’as pas demandé.
 
                 const err = document.getElementById('solar-error');
                 err.style.display = 'none';
@@ -1072,7 +1153,7 @@
             }
         }
 
-async function updateData() {
+        async function updateData() {
             console.log("Fetching new data...");
             await updateSpots('hf');
             await updateSpots('vhf');
@@ -1086,7 +1167,7 @@ async function updateData() {
 
             try {
                 const wantedResponse = await fetch('/wanted.json');
-                const wantedData = await await wantedResponse.json();
+                const wantedData = await wantedResponse.json();
                 displayRanking('ranking-hf', wantedData.hf);
                 displayRanking('ranking-vhf', wantedData.vhf);
             } catch(e) { console.error("Failed to fetch ranking:", e); }
@@ -1237,7 +1318,7 @@ async function updateData() {
         }
 
         function initDragAndDrop() {
-            ['col1', 'col2'].forEach(columnId => {
+            ['col1', 'col2', 'col3'].forEach(columnId => {
                 const colElement = document.getElementById(columnId);
                 loadPanelOrder(columnId);
 
@@ -1266,7 +1347,7 @@ async function updateData() {
             document.body.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             initThemeDisplay();
-            updateChartColors(); // Met à jour les couleurs des graphiques
+            updateChartColors();
         }
 
         function initThemeDisplay() {
@@ -1294,7 +1375,6 @@ async function updateData() {
             vhfBandSelect.addEventListener('change', () => updateSpots('vhf'));
             document.getElementById('vhf-mode-filter').addEventListener('change', () => updateSpots('vhf'));
 
-            // Filtre de distance vocale (persistance)
             const distanceFilterSelect = document.getElementById('voice-distance-filter');
             const savedDistanceFilter = localStorage.getItem('voiceDistanceFilter');
             if (savedDistanceFilter) {
@@ -1308,7 +1388,6 @@ async function updateData() {
                 console.log('Voice distance filter set to:', voiceDistanceFilter);
             });
 
-            // Filtre de langue vocale (persistance)
             const languageFilterSelect = document.getElementById('voice-language-filter');
             const savedLanguageFilter = localStorage.getItem('voiceLanguageFilter');
             if (savedLanguageFilter) {
@@ -1361,10 +1440,10 @@ async function updateData() {
                  console.error("CRITICAL: Failed to initialize Maps/Markers. Check Leaflet scripts.", e);
              }
 
-             initThemeDisplay(); // Doit être fait avant l'initialisation des charts pour les couleurs
+             initThemeDisplay();
 
              try {
-                  initCharts(); // Les charts sont initialisés avec les bonnes couleurs de thème
+                  initCharts();
              } catch (e) {
                  console.error("CRITICAL: Failed to initialize Charts. Check Chart.js script.", e);
              }
@@ -1383,7 +1462,6 @@ async function updateData() {
                  console.error("CRITICAL: Initial updateData() failed. Spots/Ticker may not show initially.", e);
              }
 
-             // Appel principal de mise à jour toutes les 30 secondes
              setInterval(updateData, 30000);
 
              // Solar indices: initial load + hourly refresh
@@ -1468,7 +1546,6 @@ async function updateData() {
         return;
       }
       setStatus('Spot envoyé ✔');
-      // Optionnel: annonce vocale si activée
       try{
         if(typeof speakText === 'function' && (window.ttsEnabled || document.getElementById('tts-toggle')?.checked)){
           speakText(`Spot envoyé ${call}`);

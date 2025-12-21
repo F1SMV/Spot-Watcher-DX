@@ -19,7 +19,7 @@ tn_lock = threading.Lock()
 tn_current = None  # telnetlib.Telnet when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "NEURAL AI v4.5 - Spotter + update cty.dat auto + send spots"
+APP_VERSION = "NEURAL AI v4.6 - Spotter + update cty.dat auto + send spots + Solar thresholds + new mode"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -461,6 +461,10 @@ def get_band_and_mode_smart(freq_float, comment):
         mode = "CW"
     elif "FM" in comment:
         mode = "FM"
+    elif "RTTY" in comment:
+        mode = "RTTY"
+    elif "SSTV" in comment or abs(freq_khz - 14230) <= 2:
+        mode = "SSTV"
 
     return band, mode
 

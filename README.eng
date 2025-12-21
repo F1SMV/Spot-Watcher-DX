@@ -1,119 +1,114 @@
-# 📡 DX Cluster Dashboard – v4.5
+📡 DX Cluster Dashboard – v4.6 (Neural AI Edition)
 
-A real-time **Ham Radio DX Cluster web dashboard**, connected via Telnet.  
-Designed for **DX monitoring**, **geographical visualization**, **activity analysis**, and **direct interaction** with the DX Cluster (manual spotting, voice synthesis, etc.).
+A next-generation real-time web dashboard for radio amateurs, powered by a statistical analysis engine and connected to a DX Cluster via Telnet.
 
----
+Designed for proactive DX monitoring, advanced geographical visualization, and propagation optimization.
 
-## 🚀 Main Features
+🚀 What's New in v4.6?
 
-### 🔗 DX Cluster Connection
-- Persistent Telnet connection to a DX Cluster (e.g. dxfun.com)
-- Continuous DX spot reception
-- Automatic reconnection handling
+This version introduces the "Neural AI" label, adding a layer of intelligence and analysis to raw cluster data:
 
-### 🗺️ World DX Map
-- Real-time display of spotted stations
-- DXCC-based geolocation using **cty.dat**
-- Automatic download and parsing of `cty.dat` at startup
-- Marker clustering for readability
+🧠 SPD (Spot Priority/Difficulty) Scoring Engine
 
-### 📊 Statistics & Charts
-- **12-hour activity histogram**
-- Live band activity overview
-- Surge / activity peak detection
-- Historical data available via backend API
+    Assigns a score from 0 to 100 for each spot based on prefix rarity, mode (CW bonus), distance, and comments (Split, Up, DX).
 
-### 🧲 Dynamic Panels
-- **Multi-column layout**
-- All panels are **drag & drop**
-- Layout persistence (localStorage)
-- Modular architecture (easy to extend)
+Immediately identifies "Wanted" stations with a Score > 70.
 
-### ☀️ Solar Indices
-- Dedicated solar panel (SFI, A, K, etc.)
-- Automatic refresh (hourly)
-- XML data fetched and parsed server-side
+🗺️ AI Path Optimizer & Grayline
 
-### 🗣️ Voice Synthesis (TTS)
-- Spoken announcements for new DX spots
-- Supported languages:
-  - 🇫🇷 French (fr-FR)
-  - 🇬🇧 English (en-US)
-  - 🇪🇸 Spanish (es-ES)
-  - 🇮🇱 Hebrew (he-IL)
-- Works on desktop and mobile (after user interaction)
+    Path Visualization: Calculates and displays the optimal path vs. Long Path for each spot.
 
-### ✍️ Manual Spotting
-- “Manual Spot” panel
-- Input:
-  - Callsign
-  - Frequency (MHz or kHz)
-  - Comment
-- Direct transmission to the DX Cluster
-- Immediate status feedback
+Propagation Analysis: Recommendations based on the Grayline to avoid ionospheric absorption.
 
-### 📡 Watchlist & Alerts
-- Callsign watchlist
-- Visual and voice alerts
-- REST API ready for automation
+📊 24h DXCC Statistics & Rarity
 
----
+    New analytical dashboard including:
 
-## 🧠 Architecture
+        Number of unique DXCC entities contacted/seen in 24 hours.
 
-- **Backend**: Python / Flask
-- **Frontend**: HTML + Vanilla JavaScript
-- **Mapping**: Leaflet
-- **DXCC Data**: `cty.dat` (auto-downloaded)
-- **API endpoints**:
-  - `/spots.json`
-  - `/history.json`
-  - `/live_bands.json`
-  - `/surge.json`
-  - `/rss.json`
-  - `/spot` (POST)
-  - `/api/*` compatibility aliases
+Global Rarity Rate (%).
 
----
+Dynamic list of "Long Distance" calls (> 10,000 km).
 
-## 📸 Dashboard Preview
+🌠 Meteor Scatter (MS) Monitoring
 
-![Apercu du Dashboard](apercu.png)
+    Integration of meteor shower calendars (Perseids, Leonids, etc.).
 
----
+Automatic detection of MSK144 activity on 2m with dedicated "Surge" alerts.
 
-## 🛠️ Quick Installation
+🛠️ Core Features
+🔗 Cluster Connectivity
 
-```bash
+    Persistent Telnet connection to multiple sources (dxfun.com, cluster.dx.de, etc.) with auto-reconnection.
+
+Send manual spots directly from the interface.
+
+☀️ NOAA Solar Data
+
+    Real-time retrieval of SFI, A, and K indices from NOAA servers.
+
+Solar data export via API in XML and JSON formats.
+
+🗣️ Voice Synthesis & Alerts
+
+    Multilingual voice announcements (FR, EN, ES, HE) for new spots.
+
+Personalized Watchlist management with visual and audio notifications.
+
+📊 Modular Interface
+
+    Drag & Drop dashboard panels.
+
+12-hour activity histograms by band.
+
+🧠 Technical Architecture
+
+    Backend: Python 3.x / Flask.
+
+Processing: Multithreading (Dedicated workers for Telnet, Solar, RSS, and Statistics).
+
+Frontend: HTML5 / Vanilla JavaScript / Leaflet (Mapping).
+
+Data: Geolocation via cty.dat (auto-updated) and watchlist.json.
+
+New API Endpoints v4.6:
+
+    /dxcc_stats_24h.json: Daily analytical data.
+
+/ai_path_data.json: Coordinates for the path optimizer.
+
+/api/solar.xml: XML feed of solar data for third-party integration.
+
+📸 Preview
+
+(Legend: Spot visualization with SPD scores and AI trajectories)
+🛠️ Quick Installation
+Bash
+
+# Clone the repository
 git clone https://github.com/Eric738/Spot-Watcher-DX.git
-cd dx-cluster-dashboard
+cd Spot-Watcher-DX
+
+# Create virtual environment
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Start the application
 python webapp.py
-Then open:
-👉 http://127.0.0.1:5000
-⚠️ Notes
 
-The first voice announcement requires a user interaction (browser policy).
+Then open your browser at: http://localhost:8000
 
-On mobile devices, ensure a TTS engine and voices are installed.
+🧩 Future Enhancements
 
-cty.dat is automatically downloaded if missing or outdated.
+    [ ] Integration of a cognitive correlation engine (Pattern Matching).
 
-🧩 Possible Enhancements
+[ ] ADIF format log export for station logs.
 
-Advanced filtering by band / mode
+[ ] Propagation heatmap based on signal-to-noise ratio.
 
-DX heatmap by region
+Developed by F1SMV Eric with assistance from Gemini/ChatGPT for the Ham Radio community.
 
-Abnormal propagation detection
-
-CSV / ADIF export
-
-SDR and WSJT-X integration
-
-Feel free to modify and share.
-Created by F1SMV Eric for Ham Radio Communauty with #GIMINI3 #chatGPT.
-You can contact me via X.
+73's and good DX!
