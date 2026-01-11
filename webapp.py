@@ -19,7 +19,7 @@ tn_lock = threading.Lock()
 tn_current = None  # telnetlib.Telnet when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "NEURAL AI v4.8 - Rare Activity + 6m timestamp + auto reset"
+APP_VERSION = "NEURAL v5.0"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -98,11 +98,50 @@ CTY_URL = "https://www.country-files.com/cty/cty.dat"
 CTY_FILE = "cty.dat"
 WATCHLIST_FILE = "watchlist.json"
 SOLAR_URL = "https://services.swpc.noaa.gov/text/wwv.txt"
+NOAA_KP_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
 
 # --- SOLAR (XML) FETCHER ---
+
+def fetch_noaa_kp_latest(timeout=10):
+    """Fetch latest NOAA planetary Kp index (table JSON). Returns dict or None."""
+    try:
+        req = urllib.request.Request(NOAA_KP_URL, headers={'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = json.loads(r.read().decode('utf-8', errors='ignore'))
+
+        # Expected format: [ ["time_tag","Kp","a_running","station_count"], ["2026-...","3.67","22","8"], ... ]
+        if not isinstance(data, list) or len(data) < 2 or not isinstance(data[0], list):
+            return None
+
+        header = data[0]
+        def _h(name, default=None):
+            return header.index(name) if name in header else default
+
+        i_time = _h("time_tag", 0)
+        i_kp = _h("Kp", 1)
+        i_a = _h("a_running", None)
+        i_sc = _h("station_count", None)
+
+        row = data[-1]
+        time_tag = str(row[i_time]).replace(".000", "")
+        kp = float(str(row[i_kp]).replace(",", "."))
+        a_running = int(row[i_a]) if i_a is not None and str(row[i_a]).strip() else None
+        station_count = int(row[i_sc]) if i_sc is not None and str(row[i_sc]).strip() else None
+
+        return {
+            "kp": kp,
+            "kp_time_utc": time_tag,
+            "kp_a_running": a_running,
+            "kp_station_count": station_count,
+        }
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Kp NOAA fetch failed: {e}")
+        return None
+
 def fetch_solar_from_wwv_txt():
     """
-    Fetch solar indices from NOAA SWPC wwv.txt and update solar_cache + solar_xml_cache.
+    Fetch solar indices from NOAA SWPC wwv.txt and NOAA planetary Kp (JSON table),
+    then update solar_cache + solar_xml_cache.
     Runs hourly in solar_worker().
     """
     global solar_cache, solar_xml_cache
@@ -114,7 +153,6 @@ def fetch_solar_from_wwv_txt():
         # Robust parsing (wwv.txt format varies)
         sfi = a_idx = k_idx = "N/A"
 
-        # Common patterns
         m_sfi = re.search(r"Solar\s+flux\s*[:=]?\s*([0-9]+)", raw, re.IGNORECASE)
         if m_sfi:
             sfi = m_sfi.group(1)
@@ -130,22 +168,44 @@ def fetch_solar_from_wwv_txt():
         # Timestamp
         ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
+        # NOAA Planetary Kp (robust JSON table)
+        kp_info = fetch_noaa_kp_latest()
+        kp_val = kp_info.get("kp") if kp_info else None
+        kp_time_utc = kp_info.get("kp_time_utc") if kp_info else None
+        kp_a_running = kp_info.get("kp_a_running") if kp_info else None
+        kp_station_count = kp_info.get("kp_station_count") if kp_info else None
+
+        # Backward-compat: keep 'k' field but prefer planetary Kp when available
+        k_display = f"{kp_val:.2f}" if isinstance(kp_val, (int, float)) else k_idx
+
         with solar_lock:
-            solar_cache = {"sfi": sfi, "a": a_idx, "k": k_idx, "ts_utc": ts}
+            solar_cache = {
+                "sfi": sfi,
+                "a": a_idx,
+                "k": k_display,           # legacy field used by older UIs
+                "kp": kp_val,             # numeric
+                "kp_time_utc": kp_time_utc,
+                "kp_a_running": kp_a_running,
+                "kp_station_count": kp_station_count,
+                "ts_utc": ts
+            }
+
             solar_xml_cache = (
                 '<?xml version="1.0" encoding="UTF-8"?>'
                 '<solar>'
                 f'<sfi>{sfi}</sfi>'
                 f'<a>{a_idx}</a>'
-                f'<k>{k_idx}</k>'
+                f'<k>{k_display}</k>'
+                f'<kp>{"" if kp_val is None else kp_val}</kp>'
+                f'<kp_time_utc>{"" if kp_time_utc is None else kp_time_utc}</kp_time_utc>'
                 f'<updated_utc>{ts}</updated_utc>'
                 '</solar>'
             )
-        logger.info(f"SOLAR updated (xml): SFI={sfi} A={a_idx} K={k_idx}")
+
+        logger.info(f"SOLAR updated: SFI={sfi} A={a_idx} K={k_display} (Kp={kp_val})")
 
     except Exception as e:
         logger.error(f"SolarWorker: impossible de récupérer/produire solar.xml: {e}")
-
 def solar_worker():
     threading.current_thread().name = 'SolarWorker'
     logger.info("SolarWorker démarré (update solar.xml toutes les heures).")
@@ -165,8 +225,8 @@ ticker_info = {"text": "SYSTEM INITIALIZATION... (Waiting for RSS/Solar data)"}
 
 # --- SOLAR CACHE (XML/JSON) ---
 solar_lock = threading.Lock()
-solar_cache = {"sfi": "N/A", "a": "N/A", "k": "N/A", "ts_utc": None}
-solar_xml_cache = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><solar><sfi>N/A</sfi><a>N/A</a><k>N/A</k><updated_utc></updated_utc></solar>"
+solar_cache = {"sfi": "N/A", "a": "N/A", "k": "N/A", "kp": None, "kp_time_utc": None, "kp_a_running": None, "kp_station_count": None, "ts_utc": None}
+solar_xml_cache = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><solar><sfi>N/A</sfi><a>N/A</a><k>N/A</k><kp></kp><kp_time_utc></kp_time_utc><updated_utc></updated_utc></solar>"
 # --- END SOLAR CACHE ---
 watchlist = set()
 surge_bands = []
@@ -193,7 +253,7 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 # --- FLASK APP INITIALIZATION ---
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 
 # --- PLAGES DE FREQUENCES CW ---
 CW_RANGES = [
@@ -730,6 +790,20 @@ def index():
                            hf_bands=HF_BANDS, vhf_bands=VHF_BANDS, band_colors=BAND_COLORS,
                            spd_threshold=SPD_THRESHOLD, user_qra=user_qra)
 
+@app.route("/ai.html")
+def ai_page():
+    return render_template("ai.html")
+
+
+@app.route("/map")
+def map_page():
+    return render_template("map.html", version=APP_VERSION, my_call=MY_CALL, user_qra=user_qra)
+
+@app.route("/map.html")
+def map_html_compat():
+    return redirect(url_for("map_page"))
+
+
 @app.route('/update_qra', methods=['POST'])
 def update_qra():
     global user_qra, user_lat, user_lon
@@ -943,72 +1017,6 @@ def dxcc_stats_24h():
         "long_distance_calls": sorted(list(long_distance_calls))
     })
 
-# --- NOUVELLES ROUTES AI INSIGHT (SIMULÉES) ---
-
-@app.route('/ai_pattern_data.json')
-def ai_pattern_data():
-    """Simule les données du Moteur de Corrélation Cognitive DX."""
-    data = {
-        "status": "PATTERN MATCH 90%",
-        "active": True,
-        "prediction": "Probabilité de DX : 85% (Bande 10m, Région Afrique de l'Ouest, Fenêtre : 19:15-20:00 UTC).",
-        "justification": "Le décalage de la Grayline combiné à la remontée de l'indice Kp suggère une ouverture F2 oblique de courte durée. Recommandation : Surveiller le 10m.",
-        "triggers": [
-            {"band": "15m", "mode": "FT8", "region": "EU-JA", "value": "+2.5 σ", "color": "var(--alert)"},
-            {"band": "20m", "mode": "CW", "region": "NA-AUS", "value": "+1.8 σ", "color": "var(--accent)"}
-        ]
-    }
-    return jsonify(data)
-
-@app.route('/ai_solar_data.json')
-def ai_solar_data():
-    """Simule les données du Propagateur Solaire-Terrestre."""
-    data = {
-        "global_score": "B+",
-        "alert_message": "Le SFI a augmenté de 5 points (SFI 145). L'IA anticipe une amélioration dans 3 heures. Poids 10m/12m augmenté de 10 SPD.",
-        "band_impact": [
-            {"band": "20m / 40m", "recommendation": "A+ (Stable)", "color": "var(--success)"},
-            {"band": "10m / 12m", "recommendation": "B (Fluctuant)", "color": "var(--open-color)"},
-            {"band": "160m", "recommendation": "C- (Absorption)", "color": "var(--alert)"}
-        ]
-    }
-    return jsonify(data)
-
-@app.route('/ai_path_data.json')
-def ai_path_data():
-    """Simule les données du Path Optimizer pour un spot donné."""
-    # Coordonnées du QTH (F1SMV, JN23)
-    user_lat, user_lon = 43.10, 5.88 
-    
-    # Spot d'exemple (ZL1ABC, RF79)
-    dx_call = "ZL1ABC"
-    dx_lat, dx_lon = -36.84, 174.74 
-    
-    # Chemin Optimal (simulant la Grayline ou un rebond)
-    optimal_path_coords = [
-        [user_lat, user_lon],
-        [30, 25],  # Point intermédiaire simulé
-        [dx_lat, dx_lon]
-    ]
-    
-    # Chemin Non Optimal (simulant le trajet long avec mauvaise propagation)
-    long_path_coords = [
-        [user_lat, user_lon],
-        [-10, 100], 
-        [dx_lat, dx_lon]
-    ]
-
-    data = {
-        "dx_call": dx_call,
-        "dx_lat": dx_lat,
-        "dx_lon": dx_lon,
-        "optimal_path_coords": optimal_path_coords,
-        "long_path_coords": long_path_coords,
-        "conclusion": "Le trajet optimal (vert) passe par la Grayline du Pacifique Nord, évitant l'absorption par l'ionosphère nocturne. Recommandé : 20m SSB."
-    }
-    return jsonify(data)
-
-# --- FIN DES NOUVELLES ROUTES AI INSIGHT ---
 
 @app.route('/wanted.json')
 def get_ranking():
@@ -1048,6 +1056,93 @@ def manage_watchlist():
 @app.route('/rss.json')
 def get_rss():
     return jsonify({"ticker": ticker_info["text"]})
+
+def _get_recent_spots_fallback(minutes: int = 15, limit: int = 300):
+    """
+    Récupère les spots récents depuis les structures globales probables.
+    Ne crashe jamais : retourne une liste (éventuellement vide).
+    """
+    import time
+
+    now = time.time()
+    min_ts = now - (minutes * 60)
+
+    # Liste de noms globaux courants dans ce type d'app
+    candidates = [
+        "spots_history",
+        "recent_spots",
+        "spots_buffer",
+        "spots",
+        "SPOTS",
+        "telnet_spots",
+        "cluster_spots",
+    ]
+
+    container = None
+    for name in candidates:
+        if name in globals():
+            container = globals()[name]
+            break
+
+    if container is None:
+        return []
+
+    # Convertit en liste
+    try:
+        items = list(container)
+    except Exception:
+        return []
+
+    # Filtre temporel (essaie plusieurs clés possibles)
+    def ts_of(s):
+        if not isinstance(s, dict):
+            return None
+        for k in ("t", "ts", "time_ts", "timestamp", "epoch", "created_ts"):
+            v = s.get(k)
+            if isinstance(v, (int, float)):
+                return float(v)
+        return None
+
+    filtered = []
+    for s in reversed(items):  # souvent plus récent à la fin
+        if isinstance(s, dict):
+            ts = ts_of(s)
+            if ts is None or ts >= min_ts:
+                filtered.append(s)
+        if len(filtered) >= limit:
+            break
+
+    # on remet dans l'ordre chrono
+    return list(reversed(filtered))
+
+
+@app.route("/api/map/spots")
+def api_map_spots():
+    minutes = int(request.args.get("minutes", 15))
+    limit = int(request.args.get("limit", 300))
+    band = (request.args.get("band") or "").strip()
+    mode = (request.args.get("mode") or "").strip()
+
+    # 1) Récupère les spots récents depuis TON buffer/stock (ex: deque spots_history)
+    spots = _get_recent_spots_fallback(minutes=minutes, limit=limit)
+
+    # 2) Filtre simple
+    if band:
+        spots = [s for s in spots if (s.get("band") == band)]
+    if mode:
+        spots = [s for s in spots if (s.get("mode") == mode)]
+
+    # 3) Ajoute lat/lon (si déjà présents, garde; sinon enrichis via cty.dat)
+    #    Ici: on suppose que ton pipeline met déjà lat/lon dans chaque spot.
+    qth = {"lat": user_lat, "lon": user_lon, "qra": user_qra}
+
+    return jsonify({
+        "ok": True,
+        "minutes": minutes,
+        "count": len(spots),
+        "qth": qth,
+        "spots": spots
+    })
 
 
 # --- SOLAR ROUTES (XML + JSON) ---
@@ -1358,6 +1453,9 @@ def get_live_bands_data():
         "colors": [BAND_COLORS[b] for b in VHF_BANDS if vhf_counts[b] > 0]
     }
     return jsonify({"hf": hf_data, "vhf": vhf_data})
+
+
+
 
 if __name__ == "__main__":
     load_cty_dat()

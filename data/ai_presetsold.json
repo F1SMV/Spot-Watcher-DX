@@ -1,0 +1,167 @@
+[
+  {
+    "id": 1,
+    "label": "Y a-t-il des DXpeditions actives en ce moment ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "web",
+    "sources": ["dxworld_rss", "425dxn_rss"],
+    "ttl_sec": 1800,
+    "telex": true,
+    "prompt_hint": "Fais une shortlist des DXpeditions en cours (actives) et termine par une action concrète (bande/mode)."
+  },
+  {
+    "id": 2,
+    "label": "Quelles DXpeditions sont annoncées pour les 30 prochains jours ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "web",
+    "sources": ["dxworld_rss", "dxnews_rss", "425dxn_rss"],
+    "ttl_sec": 7200,
+    "telex": true,
+    "prompt_hint": "Donne une timeline des prochaines DXpeditions (30 jours) + 3 priorités et une action."
+  },
+  {
+    "id": 3,
+    "label": "Y a-t-il une activité inhabituelle sur une entité rare aujourd’hui ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "mix",
+    "sources": ["cluster_spots", "dxcc_stats_24h", "dxworld_rss"],
+    "ttl_sec": 900,
+    "telex": true,
+    "prompt_hint": "Corrèle news + spots: cite 2 faits (SFI/K + spot/activité) et propose une action."
+  },
+  {
+    "id": 4,
+    "label": "Quelles expéditions sont les plus “most wanted” actuellement ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "web",
+    "sources": ["clublog_mostwanted", "dxworld_rss"],
+    "ttl_sec": 86400,
+    "telex": true,
+    "prompt_hint": "Liste 5 entités/expés à forte priorité + pourquoi + action (bande/mode)."
+  },
+  {
+    "id": 5,
+    "label": "Un indicatif inhabituel ou spécial est-il apparu récemment ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "mix",
+    "sources": ["cluster_spots", "dxworld_rss", "425dxn_rss"],
+    "ttl_sec": 600,
+    "telex": true,
+    "prompt_hint": "Détecte calls spéciaux/inhabituels dans les derniers spots + contexte news + action."
+  },
+  {
+    "id": 6,
+    "label": "Quelle est la meilleure bande à exploiter maintenant, et pourquoi ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "local",
+    "sources": ["solar_json", "dxcc_stats_24h", "cluster_spots"],
+    "ttl_sec": 300,
+    "telex": true,
+    "prompt_hint": "Choisis 1 bande principale + 1 bande de repli, justifie par 2 faits, puis Action."
+  },
+  {
+    "id": 7,
+    "label": "FT8, CW ou SSB : quel mode est le plus pertinent dans les prochaines heures ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "local",
+    "sources": ["cluster_spots", "dxcc_stats_24h"],
+    "ttl_sec": 300,
+    "telex": true,
+    "prompt_hint": "Compare les modes selon l’activité observée (ex: modes top) + recommande un mode + action."
+  },
+  {
+    "id": 8,
+    "label": "Long Path : crédible aujourd’hui ? Donne un plan de test.",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "mix",
+    "sources": ["solar_json", "cluster_spots", "ai_path_data"],
+    "ttl_sec": 600,
+    "telex": true,
+    "prompt_hint": "Hypothèse Long Path + 1 test concret (bande/fréq/mode/durée) + action."
+  },
+  {
+    "id": 9,
+    "label": "Grayline : exploitable maintenant ? Sur quelles zones ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "local",
+    "sources": ["solar_json", "system_utc_time", "cluster_spots"],
+    "ttl_sec": 600,
+    "telex": true,
+    "prompt_hint": "Donne fenêtre UTC + zones probables + action immédiate."
+  },
+  {
+    "id": 10,
+    "label": "Diagnostic brutal : bonne journée DX ou pas ? (objectif)",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "local",
+    "sources": ["dxcc_stats_24h", "solar_json", "cluster_spots"],
+    "ttl_sec": 900,
+    "telex": true,
+    "prompt_hint": "Verdict + 2 KPI (ex: entités uniques, rareté, distance) + action."
+  },
+  {
+    "id": 11,
+    "label": "SFI élevé mais ça ne sort pas : explication probable + action ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "mix",
+    "sources": ["solar_json", "dxcc_stats_24h", "noaa_swpc_text"],
+    "ttl_sec": 900,
+    "telex": true,
+    "prompt_hint": "Confronte solaire vs activité spots (bandes) + propose repli (20/40m) + action."
+  },
+  {
+    "id": 12,
+    "label": "Avec K/A actuels, bandes hautes ou basses ? Priorise 2 bandes.",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "web",
+    "sources": ["solar_json", "noaa_swpc_kp"],
+    "ttl_sec": 600,
+    "telex": true,
+    "prompt_hint": "Décision hautes vs basses + 2 bandes prioritaires + action."
+  },
+  {
+    "id": 13,
+    "label": "Alerte : risque de blackout / instabilité ionosphérique aujourd’hui ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "web",
+    "sources": ["noaa_swpc_alerts", "solar_json"],
+    "ttl_sec": 300,
+    "telex": true,
+    "prompt_hint": "Réponse binaire (oui/non) + preuve (alerte/indice) + action."
+  },
+  {
+    "id": 14,
+    "label": "Anomalie VHF : activité 6m/2m anormale ? (et où regarder)",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "local",
+    "sources": ["dxcc_stats_24h", "cluster_spots"],
+    "ttl_sec": 300,
+    "telex": true,
+    "prompt_hint": "Détecte surge VHF (6m/2m) + âge + fréquence si dispo + action."
+  },
+  {
+    "id": 15,
+    "label": "Signes de contest / événement radio en cours ?",
+    "mode": "dx",
+    "lang_default": "fr",
+    "type": "mix",
+    "sources": ["cluster_spots", "dxworld_rss", "arrl_contest_calendar"],
+    "ttl_sec": 1800,
+    "telex": true,
+    "prompt_hint": "Indices contest (densité spots, modes, bande) + si calendrier le confirme + action."
+  }
+]

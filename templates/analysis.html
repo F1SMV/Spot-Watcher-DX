@@ -104,16 +104,18 @@ body { background-color: var(--bg-color); color: var(--text-main); font-family: 
     </style>
 </head>
 <body>
+<header>
+    <div>
+        <h1>Neural AI Analysis Center</h1>
+        <small id="sync-info">Sync Mode: Active</small>
+    </div>
+    <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="location.href='/map'">DX Map</button>
+        <button class="btn" onclick="location.href='/'">Dashboard</button>
+    </div>
+</header>
 
-    <header>
-        <div>
-            <h1>Neural AI Analysis Center</h1>
-            <small id="sync-info">Sync Mode: Active</small>
-        </div>
-        <button class="btn" onclick="location.href='/'">Return to Dashboard</button>
-    </header>
-
-    <div class="dashboard-grid" id="sortable-dashboard">
+      <div class="dashboard-grid" id="sortable-dashboard">
 
         <div class="panel grid-full" data-id="ai-report">
             <div class="drag-handle"><div></div><div></div><div></div><div></div><div></div><div></div></div>

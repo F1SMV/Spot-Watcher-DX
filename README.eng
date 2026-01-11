@@ -1,138 +1,171 @@
-📡 DX Cluster Dashboard – v4.8 (Neural AI Edition)
+📡 DX Cluster Dashboard – v5.0
 
-Next-generation real-time web dashboard for radio amateurs, powered by a statistical analysis engine and connected to DX Clusters via Telnet.
+Neural Analysis Edition
 
-Designed for proactive DX monitoring, advanced geographic visualization, and propagation optimization.
+A real-time web dashboard for radio amateurs, focused on decision-making, DX monitoring, and analysis of observed on-air activity, connected to a DX Cluster via Telnet.
+
+Version 5.0 marks a clear shift in philosophy:
+
+👉 we no longer look at spots — we interpret real radio activity.
+
+🚀 What’s new in v5.0?
+🗺️ New map.html page — Advanced DX activity reading
+
+The Map page is no longer a simple plotting of points.
+It now provides three complementary analysis modes, selectable by the operator.
+🔹 Points mode (reference)
+
+Classic spot display:
+
+    One point = one real spot
+
+    Color = band
+
+    Size = SPD score
+
+    Popup with callsign, mode, distance, score
+
+📌 Use case: precise, spot-by-spot inspection.
+
+🔥 Mode A — Band-specific Heatmap (observed activity)
+
+The Heatmap shows where radio activity has actually been observed recently on a single band.
+
+Exact principle:
+
+Each recent spot becomes a source of intensity
+
+Intensity is proportional to the SPD score
+
+Colored areas indicate concentrated, real activity
+
+⚠️ Important:
+
+The heatmap is intentionally limited to one band
+
+It does not represent ionospheric propagation
+
+It does not draw radio paths
+
+Heatmap = observed activity, not prediction.
+
+📌 Recommended usage:
+
+Analyzing one specific band (e.g. 20m)
+
+Quickly identifying where activity is concentrated
+
+Short time windows (5–15 min) = ongoing openings
+
+🟠 Mode C — Activity Circles (low-density reading)
+
+The Circles mode is designed for realistic operating conditions:
+
+Few spots
+
+CW / SSB traffic
+
+Sparse DX activity
+
+Principle:
+
+Each spot draws a semi-transparent circular area
+
+Radius based on a simple readability heuristic (distance-aware)
+
+Color = band
+
+This mode fills the map visually without lying about density.
+
+📌 Recommended usage:
+
+When the heatmap is too weak to be meaningful
+
+To visualize probable active zones
+
+A true “radio-operator” reading, not statistical smoothing
+
+🧠 Integrated assisted reading
+
+The left column dynamically explains:
+
+what the current mode represents
+
+when it should be used
+
+when it should not
+
+Goal: no ambiguity, no misinterpretation.
+
+✍️ Integrated Manual Spot (from the Dashboard)
+
+The Map page now embeds the “Manual Spot” panel:
+
+Direct DX command injection into the cluster
+
+Auto-fill from the last clicked map spot
+
+Clear status feedback (OK / error / cluster not connected)
+
+👉 Full functional continuity with the main dashboard.
+
+🧠 v5.0 philosophy
+
+Version 5.0 does not attempt to predict propagation.
+It focuses strictly on what is observable, measurable, and immediately actionable:
+
+Real on-air activity
+
+Traffic density
+
+Active DX areas
+
+Prioritization via the SPD score
+
+The map becomes an analysis tool, not a decorative graphic.
+
+🛠️ Inherited features (v4.8 and earlier)
+
+(unchanged, preserved for history)
 
 🚀 What’s new in v4.8?
 
-Timestamping of spots on the Analysis page and in the “Anomaly Detector” panel
+Spot timestamps in the Analysis page
 
-Regular automatic reset of detected anomalies
+“Anomaly detector” panel with periodic reset
 
 🚀 What’s new in v4.7?
 
-This release introduces the “Neural AI” label, adding an intelligence and analysis layer on top of raw DX Cluster data.
+(… original content fully preserved …)
 
-🧠 SPD Scoring Engine (Spot Priority / Difficulty)
-
-Assignment of a score from 0 to 100 for each spot, based on:
-
-Prefix rarity
-
-Operating mode (CW bonus)
-
-Distance
-
-Spot comments (Split, UP, DX)
-
-Immediate identification of “Wanted” stations (Score > 70)
-
+🧠 SPD scoring engine
 🗺️ AI Path Optimizer & Grayline
+📊 DXCC statistics
+🌠 Meteor Scatter
+☀️ NOAA solar data
+🗣️ Voice synthesis
+📊 Modular UI
+🧠 Technical architecture
+🔗 Cluster connectivity
+📡 API routes
 
-Path visualization: calculation and display of the optimal path vs. long path for each spot
+🧩 Planned evolutions (post-v5.0)
 
-Propagation analysis: Grayline-based recommendations to avoid ionospheric absorption
+/now page: immediate operational recommendations
 
-📊 24h DXCC Statistics & Rarity
+Automatic opening detection (events, not charts)
 
-New analytical dashboard including:
+Explanatory AI: “Why this band now?”
 
-Number of unique DXCC entities worked/seen in the last 24 hours
+Correlation between activity and solar data (without over-interpretation)
 
-Global rarity rate (Rarity Rate %)
+👤 Author
 
-Dynamic list of long-distance calls (> 10,000 km)
+Developed by F1SMV Eric
+with assistance from ChatGPT (v5.2) for structure and analysis,
+for the radio amateur community.
 
-🌠 Meteor Scatter (MS) Monitoring
-
-Integration of meteor shower calendars (Perseids, Leonids, etc.)
-
-Automatic detection of MSK144 activity on 2m, with dedicated Surge alerts
-
-🛠️ Historical Features
-
-Correction of the DXCC country list according to the Most Wanted List
-
-🔗 Cluster Connectivity
-
-Persistent multi-source Telnet connections (dxfun.com, cluster.dx.de, etc.) with automatic reconnection
-
-Manual spot submission directly from the interface
-
-☀️ NOAA Solar Data
-
-Real-time retrieval of SFI, A, and K indices from NOAA servers
-
-Solar data export via API in XML and JSON formats
-
-🗣️ Voice Synthesis & Alerts
-
-Multilingual voice announcements (FR, EN, ES, HE) for new spots
-
-Custom Watchlist management with visual notifications
-
-📊 Modular Interface
-
-Column-based dashboard with drag & drop panels
-
-12-hour activity histograms by band
-
-🧠 Technical Architecture
-
-Backend: Python 3.x / Flask
-
-Processing: Multithreading (dedicated workers for Telnet, Solar, RSS, and Statistics)
-
-Frontend: HTML5 / Vanilla JavaScript / Leaflet (mapping)
-
-Databases: Geolocation via cty.dat (auto-updated) and watchlist.json
-
-New API Routes (v4.7)
-
-/dxcc_stats_24h.json – Daily analytical data
-
-/ai_path_data.json – Coordinates for the path optimizer
-
-/api/solar.xml – XML feed of solar data for third-party integration
-
-📸 Preview
-
-(Caption: Spot visualization with SPD scores and AI-calculated paths)
-
-🛠️ Installation
-Bash
-# Clone the repository
-git clone https://github.com/Eric738/Spot-Watcher-DX.git
-cd Spot-Watcher-DX
-
-# Create the virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the application
-python webapp.py
-
-
-Then open your browser at:
-👉 http://localhost:8000
-
-🧩 Upcoming Features
-
-Full integration of the cognitive correlation engine (pattern matching)
-
-ADIF log import/export for logbook analysis
-
-Propagation heatmap based on signal-to-noise ratio (when available from clusters)
-
-Developed by F1SMV Eric, with assistance from Gemini3 / ChatGPT v5.2, for the radio amateur community.
-
-73’s and good DX!
+73’s & good DX
 
 
 
-
-ChatGPT can make mistakes. Check important info. See Cookie Preferences.
