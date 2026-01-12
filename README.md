@@ -1,14 +1,14 @@
-📡 DX Cluster Dashboard – v5.0
+📡 DX Cluster Dashboard – v5.1
 
 Neural Analysis Edition
 
 Dashboard web temps réel pour radioamateurs, orienté décision, veille DX et analyse d’activité observée, connecté à un DX Cluster via Telnet.
 
-Cette version 5.0 marque un changement de philosophie :
+Cette version 5.1 marque un changement de philosophie :
 👉 on ne “regarde plus des spots”, on interprète une activité radio réelle.
-🚀 Quoi de neuf dans la v5.0 ?
+🚀 Quoi de neuf dans la v5.1 ?
 🗺️ Nouvelle page map.html — Lecture avancée de l’activité DX
-
+🗺️ correction d'un bug d'affichage d'un call recherché "watchlist" en jaune dans le pave spot
 La page Map n’est plus une simple carte de points.
 Elle propose trois modes d’analyse complémentaires, activables à la demande.
 🔹 Mode Points (référence)
@@ -106,7 +106,7 @@ La page Map intègre désormais le pavé “Spot manuel” :
 👉 Continuité fonctionnelle totale avec la page principale.
 🧠 Philosophie v5.0
 
-La v5.0 ne prétend pas prédire la propagation.
+La v5.1 ne prétend pas prédire la propagation.
 Elle se concentre sur ce qui est observable, mesurable et exploitable immédiatement :
 
     Activité réelle
@@ -160,7 +160,7 @@ La carte devient un outil d’analyse, pas une illustration.
 👤 Auteur
 
 Développé par F1SMV Eric
-avec l’assistance de ChatGPT (v5.2) et #gimini3 pour la structuration et l’analyse,
+avec l’assistance de ChatGPT (v5.2) et #gimini3 #vibecoding pour la structuration et l’analyse,
 au service de la communauté radioamateur.
 
 vous pouvez me contacter via mon fil X

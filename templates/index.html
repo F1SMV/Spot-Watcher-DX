@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>NEURAL DX v4.8 - 6 m updated analysis page </title>
+<title>NEURAL DX v5.1</title>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -185,6 +185,33 @@
         .spot-call-white-bold a {
             color: inherit !important;
         }
+
+
+        /* Callsign Watchlist dans tableaux spots (fond jaune, lisible, sans "surbrillance") */
+        .spot-call-watchlist {
+            background-color: var(--wl-bg);
+            color: var(--wl-text) !important;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        .spot-call-watchlist a {
+            color: var(--wl-text) !important;
+        }
+
+        /* Watchlist dans tableaux spots (ligne complète en fond jaune) */
+        tr.spot-row-watchlist > td {
+            background-color: #ffd54a !important;
+            color: #000000 !important;
+        }
+        tr.spot-row-watchlist a {
+            color: #000000 !important;
+        }
+        tr.spot-row-watchlist td {
+            border-bottom-color: rgba(0,0,0,0.12) !important;
+        }
+
 
         /* Étiquettes de bande dans le tableau */
         .band-tag {
@@ -432,7 +459,7 @@
 </head>
 <body>
 <div id="header">
-<div id="title">NEURAL DX WATCHER V4.8</div>
+<div id="title">NEURAL DX WATCHER V5.1</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -1224,16 +1251,15 @@
                         if (spot.type.toLowerCase() === type) {
                             const row = tbody.insertRow();
                             const isWantedCall = isWanted(spot.dx_call);
-                            const callsignClass = isWantedCall ? 'wl-table call' : 'spot-call-white-bold';
+                            const callsignClass = isWantedCall ? 'spot-call-watchlist' : 'spot-call-white-bold';
+                const rowClass = isWantedCall ? 'spot-row-watchlist' : '';
 
-                            row.innerHTML = `
+                            
+                            if (rowClass) row.classList.add(rowClass);
+row.innerHTML = `
                                 <td>${spot.time}</td>
                                 <td>${spot.freq}</td>
-                                <td class="${callsignClass}">
-                                    <a href="https://qrz.com/db/${spot.dx_call}" target="_blank" title="Look up on QRZ.com">
-                                        ${spot.dx_call}
-                                    </a>
-                                </td>
+                                <td><span class="${callsignClass}"><a href="https://qrz.com/db/${spot.dx_call}" target="_blank" title="Look up on QRZ.com">${spot.dx_call}</a></span></td>
                                 <td><span class="band-tag" style="background-color: ${spot.color};">${spot.band}</span></td>
                                 <td>${spot.mode}</td>
                                 <td class="${(spot.score >= SPD_THRESHOLD) ? 'high-spd' : ''}">${spot.score}</td>

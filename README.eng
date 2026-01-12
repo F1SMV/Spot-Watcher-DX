@@ -1,16 +1,16 @@
-📡 DX Cluster Dashboard – v5.0
+📡 DX Cluster Dashboard – v5.1
 
 Neural Analysis Edition
 
 A real-time web dashboard for radio amateurs, focused on decision-making, DX monitoring, and analysis of observed on-air activity, connected to a DX Cluster via Telnet.
 
-Version 5.0 marks a clear shift in philosophy:
+Version 5.1 marks a clear shift in philosophy:
 
 👉 we no longer look at spots — we interpret real radio activity.
 
 🚀 What’s new in v5.0?
 🗺️ New map.html page — Advanced DX activity reading
-
+🗺️ Fixed a bug where the "watchlist" call displayed in yellow in the live spot panel.
 The Map page is no longer a simple plotting of points.
 It now provides three complementary analysis modes, selectable by the operator.
 🔹 Points mode (reference)
