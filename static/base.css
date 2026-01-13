@@ -1,0 +1,23 @@
+/* static/base.css */
+/* Police unique (système, rapide, sans dépendance externe) */
+:root{
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+html, body{
+  font-family: var(--font-sans) !important;
+  font-weight: 400;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Harmonise les contrôles */
+button, input, select, textarea{
+  font-family: var(--font-sans) !important;
+}
+
+/* Harmonise tables et petits textes */
+table, th, td, small, code{
+  font-family: var(--font-sans);
+}

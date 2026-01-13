@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEURAL AI v4.6 - ANALYSE & PRÉDICTION</title>
+    <link rel="stylesheet" href="/static/base.css">
+    <title>NEURAL AI 5.1 - ANALYSE & PRÉDICTION</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <style>
+<style>
         
 
         /* --- THEMES IMPORTES DE index.html --- */
@@ -61,7 +61,7 @@
 
         
 
-body { background-color: var(--bg-color); color: var(--text-main); font-family: var(--font-mono); margin: 0; padding: 20px; transition: all 0.3s; }
+body { background-color: var(--bg-color); color: var(--text-main); font-family: var(--font-sans); margin: 0; padding: 20px; transition: all 0.3s; }
         
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 20px; }
         h1 { font-family: var(--font-display); font-size: 1.2rem; color: var(--accent); margin: 0; text-transform: uppercase; letter-spacing: 1px; }
@@ -394,7 +394,7 @@ function fillList(id, items, tag) {
                         plugins: { legend: { display: false } },
                         scales: {
                             x: { grid: { color: '#222' }, ticks: { color: '#666', font: { size: 10 } } },
-                            y: { grid: { display: false }, ticks: { color: '#aaa', font: { family: 'Share Tech Mono', size: 11 } } }
+                            y: { grid: { display: false }, ticks: { color: '#aaa', font: { size: 11 } } }
                         }
                     }
                 });
