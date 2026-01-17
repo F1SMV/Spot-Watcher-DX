@@ -1,4 +1,50 @@
-📡 DX Cluster Dashboard – v5.1
+📡 DX Cluster Dashboard – v5.2
+
+META ANALYSIS — Analysis Page
+
+The META ANALYSIS panel is not a real-time widget.
+It is a delayed, log-based analysis tool designed to provide a macro-level view of radio activity.
+
+It is based on the application log (radio_spot_watcher.log) and answers a simple question:
+
+What actually happened over time, beyond the real-time spot flow?
+
+What META ANALYSIS does
+
+Parses the application log
+
+Extracts valid DX spots
+
+Cleans duplicates and noise
+
+Aggregates data over a defined time range
+
+Produces structured summary files used by the UI
+
+How it works
+
+META ANALYSIS runs in manual daily mode:
+
+No automatic cron execution
+
+One analysis run per 24 hours
+
+Triggered manually via the RUN button
+
+This design choice is intentional:
+it favors reliable, calm analysis over continuous recalculation.
+
+What it is not
+
+It does not predict propagation
+
+It does not replace real-time monitoring
+
+It does not provide automatic recommendations
+
+META ANALYSIS documents recent past activity to support better understanding and decision-making.
+
+
 
 Neural Analysis Edition
 

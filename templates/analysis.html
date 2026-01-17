@@ -23,6 +23,19 @@
             --open-color: #d35400;
         }
         
+        
+        body[data-theme='light'] {
+            --bg-color: #ffffff;
+            --panel-bg: #ffffff;
+            --text-main: #111111;
+            --accent: #0066ff;
+            --alert: #d50000;
+            --border: 1px solid #d0d0d0;
+            --wl-bg: #ffeb3b;
+            --wl-text: #000000;
+            --open-color: #d35400;
+        }
+
         body[data-theme='dark'] {
             --bg-color: #1a1a1a;
             --panel-bg: #2a2a2a;
@@ -47,21 +60,7 @@
             --open-color: #00aa00;
         }
         
-        body[data-theme='sunset'] {
-            --bg-color: #2b0c3d;
-            --panel-bg: #4a1961;
-            --text-main: #f0e6ff;
-            --accent: #ff9900; /* Orange coucher de soleil */
-            --alert: #ff3366;
-            --border: 1px solid #7c4d9e;
-            --wl-bg: #ffcc66;
-            --wl-text: #2b0c3d;
-            --open-color: #ff66a3;
-        }
-
-        
-
-body { background-color: var(--bg-color); color: var(--text-main); font-family: var(--font-sans); margin: 0; padding: 20px; transition: all 0.3s; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: var(--font-sans); margin: 0; padding: 20px; transition: all 0.3s; }
         
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-bottom: 20px; }
         h1 { font-family: var(--font-display); font-size: 1.2rem; color: var(--accent); margin: 0; text-transform: uppercase; letter-spacing: 1px; }
@@ -69,7 +68,7 @@ body { background-color: var(--bg-color); color: var(--text-main); font-family: 
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
         
         /* --- PANEL & DRAG HANDLE --- */
-        .panel { background: var(--panel-bg); border: var(--border); border-radius: 4px; padding: 15px; position: relative; display: flex; flex-direction: column; transition: box-shadow 0.3s; }
+        .panel { background: var(--panel-bg); border: var(--border); border-radius: 14px; padding: 15px; box-shadow: 0 10px 28px rgba(0,0,0,0.45); position: relative; display: flex; flex-direction: column; transition: box-shadow 0.3s; }
         .drag-handle { 
             position: absolute; top: 8px; left: 8px; cursor: grab; 
             width: 12px; height: 18px; 
@@ -101,7 +100,39 @@ body { background-color: var(--bg-color); color: var(--text-main); font-family: 
         
         .grid-full { grid-column: 1 / -1; }
         canvas { width: 100% !important; max-height: 180px; }
-    </style>
+    
+        /* === V4.0 LOOK (FORCÉ) : pavés très lisibles === */
+        .panel{
+            background: var(--panel-bg) !important;
+            border: 1px solid rgba(255,255,255,0.22) !important;
+            border-radius: 16px !important;
+            box-shadow: 0 14px 34px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.06) inset !important;
+            overflow: hidden !important;
+        }
+        body[data-theme='light'] .panel{
+            border: 1px solid rgba(0,0,0,0.16) !important;
+            box-shadow: 0 14px 30px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.80) inset !important;
+        }
+        body[data-theme='matrix'] .panel{
+            border: 1px solid rgba(0,255,65,0.55) !important;
+            box-shadow: 0 14px 36px rgba(0,0,0,0.70), 0 0 0 1px rgba(0,255,65,0.12) inset !important;
+        }
+        .panel-header{
+            padding: 12px 16px !important;
+            border-bottom: 1px solid rgba(255,255,255,0.14) !important;
+            letter-spacing: .08em !important;
+            text-transform: uppercase !important;
+            font-weight: 900 !important;
+        }
+        body[data-theme='light'] .panel-header{
+            border-bottom: 1px solid rgba(0,0,0,0.10) !important;
+        }
+        /* espace entre colonnes/pavés */
+        .dashboard-grid, .grid, .container{
+            gap: 14px !important;
+        }
+
+</style>
 </head>
 <body>
 <header>
@@ -187,7 +218,35 @@ body { background-color: var(--bg-color); color: var(--text-main); font-family: 
             <div id="ld-list" class="list-container"></div>
         </div>
 
-    </div>
+    
+        <div class="panel" data-id="meta-analyse" id="meta-panel">
+            <div class="drag-handle"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+            <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>📊 META ANALYSE / META ANALYSIS</span>
+                <span style="display:flex; gap:8px; align-items:center;">
+                    <span class="status-badge" id="metaFreshBadge" title="Fraîcheur / Freshness">—</span>
+                    <button class="btn" id="metaRunBtn" style="padding:4px 8px;" onclick="runMetaOncePerDay()" title="Relancer (1 fois / jour) / Run (once per day)">↻ RUN</button>
+                </span>
+            </div>
+            <div class="explanation">
+                FR: Synthèse auto du log (volume, période, top DX SPD). / 
+                <i>EN: Auto summary from log (volume, time range, top DX SPD).</i>
+            </div>
+
+            <div class="list-container" style="max-height:none;">
+                <div class="list-item"><b>Spots</b><span id="metaSpots">—</span></div>
+                <div class="list-item"><b>Période</b><span id="metaRange">—</span></div>
+                <div class="list-item"><b>Généré</b><span id="metaGeneratedAt">—</span></div>
+                <div class="list-item"><b>Relance possible</b><span id="metaCountdown">—</span></div>
+            </div>
+
+            <div style="margin-top:10px; font-size:0.8rem; color:var(--accent); padding-left:20px; opacity:0.95;">
+                Top DX (SPD)
+            </div>
+            <div id="metaTopList" class="list-container"></div>
+        </div>
+
+</div>
 
     <script>
         // --- COULEURS SYNCHRONISÉES AVEC INDEX.HTML ---
@@ -426,13 +485,142 @@ function fillList(id, items, tag) {
             }
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
+        
+        // === META ANALYSE (manuel 1x/jour) ===
+        const META_INTERVAL_SEC = 86400; // 24h
+        let __metaGeneratedMs = null;
+
+        function updateMetaCountdown(){
+            const el = document.getElementById("metaCountdown");
+            if(!el) return;
+            const now = Date.now();
+
+            const lastManual = Number(localStorage.getItem("meta_last_run_click_ms") || "0");
+            const baseMs = lastManual || __metaGeneratedMs || 0;
+
+            if(!baseMs){
+                el.textContent = "Disponible / Available";
+                el.style.color = "var(--accent)";
+                return;
+            }
+
+            const nextMs = baseMs + (META_INTERVAL_SEC * 1000);
+            if(now >= nextMs){
+                el.textContent = "Disponible / Available";
+                el.style.color = "var(--accent)";
+            } else {
+                const diff = Math.floor((nextMs - now) / 1000);
+                const h = String(Math.floor(diff / 3600)).padStart(2,'0');
+                const m = String(Math.floor((diff % 3600) / 60)).padStart(2,'0');
+                const s = String(diff % 60).padStart(2,'0');
+                el.textContent = `${h}:${m}:${s}`;
+                el.style.color = "";
+            }
+        }
+
+        function _metaSetRunButtonState(){
+            const btn = document.getElementById("metaRunBtn");
+            if(!btn) return;
+            const last = Number(localStorage.getItem("meta_last_run_click_ms") || "0");
+            const now  = Date.now();
+            const DAY  = 24 * 60 * 60 * 1000;
+
+            if(last && (now - last) < DAY){
+                const remainSec = Math.ceil((DAY - (now - last)) / 1000);
+                const hh = String(Math.floor(remainSec / 3600)).padStart(2,'0');
+                const mm = String(Math.floor((remainSec % 3600) / 60)).padStart(2,'0');
+                btn.disabled = true;
+                btn.textContent = `↻ ${hh}:${mm}`;
+            } else {
+                btn.disabled = false;
+                btn.textContent = "↻ RUN";
+            }
+        }
+
+        async function runMetaOncePerDay(){
+            _metaSetRunButtonState();
+            const btn = document.getElementById("metaRunBtn");
+            if(btn && btn.disabled) return;
+
+            if(!confirm("Relancer la méta-analyse maintenant ? / Run meta analysis now?")) return;
+
+            try{
+                if(btn){ btn.disabled = true; btn.textContent = "↻ ..."; }
+                const r = await fetch("/api/meta/run", { method:"POST" });
+                if(!r.ok){
+                    alert("META run failed (HTTP " + r.status + ").");
+                    if(btn){ btn.disabled = false; btn.textContent = "↻ RUN"; }
+                    return;
+                }
+                localStorage.setItem("meta_last_run_click_ms", String(Date.now()));
+                setTimeout(loadMeta, 1800);
+            }catch(e){
+                console.error("META run error:", e);
+                alert("META error: " + e);
+                if(btn){ btn.disabled = false; btn.textContent = "↻ RUN"; }
+                return;
+            }
+            _metaSetRunButtonState();
+        }
+
+        async function loadMeta(){
+            try{
+                const r = await fetch("/api/meta/summary", { cache:"no-store" });
+                if(!r.ok) return;
+                const data = await r.json();
+
+                const spotsEl = document.getElementById("metaSpots");
+                const rangeEl = document.getElementById("metaRange");
+                const genEl   = document.getElementById("metaGeneratedAt");
+                const badgeEl = document.getElementById("metaFreshBadge");
+                const listEl  = document.getElementById("metaTopList");
+
+                if(spotsEl) spotsEl.textContent = (data.spots ?? "—");
+                if(rangeEl){
+                    if(data.range?.start && data.range?.end) rangeEl.textContent = `${data.range.start} → ${data.range.end}`;
+                    else rangeEl.textContent = "—";
+                }
+
+                const genRaw = data.generated_at || null;
+                __metaGeneratedMs = genRaw ? new Date(genRaw).getTime() : null;
+                if(genEl) genEl.textContent = genRaw ? String(genRaw).replace('T',' ').slice(0,19) : "—";
+
+                if(badgeEl){
+                    badgeEl.classList.remove("badge-alert");
+                    if(!genRaw){
+                        badgeEl.textContent = "INCONNU / UNKNOWN";
+                    }else{
+                        const ageMin = Math.floor(Math.max(0, (Date.now() - __metaGeneratedMs) / 60000));
+                        badgeEl.textContent = (ageMin < 10) ? `FRAIS ${ageMin}m` : `ANALYSE ${ageMin}m`;
+                        if(ageMin >= 60) badgeEl.classList.add("badge-alert");
+                    }
+                }
+
+                if(listEl){
+                    const top = (data.top_spots || []).slice(0,8);
+                    if(top.length === 0){
+                        listEl.innerHTML = '<div class="list-item"><i>Aucun top spot.</i></div>';
+                    }else{
+                        listEl.innerHTML = top.map(s => `<div class="list-item"><b>${s.dx}</b><span>SPD ${s.spd} · ${s.band} ${s.mode}</span></div>`).join("");
+                    }
+                }
+
+                updateMetaCountdown();
+                _metaSetRunButtonState();
+            }catch(e){
+                console.error("Meta load error:", e);
+            }
+        }
+
+document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             initSortable();
             initDXBriefingUI();
             loadDXBriefing(false);
             updateDashboard();
             setInterval(updateDashboard, 30000);
+            setInterval(updateMetaCountdown, 1000);
+            setInterval(_metaSetRunButtonState, 60000);
             setInterval(() => loadDXBriefing(false), 600000);
         });
     </script>

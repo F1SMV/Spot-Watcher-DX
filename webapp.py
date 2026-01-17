@@ -12,19 +12,32 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from collections import deque, Counter
 from flask import Flask, render_template, jsonify, request, abort, redirect, url_for, Response
+from pathlib import Path
+import json
+import os
+import subprocess
+from flask import jsonify, request
 
+META_DIR = Path("data/meta")
+META_SUMMARY = META_DIR / "summary.json"
+LOG_PATH_DEFAULT = Path("radio_spot_watcher.log")  # log courant
+ANALYZER = Path("tools/log_meta_analyzer.py")
+
+META_RUN_TOKEN = os.getenv("META_RUN_TOKEN", "")  # optionnel
 
 # --- CLUSTER TX (Spot) ---
 tn_lock = threading.Lock()
 tn_current = None  # telnetlib.Telnet when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "NEURAL v5.1"
+APP_VERSION = "NEURAL v5.2"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
 SPOT_LIFETIME = 900
 SPD_THRESHOLD = 70
+
+
 
 # --- LISTE DES PRÉFIXES RARES (pour entités réellement rares) ---
 RARE_PREFIXES = [
@@ -264,6 +277,9 @@ CW_RANGES = [
 
 # --- FRÉQUENCES FT4/FT8 (en kHz) ---
 FT8_VHF_FREQ_RANGE_KHZ = (144171, 144177)
+
+# --- FRÉQUENCES PSK31 (en kHz) ---
+PSK31_HF_FREQ_RANGE_KHZ = (14.069, 14.071)
 
 # --- SSL BYPASS ---
 try:
@@ -784,6 +800,16 @@ def telnet_worker():
         idx = (idx + 1) % len(CLUSTERS)
 
 # --- ROUTES ---
+@app.get("/api/meta/summary")
+def api_meta_summary():
+    if not META_SUMMARY.exists():
+        return jsonify({"status": "no_summary"}), 404
+    try:
+        return jsonify(json.loads(META_SUMMARY.read_text(encoding="utf-8")))
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @app.route('/')
 def index():
     return render_template('index.html', version=APP_VERSION, my_call=MY_CALL,
@@ -1017,7 +1043,41 @@ def dxcc_stats_24h():
         "long_distance_calls": sorted(list(long_distance_calls))
     })
 
+@app.post("/api/meta/run")
+def run_meta():
+    """
+    Relance la méta-analyse (génère data/meta/summary.json etc.)
+    Sécurité:
+      - Si META_RUN_TOKEN est défini => header X-META-TOKEN requis.
+      - Sinon => autorisé uniquement depuis le LAN (192.168.x.x / 10.x.x.x / 127.0.0.1).
+    """
+    try:
+        ip = request.remote_addr or ""
+        token = request.headers.get("X-META-TOKEN", "")
 
+        # Si token configuré -> token obligatoire
+        if META_RUN_TOKEN:
+            if token != META_RUN_TOKEN:
+                return jsonify({"status": "forbidden"}), 403
+        else:
+            # Sinon: on limite au LAN (évite exposition accidentelle)
+            if not (ip.startswith("192.168.") or ip.startswith("10.") or ip.startswith("127.")):
+                return jsonify({"status": "forbidden"}), 403
+
+        META_DIR.mkdir(parents=True, exist_ok=True)
+
+        log_path = request.args.get("log", str(LOG_PATH_DEFAULT))
+        cmd = ["python3", str(ANALYZER), "--log", log_path, "--outdir", str(META_DIR)]
+
+        subprocess.run(cmd, timeout=120, check=True)
+
+        return jsonify({"status": "ok"})
+    except subprocess.TimeoutExpired:
+        return jsonify({"status": "timeout"}), 504
+    except subprocess.CalledProcessError as e:
+        return jsonify({"status": "failed", "code": e.returncode}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "msg": str(e)}), 500
 @app.route('/wanted.json')
 def get_ranking():
     now = time.time()
