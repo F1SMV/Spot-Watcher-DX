@@ -1,217 +1,265 @@
-📡 DX Cluster Dashboard – v5.2
+📡 Radio Spot Watcher DX — v5.6
 
-META ANALYSIS — Analysis Page
+DX Cluster Dashboard & Advanced Radio Analysis Engine
 
-The META ANALYSIS panel is not a real-time widget.
-It is a delayed, log-based analysis tool designed to provide a macro-level view of radio activity.
+A local web application for DX monitoring and radio propagation analysis, designed for serious radio amateurs.
+Built to observe, understand, and step back — not to generate visual noise.
+🧭 Overview
 
-It is based on the application log (radio_spot_watcher.log) and answers a simple question:
+Radio Spot Watcher DX is a local web application that:
 
-What actually happened over time, beyond the real-time spot flow?
+    connects to one or more DX Clusters (Telnet)
 
-What META ANALYSIS does
+    displays real-time spots (HF / VHF / UHF)
 
-Parses the application log
+    integrates solar indices (SFI, A, Kp…)
 
-Extracts valid DX spots
+    keeps a usable activity memory
 
-Cleans duplicates and noise
+    provides several analysis layers, from live monitoring to strategic review
 
-Aggregates data over a defined time range
+    The goal is not to see more, but to see better
+🖥️ Main Pages
+1️⃣ Index Page — Real-time monitoring & operator tracking
 
-Produces structured summary files used by the UI
+This is the immediate observation page.
+
+It displays:
+
+    live DX spots
+
+    active bands
+
+    wanted / rare DX
+
+    solar indices
+
+    activity surge indicators
+
+👉 Goal: know what is happening right now.
+
+📡 Watchlist Tracking Panel (new in v5.6)
+
+The WATCHLIST · TRACKING panel answers a very concrete operator need:
+
+    “I wasn’t in front of the screen — what did I miss on my watched calls?”
 
 How it works
 
-META ANALYSIS runs in manual daily mode:
+    based on the watchlist
 
-No automatic cron execution
+    uses an in-memory spot history
 
-One analysis run per 24 hours
+    displays the last 5 or 10 spots per callsign
 
-Triggered manually via the RUN button
+Features
 
-This design choice is intentional:
-it favors reliable, calm analysis over continuous recalculation.
+    dynamic callsign filter (e.g. 9, VK, /P)
 
-What it is not
+    automatic refresh
 
-It does not predict propagation
+    clear display:
 
-It does not replace real-time monitoring
+        UTC time
 
-It does not provide automatic recommendations
+        band
 
-META ANALYSIS documents recent past activity to support better understanding and decision-making.
+        mode
 
+        frequency
 
+Philosophy
 
-Neural Analysis Edition
+    ❌ not a raw log
 
-A real-time web dashboard for radio amateurs, focused on decision-making, DX monitoring, and analysis of observed on-air activity, connected to a DX Cluster via Telnet.
+    ❌ not a massive dump
 
-Version 5.1 marks a clear shift in philosophy:
+    ✅ a catch-up activity tool
 
-👉 we no longer look at spots — we interpret real radio activity.
+    ✅ designed for the human operator
 
-🚀 What’s new in v5.0?
-🗺️ New map.html page — Advanced DX activity reading
-🗺️ Fixed a bug where the "watchlist" call displayed in yellow in the live spot panel.
-The Map page is no longer a simple plotting of points.
-It now provides three complementary analysis modes, selectable by the operator.
-🔹 Points mode (reference)
+When the filter is empty, the panel intentionally remains neutral.
 
-Classic spot display:
+2️⃣ Map Page — Observation map
 
-    One point = one real spot
+Classic spot map:
 
-    Color = band
+    geographic visualization
 
-    Size = SPD score
+    immediate activity overview
 
-    Popup with callsign, mode, distance, score
+    natural complement to the live spot list
 
-📌 Use case: precise, spot-by-spot inspection.
+👉 Goal: see where it’s happening.
+3️⃣ Analysis Page — META analysis (delayed)
 
-🔥 Mode A — Band-specific Heatmap (observed activity)
+The META ANALYSIS page is deliberately not real-time.
 
-The Heatmap shows where radio activity has actually been observed recently on a single band.
+It is based on the application log file:
 
-Exact principle:
+radio_spot_watcher.log
 
-Each recent spot becomes a source of intensity
+Principle
 
-Intensity is proportional to the SPD score
+A dedicated script:
 
-Colored areas indicate concentrated, real activity
+    parses the log
 
-⚠️ Important:
+    removes duplicates and noise
 
-The heatmap is intentionally limited to one band
+    aggregates data over a time period
 
-It does not represent ionospheric propagation
+    generates structured files (data/meta/*.json)
 
-It does not draw radio paths
+These datasets are then displayed in the Analysis page.
 
-Heatmap = observed activity, not prediction.
+What META Analysis does
 
-📌 Recommended usage:
+    macro-level activity reading
 
-Analyzing one specific band (e.g. 20m)
+    DX ranking over time
 
-Quickly identifying where activity is concentrated
+    validation (or invalidation) of operator intuition
 
-Short time windows (5–15 min) = ongoing openings
+What it does NOT do
 
-🟠 Mode C — Activity Circles (low-density reading)
+    ❌ no prediction
 
-The Circles mode is designed for realistic operating conditions:
+    ❌ no live alerting
 
-Few spots
+    ❌ no blind automation
 
-CW / SSB traffic
+👉 This is a strategic review tool, not a monitoring gadget.
+4️⃣ World Page — Forecast & Anomalies (major new feature)
 
-Sparse DX activity
+The World Forecast Map is an advanced analysis tool, clearly separated from the classic map.
+Core principle
 
-Principle:
+Compare:
 
-Each spot draws a semi-transparent circular area
+    what is expected (propagation model)
 
-Radius based on a simple readability heuristic (distance-aware)
+    what is observed (real spots)
 
-Color = band
+👉 to display only what deviates from the model.
+What the World page shows
 
-This mode fills the map visually without lying about density.
+    🌍 a worldwide map
 
-📌 Recommended usage:
+    🔥 red heatmap zones representing anomalous clusters
 
-When the heatmap is too weak to be meaningful
+    📍 callsigns displayed directly on the map
 
-To visualize probable active zones
+    🧠 immediate understanding of unusual propagation
 
-A true “radio-operator” reading, not statistical smoothing
+Definition of an anomaly
 
-🧠 Integrated assisted reading
+A cluster is considered anomalous based on:
 
-The left column dynamically explains:
+    band
 
-what the current mode represents
+    UTC time
 
-when it should be used
+    distance
 
-when it should not
+    mode (FT8 weighted differently)
 
-Goal: no ambiguity, no misinterpretation.
+    temporal coherence
 
-✍️ Integrated Manual Spot (from the Dashboard)
+    solar indices
 
-The Map page now embeds the “Manual Spot” panel:
+A Surprise Score is computed.
+Only clusters exceeding a threshold are displayed.
+World page philosophy
 
-Direct DX command injection into the cluster
+    ❌ no magic
 
-Auto-fill from the last clicked map spot
+    ❌ no blind prediction
 
-Clear status feedback (OK / error / cluster not connected)
+    ❌ no visual noise
 
-👉 Full functional continuity with the main dashboard.
+    ✅ what you see deserves your attention
 
-🧠 v5.0 philosophy
+The World page is a strategic reading tool, not a live monitor
 
-Version 5.0 does not attempt to predict propagation.
-It focuses strictly on what is observable, measurable, and immediately actionable:
+⚙️ Technical architecture
 
-Real on-air activity
+    Backend: Python / Flask
 
-Traffic density
+    Frontend: HTML / CSS / JavaScript (local)
 
-Active DX areas
+    Cluster: DX Cluster (Telnet)
 
-Prioritization via the SPD score
+    Logs: single application log file
 
-The map becomes an analysis tool, not a decorative graphic.
+    Analysis: dedicated Python scripts
 
-🛠️ Inherited features (v4.8 and earlier)
+    Storage: memory + local JSON files
 
-(unchanged, preserved for history)
+No cloud dependency.
+Designed for Raspberry Pi or local machines.
+🎨 CSS organization
 
-🚀 What’s new in v4.8?
+The project deliberately separates:
 
-Spot timestamps in the Analysis page
+    base.css → themes, colors, global variables
 
-“Anomaly detector” panel with periodic reset
+    inline CSS per page → critical layout and readability
 
-🚀 What’s new in v4.7?
+⚠️ Some inline styles override the theme.
+This is an intentional choice for operational readability.
+🔐 Security & philosophy
 
-(… original content fully preserved …)
+    local / LAN application
 
-🧠 SPD scoring engine
-🗺️ AI Path Optimizer & Grayline
-📊 DXCC statistics
-🌠 Meteor Scatter
-☀️ NOAA solar data
-🗣️ Voice synthesis
-📊 Modular UI
-🧠 Technical architecture
-🔗 Cluster connectivity
-📡 API routes
+    no public exposure by default
 
-🧩 Planned evolutions (post-v5.0)
+    no telemetry
 
-/now page: immediate operational recommendations
+    no critical external dependency
 
-Automatic opening detection (events, not charts)
+The operator remains fully in control of the data.
+🗂️ Version history (excerpt)
+v5.6 (current)
 
-Explanatory AI: “Why this band now?”
+    World page: Forecast & Anomalies
 
-Correlation between activity and solar data (without over-interpretation)
+    Anomalous cluster detection
 
+    Analytical heatmap
+
+    Callsign display on the map
+
+    Watchlist Tracking panel
+
+    General frontend/backend stabilization
+
+v5.2
+
+    Introduction of META Analysis
+
+    Delayed log-based analysis
+
+    Clear separation between live monitoring and analysis
+
+📌 Project positioning
+
+Radio Spot Watcher DX is not:
+
+    a simple DX viewer
+
+    a graphical gadget
+
+    an automated prediction engine
+
+It is a reasoned radio observation tool,
+built for operators who want to understand what they see.
 👤 Author
 
-Developed by F1SMV Eric
-with assistance from ChatGPT (v5.2) for structure and analysis,
+Developed by F1SMV – Eric
+with the assistance of ChatGPT5.2 and Gimini
 for the radio amateur community.
 
-73’s & good DX
 
 
 
