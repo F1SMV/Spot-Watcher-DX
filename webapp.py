@@ -10,7 +10,7 @@ import math
 import re
 import logging
 from logging.handlers import TimedRotatingFileHandler
-from collections import deque, Counter
+from collections import deque, Counter, defaultdict
 from flask import Flask, render_template, jsonify, request, abort, redirect, url_for, Response
 from pathlib import Path
 import json
@@ -30,7 +30,7 @@ tn_lock = threading.Lock()
 tn_current = None  # telnetlib.Telnet when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "NEURAL v5.2"
+APP_VERSION = "NEURAL v5.6"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -232,6 +232,11 @@ def solar_worker():
 
 # --- CACHES GLOBAUX et INITIALISATION QTH ---
 spots_buffer = deque(maxlen=6000)
+# --- SPOT HISTORY (Tracking Watchlist) ---
+SPOT_HISTORY_MAX = 20000
+spot_history = deque(maxlen=SPOT_HISTORY_MAX)
+spot_history_lock = threading.Lock()
+# --- END SPOT HISTORY ---
 band_history = {}
 prefix_db = {}
 ticker_info = {"text": "SYSTEM INITIALIZATION... (Waiting for RSS/Solar data)"}
@@ -789,6 +794,20 @@ def telnet_worker():
                             "spot_id": spot_id # Ajout de l'ID
                         }
                         spots_buffer.append(spot_obj)
+                        # Tracking Watchlist: petit historique RAM (léger, filtrable)
+                        try:
+                            with spot_history_lock:
+                                spot_history.append({
+                                    "ts": spot_obj.get("timestamp", time.time()),
+                                    "dx": spot_obj.get("dx_call"),
+                                    "de": None,
+                                    "band": spot_obj.get("band"),
+                                    "mode": spot_obj.get("mode"),
+                                    # freq_khz best-effort (float) si possible
+                                    "freq_khz": (float(str(spot_obj.get("freq")).replace(",", ".")) if spot_obj.get("freq") is not None else None),
+                                })
+                        except Exception:
+                            pass
                         logger.info(f"SPOT: {dx_call} ({band}, {mode}) -> SPD: {spd_score} pts (Dist: {dist_km:.0f}km)")
                     except Exception as e:
                         logger.error(f"Erreur de traitement du spot '{line[:50]}...': {e}")
@@ -820,7 +839,6 @@ def index():
 def ai_page():
     return render_template("ai.html")
 
-
 @app.route("/map")
 def map_page():
     return render_template("map.html", version=APP_VERSION, my_call=MY_CALL, user_qra=user_qra)
@@ -829,6 +847,9 @@ def map_page():
 def map_html_compat():
     return redirect(url_for("map_page"))
 
+@app.route("/world")
+def world_page():
+    return render_template("world.html")
 
 @app.route('/update_qra', methods=['POST'])
 def update_qra():
@@ -1112,6 +1133,68 @@ def manage_watchlist():
         logger.info(f"Retrait de la watchlist: {call}")
     save_watchlist()
     return jsonify({"status": "ok"})
+@app.get("/api/watchlist/tracking.json")
+def api_watchlist_tracking():
+    """Tracking watchlist: derniers spots par call (alimente le pavé Index)."""
+    try:
+        limit = int(request.args.get("limit", 10))
+    except Exception:
+        limit = 10
+    limit = max(1, min(limit, 50))
+
+    q = (request.args.get("q") or "").strip().upper()
+    dx_only = (request.args.get("dx_only", "1").strip() not in ("0", "false", "False"))
+
+    calls = sorted(list(watchlist))
+    if q:
+        calls = [c for c in calls if q in c]
+
+    wanted = set(calls)
+    out = {c: [] for c in calls}
+    now = time.time()
+
+    with spot_history_lock:
+        hist = list(spot_history)
+
+    for s in reversed(hist):
+        try:
+            dx = (s.get("dx") or "").strip().upper()
+            de = (s.get("de") or "").strip().upper()
+
+            hit = None
+            if dx in wanted:
+                hit = dx
+            elif (not dx_only) and de in wanted:
+                hit = de
+
+            if not hit:
+                continue
+            if len(out[hit]) >= limit:
+                continue
+
+            ts = float(s.get("ts", now))
+            out[hit].append({
+                "utc": time.strftime("%H:%M", time.gmtime(ts)),
+                "age_min": int((now - ts) / 60),
+                "band": s.get("band"),
+                "mode": s.get("mode"),
+                "freq_khz": s.get("freq_khz"),
+                "de": s.get("de"),
+                "dx": s.get("dx"),
+            })
+        except Exception:
+            continue
+
+        if calls and all(len(out[c]) >= limit for c in calls):
+            break
+
+    return jsonify({
+        "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
+        "limit": limit,
+        "dx_only": dx_only,
+        "q": q,
+        "calls": out
+    })
 
 @app.route('/rss.json')
 def get_rss():
@@ -1203,6 +1286,74 @@ def api_map_spots():
         "qth": qth,
         "spots": spots
     })
+# =========================================================
+# FORECAST / WORLD MAP — V1 (proxy local, non prédictif)
+# =========================================================
+
+@app.route("/api/forecast/anomalies")
+def api_forecast_anomalies():
+    """
+    V1 proxy anomalies:
+    - regroupe les spots récents
+    - retourne des clusters simples (centre + exemples)
+    """
+    try:
+        band = request.args.get("band")
+        window = int(request.args.get("window", 120))
+        limit = int(request.args.get("limit", 300))
+
+        now = time.time()
+        min_ts = now - window * 60
+
+        spots = [
+            s for s in spots_buffer
+            if s.get("timestamp", 0) >= min_ts
+            and (not band or s.get("band") == band)
+            and s.get("lat") and s.get("lon")
+        ][:limit]
+
+        clusters = []
+        for s in spots:
+            clusters.append({
+                "band": s.get("band"),
+                "center": {"lat": s.get("lat"), "lon": s.get("lon")},
+                "examples": [{
+                    "dx": s.get("dx_call"),
+                    "mode": s.get("mode"),
+                    "freq_khz": s.get("freq"),
+                    "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(s.get("timestamp", now)))
+                }]
+            })
+
+        return jsonify({
+            "ok": True,
+            "count": len(clusters),
+            "clusters": clusters
+        })
+
+    except Exception as e:
+        logger.error(f"Forecast anomalies error: {e}")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/forecast/heatmap.png")
+def api_forecast_heatmap():
+    """
+    V1 heatmap placeholder:
+    image transparente (le frontend Leaflet gère la colorisation)
+    """
+    from PIL import Image
+    import io
+
+    w = int(request.args.get("w", 720))
+    h = int(request.args.get("h", 360))
+
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+
+    return Response(buf.getvalue(), mimetype="image/png")
 
 
 # --- SOLAR ROUTES (XML + JSON) ---

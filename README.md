@@ -1,144 +1,201 @@
-DX Cluster Dashboard – v5.2
+📡 Radio Spot Watcher DX — v5.6
 
-Neural Analysis Edition
+DX Cluster Dashboard & Advanced Radio Analysis Engine
 
-Dashboard web temps réel pour radioamateurs, orienté décision, veille DX et analyse d’activité observée, connecté à un DX Cluster via Telnet.
-
-📡 Radio Spot Watcher DX
-
-DX Cluster Dashboard & Meta Analysis Engine
-
-Application locale de surveillance DX et d’analyse différée destinée aux radioamateurs exigeants.
-Pensée pour la lecture stratégique, la fiabilité et le recul analytique, pas pour l’effet vitrine.
+Application web locale de surveillance DX et d’analyse radio destinée aux radioamateurs exigeants.
+Conçue pour observer, comprendre et prendre du recul, pas pour faire du bruit visuel.
 
 🧭 Présentation générale
 
 Radio Spot Watcher DX est une application web locale qui :
 
-se connecte à des DX Clusters (Telnet)
+se connecte à un ou plusieurs DX Clusters (Telnet)
 
 affiche les spots en temps réel (HF / VHF / UHF)
 
 intègre les indices solaires (SFI, A, Kp…)
 
-conserve un historique exploitable
+conserve une mémoire exploitable de l’activité
 
-propose une META ANALYSE différée du log
+propose plusieurs niveaux d’analyse, du live à la lecture stratégique
 
-L’objectif n’est pas de “voir beaucoup”, mais de voir juste.
+L’objectif n’est pas de voir beaucoup, mais de voir juste.
 
-🖥️ Capture d’écran
+🖥️ Pages principales
+1️⃣ Page Index — Temps réel & suivi opérateur
 
-📷 Interface principale & page Analyse
+C’est la page d’observation immédiate.
+
+Elle affiche :
+
+le flux de spots en direct
+
+les bandes actives
+
+les DX recherchés / wanted
+
+les indices solaires
+
+les signaux de “surge” d’activité
+
+👉 Objectif : savoir ce qui se passe maintenant.
 
 📸 Aperçu
 
 ![Apercu du Dashboard](apercu.png)
 
-🧱 Architecture fonctionnelle
-1. Temps réel — page principale
+📡 Pavé Tracking Watchlist (nouveauté v5.6)
 
-Connexion DX Cluster (ex: dxfun.com)
+Le pavé WATCHLIST · TRACKING répond à un besoin concret :
 
-Réception et parsing des spots
+“Je n’étais pas devant l’écran : qu’est-ce que j’ai raté sur mes indicatifs surveillés ?”
 
-Calcul du SPD (distance, rareté, bande…)
+Fonctionnement
 
-Mise à jour continue de l’interface
+basé sur la watchlist
 
-Visualisation instantanée de l’activité radio
+exploite un historique en mémoire des spots reçus
 
-👉 Objectif : observer ce qui se passe maintenant.
+affiche les 5 ou 10 derniers spots par indicatif
 
-2. Analyse différée — page Analyse
+Caractéristiques
 
-C’est ici qu’intervient le pavé META ANALYSE.
+filtre dynamique par call (ex: 9, VK, /P)
 
-🧠 META ANALYSE — Page Analyse
-Rôle
+mise à jour automatique
 
-La META ANALYSE est un outil de lecture macro, basé sur l’analyse du log applicatif
-radio_spot_watcher.log.
+affichage clair :
 
-Elle répond à une question simple :
+heure UTC
 
-Qu’est-ce qui s’est réellement passé sur la durée, au-delà du flux temps réel ?
+bande
 
-Ce que fait la META ANALYSE
+mode
 
-Un script dédié (log_meta_analyzer.py) :
+fréquence
 
-parcourt le log applicatif
+Philosophie
 
-extrait uniquement les spots valides
+❌ pas un log brut
 
-nettoie les doublons et artefacts
+❌ pas un dump massif
 
-agrège les données sur une période donnée
+✅ un outil de rattrapage d’activité
+
+✅ pensé pour l’opérateur humain
+
+Quand le filtre est vide, le pavé reste volontairement neutre.
+
+2️⃣ Page Map — Carte d’observation
+
+Carte classique des spots en cours :
+
+visualisation géographique
+
+représentation immédiate de l’activité
+
+complément naturel de la liste temps réel
+
+👉 Objectif : voir où ça se passe.
+
+3️⃣ Page Analyse — META ANALYSE différée
+
+La META ANALYSE est un outil volontairement non temps réel.
+
+Elle s’appuie sur l’analyse du fichier applicatif :
+
+radio_spot_watcher.log
+
+Principe
+
+Un script dédié :
+
+parcourt le log
+
+nettoie doublons et artefacts
+
+agrège les données sur une période
 
 génère des fichiers structurés (data/meta/*.json)
 
-Ces fichiers sont ensuite consommés par l’interface.
+Ces données sont ensuite affichées dans la page Analyse.
 
-Informations affichées
+Ce que fait la META ANALYSE
 
-Le pavé META ANALYSE affiche :
+lecture macro de l’activité
 
-nombre total de spots analysés
+top DX sur la période
 
-plage temporelle couverte
+validation ou infirmation d’un ressenti opérateur
 
-date de génération
+Ce qu’elle ne fait pas
 
-Top DX (SPD) sur la période
+❌ pas de prédiction
 
-compteur “Relance possible”
+❌ pas d’alerte live
 
-Fonctionnement volontairement manuel
+❌ pas d’automatisme aveugle
 
-La META ANALYSE fonctionne en mode manuel journalier :
+👉 C’est un outil de recul, pas un gadget.
 
-❌ pas de cron automatique
+4️⃣ Page World — Forecast & Anomalies (nouveauté majeure)
 
-❌ pas de recalcul permanent
+La World Forecast Map est un outil d’analyse avancée, distinct de la carte classique.
 
-✅ une analyse déclenchée à la demande
+Principe fondamental
 
-✅ maximum 1 fois toutes les 24 heures
+Comparer :
 
-Le bouton ↻ RUN :
+ce qui est attendu (modèle de propagation)
 
-relance l’analyse
+ce qui est observé (spots réels)
 
-régénère les statistiques
+👉 pour ne montrer que ce qui sort du modèle.
 
-réinitialise le compteur journalier
+Ce que montre la page World
 
-👉 Ce choix est délibéré : on évite le bruit et l’analyse à chaud.
+🌍 une carte mondiale
 
-Ce que la META ANALYSE ne fait pas
+🔥 des zones rouges (heatmap) représentant des clusters anormaux
 
-❌ pas de prédiction de propagation
+📍 des calls affichés directement sur la carte
 
-❌ pas de recommandation automatique
+🧠 une lecture immédiate de phénomènes inhabituels
 
-❌ pas d’aide à la décision temps réel
+Aucun spot isolé n’est affiché.
 
-Elle documente le passé récent, rien de plus.
+Définition d’une anomalie
 
-🧩 Pourquoi la META ANALYSE est dans la page Analyse
+Un cluster est considéré comme anormal selon :
 
-Elle n’apparaît pas sur la page principale car :
+la bande
 
-elle n’est pas temps réel
+l’heure UTC
 
-elle nécessite du recul
+la distance
 
-elle complète l’observation instantanée
+le mode (FT8 pondéré différemment)
 
-👉 C’est un outil d’aide à la décision différée, pas un widget live.
+la cohérence temporelle
 
-⚙️ Composants techniques
+les indices solaires
+
+Un Surprise Score est calculé.
+Seuls les clusters dépassant un seuil sont affichés.
+
+Philosophie de la page World
+
+❌ pas de magie
+
+❌ pas de prédiction automatique
+
+❌ pas de bruit visuel
+
+✅ ce qui s’affiche mérite ton attention
+
+La page World est un outil de lecture stratégique, pas un écran de monitoring.
+
+⚙️ Architecture technique
 
 Backend : Python / Flask
 
@@ -148,23 +205,23 @@ Cluster : Telnet DX Cluster
 
 Logs : fichier applicatif unique
 
-Analyse : script Python indépendant
+Analyse : scripts Python dédiés
 
-Stockage : JSON / CSV locaux
+Stockage : mémoire + JSON locaux
 
 Aucune dépendance cloud.
 Conçu pour Raspberry Pi ou machine locale.
 
-🎨 Organisation du CSS (important)
+🎨 Organisation du CSS
 
 Le projet distingue volontairement :
 
 base.css → thèmes, couleurs, variables globales
 
-CSS inline par page → layout spécifique et prioritaire
+CSS inline par page → layout critique et lisibilité
 
-⚠️ Les styles inline écrasent base.css sur certaines pages
-(c’est un choix assumé pour garantir la lisibilité critique).
+⚠️ Certains styles inline écrasent le thème :
+c’est un choix assumé pour la lisibilité opérationnelle.
 
 🔐 Sécurité & philosophie
 
@@ -172,98 +229,56 @@ application locale / LAN
 
 aucune exposition publique par défaut
 
-déclenchements volontaires
+aucune télémétrie
 
-données maîtrisées par l’opérateur
+aucune dépendance externe critique
 
-Pas de télémétrie. Pas de cloud. Pas de dépendance externe critique.
+L’opérateur reste maître de ses données.
 
-🔄 Schéma de flux logique
-DX Cluster (Telnet)
-        ↓
- TelnetWorker
-        ↓
- radio_spot_watcher.log
-        ↓
- log_meta_analyzer.py
-        ↓
- data/meta/*.json
-        ↓
- Page Analyse (META ANALYSE)
+🗂️ Historique des versions (extrait)
+v5.6 (actuelle)
 
-🧑‍✈️ Guide opérateur (lecture recommandée)
+Page World : Forecast & Anomalies
 
-La page principale sert à observer
+Détection de clusters anormaux
 
-La page Analyse sert à comprendre
+Heatmap analytique
 
-La META ANALYSE sert à confirmer ou infirmer un ressenti
+Affichage des calls sur la carte
 
-Le SPD n’est pas un score absolu, mais un indicateur comparatif
+Pavé Tracking Watchlist
 
-🧪 Guide développeur (repères clés)
+Stabilisation générale frontend/backend
 
-ne pas automatiser la META ANALYSE sans réflexion
+entre la 5.2 et la 5.6 plusieurs versions de travail non publiées
 
-ne pas mélanger temps réel et analyse différée
+v5.2
 
-conserver le log comme source de vérité
+Introduction de la META ANALYSE
 
-toute décision doit pouvoir être expliquée par les données
+Analyse différée du log
 
-🗂️ Historique des versions
-v4.x
-
-interface très lisible
-
-séparation visuelle forte des pavés
-
-base fonctionnelle stable
-
-v5.0
-
-refonte structurelle du frontend
-
-introduction des workers (Solar, Telnet, History…)
-
-v5.1
-
-stabilisation des flux
-
-amélioration du SPD
-
-nettoyage des routes Flask
-
-v5.2 (actuelle)
-
-introduction de la META ANALYSE
-
-analyse différée du log
-
-bouton manuel journalier
-
-séparation claire temps réel / analyse
-
-page Analyse dédiée
+Séparation claire temps réel / analyse
 
 📌 Positionnement du projet
 
 Radio Spot Watcher DX n’est pas :
 
-un simple viewer de cluster
+un simple viewer DX
 
 un gadget graphique
 
-un outil prédictif
+un outil prédictif automatique
 
 C’est un outil d’observation radio raisonné,
 conçu pour ceux qui veulent comprendre ce qu’ils voient.
 
-
 👤 Auteur
 
-Développé par F1SMV Eric
-avec l’assistance de ChatGPT (v5.2) et #gimini3 #vibecoding pour la structuration et l’analyse,
+Développé par F1SMV – Eric
+avec l’assistance de ChatGPT5.2 et Gimini
 au service de la communauté radioamateur.
 
 vous pouvez me contacter via mon fil X
+
+

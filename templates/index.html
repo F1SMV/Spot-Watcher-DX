@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>NEURAL DX v5.2</title>
+<title>NEURAL DX v5.6</title>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -518,7 +518,7 @@
 </head>
 <body>
 <div id="header">
-<div id="title">NEURAL DX WATCHER V5.2</div>
+<div id="title">NEURAL DX WATCHER V5.6</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -527,6 +527,7 @@
 <div class="indicator-item">MODE: <span id="display-mode">SoftTech</span></div>
 <a class="icon-button" href="analysis.html" title="Visualiser les algorithmes d'analyse">📊 AI INSIGHT</a>
 <a class="icon-button" href="/map" title="DX Activity Map"> 🗺 MAP</a>
+<a class="icon-button" href="/world" title="World"> 🗺 World</a>
 </span>
 <select id="voice-distance-filter" title="Filtrer les annonces vocales par distance">
 <option value="ALL">Voice Dist: ALL</option>
@@ -550,6 +551,34 @@
 <div id="main-container">
 <div class="column" id="col1">
 <div class="panel" data-panel-id="watchlist" id="watchlist-panel">
+<div class="panel" data-panel-id="wl-tracking" id="wl-tracking-panel">
+  <div class="panel-header">
+    <span class="dd-handle">⋮⋮</span>
+    WATCHLIST · TRACKING
+  </div>
+
+  <div style="display:flex; gap:8px; margin-bottom:8px;">
+    <input id="wl-track-filter"
+           placeholder="Filtre call (ex: JA, /P)"
+           style="flex:1; padding:6px; background:#111; border:1px solid #333; color:var(--text-main);">
+    <select id="wl-track-limit" style="background:#111; color:var(--text-main); border:1px solid #333;">
+      <option value="5">5</option>
+      <option value="10" selected>10</option>
+    </select>
+    <button id="wl-track-refresh"
+            style="padding:6px 10px; background:var(--accent); color:var(--panel-bg); border:none;">
+      ⟳
+    </button>
+  </div>
+
+  <div id="wl-track-status" style="font-size:0.8em; opacity:.8; margin-bottom:6px;">
+    Initialisation…
+  </div>
+
+  <div id="wl-track-body" style="display:flex; flex-direction:column; gap:8px;">
+  </div>
+</div>
+
 <div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> WATCHLIST</div>
 <form id="add-wl-form" style="display: flex; gap: 5px; margin-bottom: 10px;">
 <input id="wl_callsign" placeholder="Callsign à ajouter" required="" style="flex-grow: 1; padding: 5px; border: 1px solid #555; background-color: #333; color: var(--text-main); text-transform: uppercase;" type="text"/>
@@ -1650,6 +1679,76 @@ default: displayName = 'SoftTech';
     });
   });
 })();
+// =========================
+// WATCHLIST TRACKING PANEL
+// =========================
+async function loadWatchlistTracking(){
+  const body = document.getElementById('wl-track-body');
+  const status = document.getElementById('wl-track-status');
+  const filter = document.getElementById('wl-track-filter').value.trim();
+  const limit  = document.getElementById('wl-track-limit').value;
+
+  body.innerHTML = '';
+  status.textContent = 'Chargement…';
+// ⛔ Champ filtre vide → pavé neutre
+if (!filter) {
+  body.innerHTML = `
+    <div style="opacity:.7; font-size:0.85em;">
+      Tapez un filtre pour suivre un indicatif (ex: 9, VK, /P)
+    </div>
+  `;
+  status.textContent = 'Aucun filtre actif';
+  return;
+}
+  try{
+    const url = `/api/watchlist/tracking.json?limit=${limit}&q=${encodeURIComponent(filter)}`;
+    const r = await fetch(url, {cache:'no-store'});
+    if(!r.ok) throw new Error(r.status);
+
+    const data = await r.json();
+    const calls = data.calls || {};
+
+    let rendered = 0;
+    for(const call in calls){
+      const spots = calls[call];
+      const rows = spots.map(s => `
+        <div style="display:flex; justify-content:space-between; font-size:0.8em;">
+          <span>${s.utc}</span>
+          <span>${s.band} ${s.mode}</span>
+          <span>${s.freq_khz || ''}</span>
+        </div>
+      `).join('');
+
+      body.innerHTML += `
+        <div style="border:1px solid #333; border-radius:8px; padding:6px;">
+          <div style="font-weight:bold; color:var(--accent); margin-bottom:4px;">
+            ${call}
+          </div>
+          ${rows || '<div style="opacity:.6;">Aucun spot récent</div>'}
+        </div>
+      `;
+      rendered++;
+    }
+
+    status.textContent =
+      `${rendered} call(s) suivis · maj ${data.generated_utc.split('T')[1].slice(0,5)} UTC`;
+
+  }catch(e){
+    status.textContent = 'Erreur tracking';
+    body.innerHTML = '<div style="color:var(--alert);">API indisponible</div>';
+  }
+}
+
+// hooks
+document.getElementById('wl-track-refresh').onclick = loadWatchlistTracking;
+document.getElementById('wl-track-filter').oninput = () => {
+  clearTimeout(window._wlTrackDebounce);
+  window._wlTrackDebounce = setTimeout(loadWatchlistTracking, 400);
+};
+document.getElementById('wl-track-limit').onchange = loadWatchlistTracking;
+
+// refresh auto toutes les 30s
+setInterval(loadWatchlistTracking, 30000);
 
 </script>
 </body>
