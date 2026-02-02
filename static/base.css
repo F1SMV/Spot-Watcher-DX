@@ -154,3 +154,57 @@ table tr{
 body[data-theme='light'] table tr{
   border-bottom: 1px solid rgba(0,0,0,0.08);
 }
+/* =========================================================
+   FIX Leaflet overlay blocking navigation (World page)
+   ========================================================= */
+
+/* Navigation bar must stay above maps */
+.topbar {
+  position: relative;     /* ou fixed si tu préfères */
+  z-index: 10000;
+  pointer-events: auto;
+}
+
+/* Leaflet maps must stay below UI */
+#map,
+.leaflet-container {
+  z-index: 1;
+}
+/* =========================================================
+   FIX Leaflet overlay blocking navigation (World page)
+   ========================================================= */
+
+/* Navigation bar must stay above maps */
+.topbar {
+  position: relative;     /* ou fixed si tu préfères */
+  z-index: 10000;
+  pointer-events: auto;
+}
+
+/* Leaflet maps must stay below UI */
+#map,
+.leaflet-container {
+  z-index: 1;
+}
+body {
+  margin: 0;
+  padding-top: 48px; /* hauteur réelle de ta topbar */
+}
+body {
+  margin: 0;
+  padding-top: 48px; /* hauteur réelle de ta topbar */
+}
+/* ===== FORCE TOPBAR VISIBILITY & INTERACTION ===== */
+.topbar,
+.topbar a {
+  color: #ffffff !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+/* ===== WORLD PAGE HARD RESET FOR NAV ===== */
+body[data-page="world"] .topbar {
+  background: rgba(0,0,0,0.9) !important;
+  z-index: 2147483647 !important;
+}
+

@@ -473,9 +473,14 @@ html[data-theme='sunset'], body[data-theme='sunset']{
       }
       hideOverlay();
       map = L.map('map', {worldCopyJump:true}).setView([43.1, 5.88], 3);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom:18, attribution:"&copy; OpenStreetMap"
-      }).addTo(map);
+      L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+         maxZoom: 18,
+         attribution: "Tiles © Esri"
+  }
+).addTo(map);
+
 
       clusterLayer = L.markerClusterGroup({showCoverageOnHover:false, maxClusterRadius:50});
       pointsLayer = L.layerGroup();

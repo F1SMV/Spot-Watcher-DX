@@ -1,441 +1,240 @@
-<!doctype html>
-<html lang="fr">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>World Forecast Map — Anomalies</title>
+<meta charset="UTF-8">
+<title>World Forecast — Radio Spot Watcher DX v6</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <link rel="stylesheet" href="/static/base.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="/static/base.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
-  <style>
-    body { margin:0; }
-    #worldWrap { display:grid; grid-template-columns:360px 1fr; height:100vh; }
-    #panel { padding:14px; overflow:auto; border-right:1px solid rgba(0,0,0,.12);
-             position:relative; z-index:900; background:rgba(255,255,255,.96); }
-    #map { height:100vh; width:100%; }
+<style>
+body[data-page="world"] { margin:0; overflow:hidden; }
 
-    .rsw-nav { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:0 0 10px; }
-    .rsw-nav a { text-decoration:none; padding:6px 10px; border-radius:10px;
-                 border:1px solid rgba(0,0,0,.15); }
-    .rsw-nav a.active { font-weight:700; }
+.world-layout {
+  display:grid;
+  grid-template-columns:320px 1fr;
+  height:calc(100vh - 48px);
+}
 
-    .panel-title{ font-weight:700; font-size:16px; margin:4px 0 10px; }
-    .section{ margin:12px 0 14px; padding-bottom:12px; border-bottom:1px dashed rgba(0,0,0,.12); }
-    .label-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
-    .label-row label{ font-weight:600; }
-    .help{ opacity:.88; font-size:12px; line-height:1.35; margin-top:6px; }
-    .value-pill{ font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid rgba(0,0,0,.18); opacity:.9; white-space:nowrap; }
-    .row{ display:flex; gap:10px; }
-    .row>*{ flex:1; }
-    select, input[type="range"]{ width:100%; }
-    .btnbar{ display:flex; gap:10px; margin-top:10px; }
-    button{ cursor:pointer; }
-    .status{ margin-top:10px; padding:10px; border-radius:10px; border:1px solid rgba(0,0,0,.15); font-size:12px; white-space:pre-wrap; }
+@media (max-width: 900px) {
+  .world-layout {
+    grid-template-columns:1fr;
+    grid-template-rows:auto 1fr;
+  }
 
-    .legendBox{
-      position:absolute; right:12px; bottom:12px; z-index:800;
-      padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,.18);
-      background:rgba(255,255,255,.92); max-width:290px; font-size:12px;
-    }
-    .legendTitle{ font-weight:700; margin-bottom:6px; }
-    .grad{
-      height:10px; border-radius:999px; border:1px solid rgba(0,0,0,.18);
-      background:linear-gradient(90deg, rgba(255,0,0,0) 0%, rgba(255,0,0,.25) 25%, rgba(255,0,0,.55) 55%, rgba(255,0,0,.90) 100%);
-      margin:6px 0 4px;
-    }
+  .world-sidebar {
+    border-bottom:1px solid #333;
+  }
 
-    .call-label {
-      font-weight:700;
-      font-size:11px;
-      padding:2px 6px;
-      border-radius:999px;
-      border:1px solid rgba(0,0,0,.25);
-      background:rgba(255,255,255,.85);
-      box-shadow: 0 1px 6px rgba(0,0,0,.12);
-      white-space:nowrap;
-    }
+  .world-map {
+    height:60vh;
+  }
+}
 
-    .anomaly-dot-confirmed { width:12px; height:12px; border-radius:999px; background: rgba(255,0,0,.92); border:2px solid rgba(80,0,0,.85); box-shadow: 0 0 10px rgba(255,0,0,.35); }
-    .anomaly-dot-suspect   { width:10px; height:10px; border-radius:999px; background: rgba(255,140,0,.70); border:2px solid rgba(80,40,0,.65); box-shadow: 0 0 8px rgba(255,140,0,.25); }
-  </style>
+.world-sidebar {
+  padding:16px;
+  overflow-y:auto;
+}
+
+.world-map {
+  position:relative;
+}
+
+#map {
+  width:100%;
+  height:100%;
+}
+
+.world-legend {
+  position:absolute;
+  bottom:12px;
+  right:12px;
+  pointer-events:none;
+}
+</style>
 </head>
-<body>
 
-<div id="worldWrap">
-  <div id="panel">
-    <div class="rsw-nav">
-      <a href="/" id="navIndex">Index</a>
-      <a href="/map" id="navMap">Map</a>
-      <a href="/analysis.html" id="navAnalysis">Analyse</a>
-      <a href="/world" id="navWorld" class="active">World</a>
-    </div>
+<body data-page="world">
 
-    <div class="panel-title">🌍 World Forecast Map — Anomalies</div>
+<div class="topbar">
+  <a href="/">Dashboard</a>
+  <a href="/map">Map</a>
+  <a href="/analysis">Analysis</a>
+  <a href="/world"><b>World</b></a>
+</div>
 
-    <div class="section">
-      <div class="label-row">
-        <label for="band">Bande</label>
-        <span id="bandPill" class="value-pill">20m</span>
-      </div>
-      <select id="band">
-        <option value="80m">80m</option><option value="40m">40m</option><option value="30m">30m</option>
-        <option value="20m" selected>20m</option><option value="17m">17m</option><option value="15m">15m</option>
-        <option value="12m">12m</option><option value="10m">10m</option><option value="6m">6m</option><option value="2m">2m</option>
-      </select>
-      <div class="help">
-        👉 La bande change tout (jour/nuit, MUF, portée).<br>
-        <b>Note</b> : il faut souvent <b>10–20 min</b> de spots pour que l’analyse soit “parlante”.
-      </div>
-    </div>
+<div class="world-layout">
 
-    <div class="section">
-      <div class="label-row">
-        <label for="window">Fenêtre d’observation</label>
-        <span id="windowPill" class="value-pill">60 min</span>
-      </div>
-      <input id="window" type="range" min="10" max="180" step="5" value="60"/>
-      <div class="help">
-        👉 Durée utilisée pour regrouper les spots en clusters.<br>
-        <b>Court</b> (10–30) = réactif mais fragile. <b>Long</b> (60–120) = stable mais moins “live”.
-      </div>
-    </div>
+  <!-- SIDEBAR -->
+  <aside class="world-sidebar panel">
+    <h3>🌍 World Forecast</h3>
 
-    <div class="section">
-      <div class="label-row">
-        <label for="threshold">Seuil d’anomalie</label>
-        <span id="thrPill" class="value-pill">0.55</span>
-      </div>
-      <input id="threshold" type="range" min="0.40" max="0.95" step="0.01" value="0.55"/>
-      <div class="help">
-        👉 C’est le “niveau d’exigence” du filtre (plus haut = moins d’événements).<br>
-        <b>0.50–0.60</b> : exploration / calibrage (tu verras “quelque chose”).<br>
-        <b>0.62–0.72</b> : usage normal (moins de bruit).<br>
-        <b>0.75+</b> : strict (quasi que du très surprenant).<br>
-        <b>Astuce</b> : si activité faible (nuit/80m), baisse le seuil ou augmente la fenêtre.
-      </div>
-    </div>
+    <label>Band</label>
+    <select id="bandSelect">
+      <option value="all">All HF</option>
+      <option value="160m">160m</option>
+      <option value="80m">80m</option>
+      <option value="60m">60m</option>
+      <option value="40m">40m</option>
+      <option value="30m">30m</option>
+      <option value="20m">20m</option>
+      <option value="17m">17m</option>
+      <option value="15m">15m</option>
+      <option value="12m">12m</option>
+      <option value="10m">10m</option>
+    </select>
 
-    <div class="section">
-      <div class="row">
-        <div>
-          <div class="label-row">
-            <label for="viewMode">Affichage</label>
-            <span class="value-pill" id="viewPill">Zones + calls</span>
-          </div>
-          <select id="viewMode">
-            <option value="zones+points" selected>Zones + calls (recommandé)</option>
-            <option value="zones">Zones (heatmap)</option>
-            <option value="points">Points (debug)</option>
-          </select>
-        </div>
-        <div>
-          <div class="label-row">
-            <label for="overlayOpacity">Opacité fond (prévision)</label>
-            <span class="value-pill" id="opPill">0.25</span>
-          </div>
-          <input id="overlayOpacity" type="range" min="0" max="0.85" step="0.05" value="0.25"/>
-        </div>
-      </div>
+    <label>Time window (minutes)</label>
+    <input type="range" id="windowRange" min="30" max="360" step="30" value="180">
 
-      <div class="row" style="margin-top:10px;">
-        <div>
-          <div class="label-row">
-            <label for="labels">Afficher les calls</label>
-            <span class="value-pill" id="labPill">ON</span>
-          </div>
-          <select id="labels">
-            <option value="1" selected>Oui</option>
-            <option value="0">Non</option>
-          </select>
-        </div>
-        <div>
-          <div class="label-row">
-            <label for="labelCount">Nb calls / cluster</label>
-            <span class="value-pill" id="labCountPill">3</span>
-          </div>
-          <input id="labelCount" type="range" min="1" max="6" step="1" value="3"/>
-        </div>
-      </div>
+    <label>
+      <input type="checkbox" id="anomaliesOnly">
+      confirmed anomalies only
+    </label>
 
-      <div class="help">
-        👉 Les <b>zones rouges</b> donnent le “ressenti propagation”. Les <b>calls</b> donnent le contexte humain immédiatement.
-      </div>
-    </div>
+    <div id="world-status" class="muted">Initializing…</div>
+    <div id="world-updated" class="muted"></div>
 
-    <div class="section">
-      <div class="label-row">
-        <label for="refresh">Auto-refresh</label>
-        <span id="refPill" class="value-pill">15 s</span>
-      </div>
-      <input id="refresh" type="range" min="5" max="60" step="5" value="15"/>
-      <div class="btnbar">
-        <button id="btnNow" type="button">⏱️ Live</button>
-        <button id="btnPause" type="button">⏸️ Pause</button>
-      </div>
-    </div>
+    <hr>
+    <h4>🧠 Comment lire cette carte ?</h4>
+    <p>
+      Cette vue <b>World</b> ne montre pas des stations individuelles,
+      mais des <b>zones de propagation radio</b>.
+    </p>
+    <ul>
+      <li><b>Cercles colorés</b> : régions cohérentes spatialement et temporellement</li>
+      <li><span style="color:#ff3b3b">Rouge</span> : propagation confirmée</li>
+      <li><span style="color:#ff9800">Orange</span> : propagation suspecte</li>
+      <li><span style="color:#aaaaaa">Gris</span> : bruit / calibration</li>
+    </ul>
+    <p>
+      Cette page aide à <b>prendre une décision</b>.
+      Pour les stations exactes, utilisez <b>Map</b>.
+    </p>
 
-    <div class="section">
-      <div class="label-row">
-        <label for="replay">Replay</label>
-        <span id="repPill" class="value-pill">Live</span>
-      </div>
-      <input id="replay" type="range" min="0" max="360" step="5" value="0"/>
-      <div class="help">👉 0 = live. Sinon remonte jusqu’à 6h.</div>
-    </div>
+    <hr>
+    <h4>🧠 How to read this map</h4>
+    <p>
+      The <b>World</b> view shows <b>propagation zones</b>,
+      not individual stations.
+    </p>
+    <ul>
+      <li><span style="color:#ff3b3b">Red</span>: confirmed propagation</li>
+      <li><span style="color:#ff9800">Orange</span>: suspect propagation</li>
+      <li><span style="color:#aaaaaa">Grey</span>: background noise</li>
+    </ul>
+    <p>
+      This page supports <b>decision making</b>.
+      Use <b>Map</b> for raw spots.
+    </p>
+  </aside>
 
-    <div id="status" class="status">Chargement…</div>
-  </div>
-
-  <div style="position:relative">
+  <!-- MAP -->
+  <main class="world-map">
     <div id="map"></div>
-    <div class="legendBox">
-      <div class="legendTitle">Légende</div>
-      <div><b>Zones rouges</b> = clusters anormaux (plus sombre = plus “surprenant”).</div>
-      <div class="grad"></div>
-      <div style="opacity:.85">
-        Si tu ne vois rien : laisse tourner, ou mets <b>seuil 0.50</b> + <b>fenêtre 120</b>.
-      </div>
+
+    <div class="world-legend panel">
+      <div><span style="color:#ff3b3b">●</span> confirmed</div>
+      <div><span style="color:#ff9800">●</span> suspect</div>
+      <div><span style="color:#aaaaaa">●</span> calibration</div>
     </div>
-  </div>
+  </main>
+
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-
 <script>
-(function(){
-  const $ = (id) => document.getElementById(id);
+/* === STATE (restored) === */
+const state = {
+  band: 'all',
+  window: 180,
+  anomaliesOnly: false
+};
 
-  function syncThemeFromDashboard(){
-    try {
-      const keys = ["theme","rsw_theme","rswTheme","appearance","mode"];
-      let v = null;
-      for (const k of keys){
-        const x = localStorage.getItem(k);
-        if (x){ v = x; break; }
-      }
-      if (!v) return;
+const saved = localStorage.getItem("worldState");
+if (saved) Object.assign(state, JSON.parse(saved));
 
-      const val = String(v).toLowerCase();
-      const dark = (val.includes("dark") || val === "1" || val === "true");
-      document.documentElement.dataset.theme = dark ? "dark" : "light";
-      document.body.classList.toggle("dark", dark);
-      document.body.classList.toggle("light", !dark);
-    } catch(e) {}
-  }
+/* === MAP INIT === */
+const map = L.map('map', { worldCopyJump: true }).setView([20, 0], 2);
 
-  const state = { paused:false, timer:null, heatLayer:null, markerLayer:null, labelLayer:null, forecastOverlay:null };
+L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  { maxZoom: 18 }
+).addTo(map);
 
-  const map = L.map('map', {worldCopyJump:true}).setView([20,0], 2);
-  map.createPane('tilesPane');    map.getPane('tilesPane').style.zIndex = 200;
-  map.createPane('forecastPane'); map.getPane('forecastPane').style.zIndex = 300;
-  map.createPane('heatPane');     map.getPane('heatPane').style.zIndex = 400;
-  map.createPane('markerPane2');  map.getPane('markerPane2').style.zIndex = 500;
-  map.createPane('labelPane');    map.getPane('labelPane').style.zIndex = 550;
+const clusterLayer = L.layerGroup().addTo(map);
+const statusBox = document.getElementById('world-status');
+const updatedBox = document.getElementById('world-updated');
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom:10, attribution:'&copy; OpenStreetMap', pane:'tilesPane'
-  }).addTo(map);
+/* === CONTROLS === */
+bandSelect.value = state.band;
+windowRange.value = state.window;
+anomaliesOnly.checked = state.anomaliesOnly;
 
-  state.markerLayer = L.layerGroup([], {pane:'markerPane2'}).addTo(map);
-  state.labelLayer = L.layerGroup([], {pane:'labelPane'}).addTo(map);
+bandSelect.onchange = e => { state.band = e.target.value; refresh(); };
+windowRange.oninput = e => { state.window = +e.target.value; refresh(); };
+anomaliesOnly.onchange = e => { state.anomaliesOnly = e.target.checked; refresh(); };
 
-  function setStatus(msg){ $("status").textContent = msg; }
+/* === REFRESH === */
+function refresh() {
+  clusterLayer.clearLayers();
+  statusBox.textContent = "Analysing propagation…";
 
-  function updatePills(){
-    $("bandPill").textContent = $("band").value;
-    $("windowPill").textContent = `${$("window").value} min`;
-    $("thrPill").textContent = parseFloat($("threshold").value).toFixed(2);
-    $("refPill").textContent = `${$("refresh").value} s`;
-    $("viewPill").textContent = ({"zones":"Zones","points":"Points","zones+points":"Zones + calls"})[$("viewMode").value] || $("viewMode").value;
-    $("opPill").textContent = parseFloat($("overlayOpacity").value).toFixed(2);
-    $("labPill").textContent = ($("labels").value === "1") ? "ON" : "OFF";
-    $("labCountPill").textContent = `${$("labelCount").value}`;
-    const r = parseInt($("replay").value,10);
-    $("repPill").textContent = (r===0) ? "Live" : `-${r} min`;
-  }
+  fetch(`/api/forecast/anomalies?band=${state.band}&window=${state.window}`)
+    .then(r => r.json())
+    .then(data => {
+      const clusters = data.clusters || [];
 
-  function replayEpoch(){
-    const back = parseInt($("replay").value,10);
-    if (!back) return 0;
-    return Math.floor(Date.now()/1000) - back*60;
-  }
-
-  function anomaliesUrl(){
-    const params = new URLSearchParams({
-      band: $("band").value,
-      window: String(parseInt($("window").value,10)),
-      threshold: String(parseFloat($("threshold").value)),
-      grid: "1",
-      anomalies_only: "0",
-      limit: "300"
-    });
-    const t = replayEpoch();
-    if (t) params.set("t", String(t));
-    return `/api/forecast/anomalies?${params.toString()}`;
-  }
-
-  function forecastUrl(){
-    const params = new URLSearchParams({ band: $("band").value, w:"720", h:"360", cb:String(Date.now()) });
-    const t = replayEpoch();
-    if (t) params.set("t", String(t));
-    return `/api/forecast/heatmap.png?${params.toString()}`;
-  }
-
-  function ensureForecast(){
-    const url = forecastUrl();
-    const opacity = parseFloat($("overlayOpacity").value);
-    const bounds = [[-85,-180],[85,180]];
-    if (!state.forecastOverlay){
-      state.forecastOverlay = L.imageOverlay(url, bounds, {opacity, pane:'forecastPane'});
-      state.forecastOverlay.addTo(map);
-    } else {
-      state.forecastOverlay.setUrl(url);
-      state.forecastOverlay.setOpacity(opacity);
-    }
-  }
-
-  function clearLayers(){
-    if (state.heatLayer){ map.removeLayer(state.heatLayer); state.heatLayer=null; }
-    state.markerLayer.clearLayers();
-    state.labelLayer.clearLayers();
-  }
-
-  function weight(c){
-    const s = (c?.surprise?.score ?? c?.surprise_score ?? 0);
-    const n = (c.spot_count ?? 1);
-    return Math.max(0.60, Math.min(1.0, s * (Math.log(1+n)/Math.log(1+20))));
-  }
-
-  function topCalls(c, n){
-    const ex = c.examples || [];
-    const dx = [];
-    for (const e of ex){
-      const call = String((e.dx || e.de || "")).trim();
-      if (!call) continue;
-      if (!dx.includes(call)) dx.push(call);
-      if (dx.length >= n) break;
-    }
-    return dx;
-  }
-
-  function popupHtml(c){
-    const band = c.band || $("band").value;
-    const score = (c?.surprise?.score ?? c?.surprise_score ?? 0);
-    const spots = c.spot_count ?? 0;
-    const callers = c.unique_callers ?? 0;
-    const dist = c.median_distance_km ? `${Math.round(c.median_distance_km)} km` : "—";
-    const calls = topCalls(c, 6);
-    return `
-      <div style="min-width:230px">
-        <div style="font-weight:700;margin-bottom:6px">🌍 Cluster anormal</div>
-        <div><b>Bande</b> : ${band}</div>
-        <div><b>Spots</b> : ${spots} &nbsp; <b>Uniques</b> : ${callers}</div>
-        <div><b>Distance médiane</b> : ${dist}</div>
-        <div style="margin-top:6px"><b>Surprise</b> : ${Number(score).toFixed(2)}</div>
-        ${calls.length ? `<div style="margin-top:8px"><b>Calls</b> : ${calls.join(", ")}</div>` : ``}
-      </div>
-    `;
-  }
-
-  function render(data){
-    clearLayers();
-    const clusters = data.clusters || [];
-    const view = $("viewMode").value;
-
-    if (view === "zones" || view === "zones+points"){
-      const pts = clusters.filter(c=>c.center).map(c=>[c.center.lat, c.center.lon, weight(c)]);
-      state.heatLayer = L.heatLayer(pts, {
-        radius: 52, blur: 34, minOpacity: 0.45, maxZoom: 6, pane: 'heatPane',
-        gradient: {0.2:'rgba(255,0,0,0.0)', 0.4:'rgba(255,0,0,0.35)', 0.6:'rgba(255,0,0,0.70)', 0.8:'rgba(255,0,0,0.90)', 1.0:'rgba(255,0,0,0.98)'}
-      }).addTo(map);
-    }
-
-    if (view === "points" || view === "zones+points"){
-      const showLabels = ($("labels").value === "1");
-      const maxLab = parseInt($("labelCount").value, 10);
-
-      for (const c of clusters){
-        if (!c.center) continue;
-        const cls = (c.status === "confirmed") ? "anomaly-dot-confirmed" : "anomaly-dot-suspect";
-        const icon = L.divIcon({className:"", html:`<div class="${cls}"></div>`, iconSize:[12,12], iconAnchor:[6,6]});
-        const m = L.marker([c.center.lat, c.center.lon], {icon, pane:'markerPane2'});
-        m.bindPopup(popupHtml(c));
-        state.markerLayer.addLayer(m);
-
-        if (showLabels){
-          const calls = topCalls(c, maxLab);
-          if (calls.length){
-            const label = calls.join(" ");
-            const tip = L.marker([c.center.lat, c.center.lon], {
-              icon: L.divIcon({ className:"", html:`<span class="call-label">${label}</span>`, iconSize:null }),
-              pane:'labelPane',
-              interactive:false
-            });
-            state.labelLayer.addLayer(tip);
-          }
-        }
-      }
-    }
-
-    if (!clusters.length){
-      setStatus("0 cluster reçu. Laisse tourner un moment ou mets seuil 0.50 + fenêtre 120.");
-    } else {
-      const first = clusters.find(c=>c.center);
-      if (first) map.setView([first.center.lat, first.center.lon], 3);
-      setStatus(`${clusters.length} cluster(s) reçus.\nAPI: ${anomaliesUrl()}`);
-    }
-  }
-
-  async function refresh(){
-    syncThemeFromDashboard();
-    updatePills();
-    ensureForecast();
-
-    const url = anomaliesUrl();
-    try {
-      const res = await fetch(url, {cache:"no-store"});
-      if (!res.ok){
-        setStatus(`Erreur API ${res.status} sur anomalies.`);
+      if (!clusters.length) {
+        statusBox.textContent =
+          "No coherent propagation detected in this time window.";
+        updatedBox.textContent =
+          "Last update: " + new Date().toUTCString();
         return;
       }
-      const data = await res.json();
-      render(data);
-    } catch(e){
-      setStatus("Erreur réseau (fetch).");
-    }
-  }
 
-  function restartTimer(){
-    if (state.timer) clearInterval(state.timer);
-    const sec = parseInt($("refresh").value,10);
-    if (!state.paused) state.timer = setInterval(refresh, sec*1000);
-  }
+      statusBox.textContent =
+        data.mode === "calibration"
+          ? "Calibration in progress — signals detected"
+          : "Propagation anomalies detected";
 
-  ["band","window","threshold","viewMode","overlayOpacity","replay","labels","labelCount"].forEach(id=>{
-    $(id).addEventListener("input", ()=>{ refresh(); restartTimer(); });
-  });
-  $("refresh").addEventListener("input", ()=>{ updatePills(); restartTimer(); });
+      clusters.forEach(c => {
+        if (!c.center) return;
+        if (state.anomaliesOnly && c.status !== "confirmed") return;
 
-  $("btnNow").addEventListener("click", ()=>{
-    $("replay").value="0";
-    state.paused=false;
-    $("btnPause").textContent="⏸️ Pause";
-    refresh(); restartTimer();
-  });
+        const color =
+          c.status === "confirmed" ? "#ff3b3b" :
+          c.status === "suspect"   ? "#ff9800" :
+                                     "#aaaaaa";
 
-  $("btnPause").addEventListener("click", ()=>{
-    state.paused=!state.paused;
-    $("btnPause").textContent = state.paused ? "▶️ Reprendre" : "⏸️ Pause";
-    restartTimer();
-  });
+        L.circle([c.center.lat, c.center.lon], {
+          radius:
+            c.status === "confirmed" ? 250000 :
+            c.status === "suspect"   ? 150000 :
+                                       80000,
+          color,
+          fillColor: color,
+          weight: 1,
+          fillOpacity: 0.35
+        }).addTo(clusterLayer);
+      });
 
-  syncThemeFromDashboard();
-  updatePills();
-  refresh();
-  restartTimer();
-})();
+      updatedBox.textContent =
+        "Last update: " + new Date().toUTCString();
+
+      localStorage.setItem("worldState", JSON.stringify(state));
+      map.invalidateSize();
+    })
+    .catch(() => {
+      statusBox.textContent = "Error loading forecast data.";
+    });
+}
+
+setTimeout(() => map.invalidateSize(), 300);
+refresh();
+setInterval(refresh, 60000); // auto refresh 60s
 </script>
+
 </body>
 </html>

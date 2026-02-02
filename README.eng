@@ -1,265 +1,149 @@
-📡 Radio Spot Watcher DX — v5.6
+# 📡 Radio Spot Watcher DX — v6.0
 
-DX Cluster Dashboard & Advanced Radio Analysis Engine
+**DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
-A local web application for DX monitoring and radio propagation analysis, designed for serious radio amateurs.
-Built to observe, understand, and step back — not to generate visual noise.
-🧭 Overview
+Local web application for DX cluster monitoring and advanced radio analysis, designed for demanding radio amateurs.  
+Built to **observe**, **understand**, and **step back** — not to generate visual noise.
 
-Radio Spot Watcher DX is a local web application that:
+---
 
-    connects to one or more DX Clusters (Telnet)
+## 🧭 General Overview
 
-    displays real-time spots (HF / VHF / UHF)
+**Radio Spot Watcher DX** is a local web application that:
 
-    integrates solar indices (SFI, A, Kp…)
+- connects to one or more **DX Clusters (Telnet)**
+- displays **real-time spots** (HF / VHF / UHF)
+- integrates **solar indices** (SFI, A, Kp…)
+- maintains an **exploitable activity memory**
+- offers **multiple reading levels**, from live monitoring to strategic analysis
 
-    keeps a usable activity memory
+> The goal is not to see more,  
+> but to **see more accurately**.
 
-    provides several analysis layers, from live monitoring to strategic review
+---
 
-    The goal is not to see more, but to see better
-🖥️ Main Pages
-1️⃣ Index Page — Real-time monitoring & operator tracking
+## 🖥️ Main Pages
 
-This is the immediate observation page.
+### 1️⃣ **Index Page** — Real-time & Operator View
+
+Immediate observation page.
 
 It displays:
+- live spot stream
+- active bands
+- wanted DX
+- solar indices
+- activity surge indicators
 
-    live DX spots
+👉 **Goal: understand what is happening right now.**
 
-    active bands
+---
 
-    wanted / rare DX
+### 📡 **WATCHLIST · Tracking Panel**
 
-    solar indices
+Feature designed to answer a simple question:
 
-    activity surge indicators
+> *“I wasn’t in front of the screen — what did I miss?”*
 
-👉 Goal: know what is happening right now.
+- based on the watchlist
+- uses an in-memory spot history
+- shows the latest spots per callsign
 
-📡 Watchlist Tracking Panel (new in v5.6)
+Philosophy:
+- ❌ not a raw log  
+- ❌ not a massive dump  
+- ✅ a recovery tool  
+- ✅ designed for the human operator  
 
-The WATCHLIST · TRACKING panel answers a very concrete operator need:
+---
 
-    “I wasn’t in front of the screen — what did I miss on my watched calls?”
+### 2️⃣ **Map Page** — Observation Map (Micro View)
 
-How it works
+Classic map showing **individual spots**:
 
-    based on the watchlist
+- one point = one station
+- immediate geographic visualization
+- real-time perception
 
-    uses an in-memory spot history
+👉 **Goal: see where activity is occurring.**
 
-    displays the last 5 or 10 spots per callsign
+The **Map** page is an **execution tool**.
 
-Features
+---
 
-    dynamic callsign filter (e.g. 9, VK, /P)
+### 3️⃣ **Analysis Page** — Deferred META ANALYSIS
 
-    automatic refresh
+A deliberately **non-real-time** analysis tool based on the application log.
 
-    clear display:
+👉 **A tool for perspective**, not a gadget.
 
-        UTC time
+---
 
-        band
+### 4️⃣ **World Page** — Forecast & Anomalies (Major v6 Feature)
 
-        mode
+The **World** page is **fundamentally different** from the Map page.
 
-        frequency
+| Page | Nature | Question |
+|---|---|---|
+| Map | Raw observation | Who is active right now? |
+| World | Interpreted analysis | Where is propagation abnormally favorable? |
 
-Philosophy
+- displays **zones**, not stations
+- spatio-temporal clustering
+- noise filtering
+- controlled auto-refresh
 
-    ❌ not a raw log
+👉 **World decides, Map executes.**
 
-    ❌ not a massive dump
+---
 
-    ✅ a catch-up activity tool
+## ⚙️ Technical Architecture
 
-    ✅ designed for the human operator
-
-When the filter is empty, the panel intentionally remains neutral.
-
-2️⃣ Map Page — Observation map
-
-Classic spot map:
-
-    geographic visualization
-
-    immediate activity overview
-
-    natural complement to the live spot list
-
-👉 Goal: see where it’s happening.
-3️⃣ Analysis Page — META analysis (delayed)
-
-The META ANALYSIS page is deliberately not real-time.
-
-It is based on the application log file:
-
-radio_spot_watcher.log
-
-Principle
-
-A dedicated script:
-
-    parses the log
-
-    removes duplicates and noise
-
-    aggregates data over a time period
-
-    generates structured files (data/meta/*.json)
-
-These datasets are then displayed in the Analysis page.
-
-What META Analysis does
-
-    macro-level activity reading
-
-    DX ranking over time
-
-    validation (or invalidation) of operator intuition
-
-What it does NOT do
-
-    ❌ no prediction
-
-    ❌ no live alerting
-
-    ❌ no blind automation
-
-👉 This is a strategic review tool, not a monitoring gadget.
-4️⃣ World Page — Forecast & Anomalies (major new feature)
-
-The World Forecast Map is an advanced analysis tool, clearly separated from the classic map.
-Core principle
-
-Compare:
-
-    what is expected (propagation model)
-
-    what is observed (real spots)
-
-👉 to display only what deviates from the model.
-What the World page shows
-
-    🌍 a worldwide map
-
-    🔥 red heatmap zones representing anomalous clusters
-
-    📍 callsigns displayed directly on the map
-
-    🧠 immediate understanding of unusual propagation
-
-Definition of an anomaly
-
-A cluster is considered anomalous based on:
-
-    band
-
-    UTC time
-
-    distance
-
-    mode (FT8 weighted differently)
-
-    temporal coherence
-
-    solar indices
-
-A Surprise Score is computed.
-Only clusters exceeding a threshold are displayed.
-World page philosophy
-
-    ❌ no magic
-
-    ❌ no blind prediction
-
-    ❌ no visual noise
-
-    ✅ what you see deserves your attention
-
-The World page is a strategic reading tool, not a live monitor
-
-⚙️ Technical architecture
-
-    Backend: Python / Flask
-
-    Frontend: HTML / CSS / JavaScript (local)
-
-    Cluster: DX Cluster (Telnet)
-
-    Logs: single application log file
-
-    Analysis: dedicated Python scripts
-
-    Storage: memory + local JSON files
+- Backend: Python / Flask  
+- Frontend: HTML / CSS / JavaScript  
+- Cluster: Telnet DX Cluster  
+- Analysis: dedicated Python scripts  
+- Storage: memory + local JSON files  
 
 No cloud dependency.
-Designed for Raspberry Pi or local machines.
-🎨 CSS organization
 
-The project deliberately separates:
+---
 
-    base.css → themes, colors, global variables
+## 🗂️ Version History
 
-    inline CSS per page → critical layout and readability
+### v6.0 — Stable Release
+- Finalized **World** page
+- Clear separation between Map / World
+- Stabilized spatio-temporal clustering
+- Controlled automatic refresh
+- Improved UX clarity
+- User state persistence
 
-⚠️ Some inline styles override the theme.
-This is an intentional choice for operational readability.
-🔐 Security & philosophy
+> Upgrade from **v5.7 to v6.0**  
+> justified by multiple unpublished experimental iterations.
 
-    local / LAN application
+---
 
-    no public exposure by default
+### v5.7 — Experimental Builds (Unpublished)
+- World prototypes
+- scoring adjustments
+- frontend/backend structural fixes
 
-    no telemetry
+---
 
-    no critical external dependency
+### v5.6
+- Initial introduction of the World page (experimental)
+- WATCHLIST · Tracking panel
 
-The operator remains fully in control of the data.
-🗂️ Version history (excerpt)
-v5.6 (current)
+---
 
-    World page: Forecast & Anomalies
+### v5.2
+- Introduction of META ANALYSIS
 
-    Anomalous cluster detection
+---
 
-    Analytical heatmap
+## 👤 Author
 
-    Callsign display on the map
-
-    Watchlist Tracking panel
-
-    General frontend/backend stabilization
-
-v5.2
-
-    Introduction of META Analysis
-
-    Delayed log-based analysis
-
-    Clear separation between live monitoring and analysis
-
-📌 Project positioning
-
-Radio Spot Watcher DX is not:
-
-    a simple DX viewer
-
-    a graphical gadget
-
-    an automated prediction engine
-
-It is a reasoned radio observation tool,
-built for operators who want to understand what they see.
-👤 Author
-
-Developed by F1SMV – Eric
-with the assistance of ChatGPT5.2 and Gimini
-for the radio amateur community.
-
-
-
-
+Developed by **F1SMV – Eric**  
+with assistance from ChatGPT 5.2 and Gemini  
+in service of the radio amateur community.

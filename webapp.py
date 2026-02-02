@@ -9,6 +9,7 @@ import ssl
 import math
 import re
 import logging
+from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 from collections import deque, Counter, defaultdict
 from flask import Flask, render_template, jsonify, request, abort, redirect, url_for, Response
@@ -30,7 +31,7 @@ tn_lock = threading.Lock()
 tn_current = None  # telnetlib.Telnet when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "NEURAL v5.6"
+APP_VERSION = "NEURAL v6.0"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -227,6 +228,31 @@ def solar_worker():
     while True:
         time.sleep(3600)
         fetch_solar_from_wwv_txt()
+
+def geo_distance_km(a, b):
+    return calculate_distance(a["lat"], a["lon"], b["lat"], b["lon"])
+
+
+def cluster_spots(spots, max_dist_km=800):
+    clusters = []
+
+    for s in spots:
+        placed = False
+        for c in clusters:
+            if geo_distance_km(s, c["center"]) <= max_dist_km:
+                c["spots"].append(s)
+                # recalcul centre
+                c["center"]["lat"] = sum(x["lat"] for x in c["spots"]) / len(c["spots"])
+                c["center"]["lon"] = sum(x["lon"] for x in c["spots"]) / len(c["spots"])
+                placed = True
+                break
+        if not placed:
+            clusters.append({
+                "center": {"lat": s["lat"], "lon": s["lon"]},
+                "spots": [s]
+            })
+
+    return clusters
 # --- END SOLAR (XML) FETCHER ---
 
 
@@ -819,6 +845,53 @@ def telnet_worker():
         idx = (idx + 1) % len(CLUSTERS)
 
 # --- ROUTES ---
+@app.route("/api/world/events")
+def api_map_events():
+    band = request.args.get("band")
+    window_min = int(request.args.get("window", 60))
+
+    now = time.time()
+    recent = [
+        s for s in spots_buffer
+        if now - s["timestamp"] <= window_min * 60
+        and s.get("lat") and s.get("lon")
+        and (not band or s["band"] == band)
+    ]
+
+    clusters = cluster_spots(recent)
+
+    events = []
+    for c in clusters:
+        spots = c["spots"]
+        if len(spots) < 3:
+            continue
+
+        dxcc = set(s["country"] for s in spots if s.get("country"))
+        distances = [s.get("distance_km", 0) for s in spots]
+
+        event = {
+            "band": spots[0]["band"],
+            "center": c["center"],
+            "spot_count": len(spots),
+            "dxcc_count": len(dxcc),
+            "max_distance_km": int(max(distances)),
+            "calls": list({s["dx_call"] for s in spots})[:10],
+            "score": int(
+                len(spots) * 5
+                + len(dxcc) * 15
+                + max(distances) / 200
+            )
+        }
+
+        events.append(event)
+
+    events.sort(key=lambda e: e["score"], reverse=True)
+
+    return jsonify({
+        "ok": True,
+        "count": len(events),
+        "events": events[:10]
+    })
 @app.get("/api/meta/summary")
 def api_meta_summary():
     if not META_SUMMARY.exists():
@@ -942,6 +1015,10 @@ def get_surge_status():
 def analysis_page():
     """Route pour rendre la page d'analyse/AI Insight."""
     return render_template('analysis.html', my_call=MY_CALL)
+
+@app.route('/analysis')
+def analysis_page_alias():
+    return redirect(url_for('analysis_page'))
 
 # --- NOUVELLE ROUTE STATISTIQUES DXCC 24H ---
 
@@ -1286,62 +1363,188 @@ def api_map_spots():
         "qth": qth,
         "spots": spots
     })
+
 # =========================================================
 # FORECAST / WORLD MAP — V1 (proxy local, non prédictif)
 # =========================================================
 
+def classify_cluster(cluster_spots):
+    """Classifie un cluster avec règles simples et explicables."""
+    if not cluster_spots:
+        return "suspect", "low", {"spot_count": 0, "unique_calls": 0, "duration_min": 0}
+
+    spot_count = len(cluster_spots)
+    calls = set()
+    timestamps = []
+
+    for s in cluster_spots:
+        dx = s.get("dx_call") or s.get("dx")
+        if dx:
+            calls.add(dx)
+        ts = s.get("timestamp")
+        if isinstance(ts, (int, float)):
+            timestamps.append(ts)
+
+    unique_calls = len(calls)
+    duration_min = int((max(timestamps) - min(timestamps)) / 60) if timestamps else 0
+
+    if spot_count >= 6 and unique_calls >= 3 and duration_min >= 10:
+        status, confidence = "confirmed", "high"
+    elif spot_count >= 3:
+        status, confidence = "suspect", "medium"
+    else:
+        status, confidence = "suspect", "low"
+
+    return status, confidence, {
+        "spot_count": spot_count,
+        "unique_calls": unique_calls,
+        "duration_min": duration_min
+    }
+
 @app.route("/api/forecast/anomalies")
 def api_forecast_anomalies():
-    """
-    V1 proxy anomalies:
-    - regroupe les spots récents
-    - retourne des clusters simples (centre + exemples)
-    """
     try:
-        band = request.args.get("band")
-        window = int(request.args.get("window", 120))
-        limit = int(request.args.get("limit", 300))
+        band = request.args.get("band", "all")
+        window_min = int(request.args.get("window", 180))
 
         now = time.time()
-        min_ts = now - window * 60
+        since_ts = now - window_min * 60
 
         spots = [
             s for s in spots_buffer
-            if s.get("timestamp", 0) >= min_ts
-            and (not band or s.get("band") == band)
-            and s.get("lat") and s.get("lon")
-        ][:limit]
+            if s.get("timestamp", 0) >= since_ts
+            and (band == "all" or s.get("band") == band)
+            and s.get("lat") is not None
+            and s.get("lon") is not None
+        ]
 
-        clusters = []
-        for s in spots:
-            clusters.append({
-                "band": s.get("band"),
-                "center": {"lat": s.get("lat"), "lon": s.get("lon")},
-                "examples": [{
-                    "dx": s.get("dx_call"),
-                    "mode": s.get("mode"),
-                    "freq_khz": s.get("freq"),
-                    "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(s.get("timestamp", now)))
-                }]
+        if not spots:
+            return jsonify({
+                "ok": True,
+                "mode": "calibration",
+                "clusters": [],
+                "count": 0,
+                "spot_count": 0
             })
+
+        # ---------- distance km ----------
+        def distance_km(a, b):
+            R = 6371.0
+            lat1 = math.radians(a["lat"])
+            lon1 = math.radians(a["lon"])
+            lat2 = math.radians(b["lat"])
+            lon2 = math.radians(b["lon"])
+            dlat = lat2 - lat1
+            dlon = lon2 - lon1
+            h = math.sin(dlat / 2)**2 + \
+                math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+            return 2 * R * math.asin(math.sqrt(h))
+
+        # ---------- clustering ----------
+        MAX_DIST_KM = 250
+        clusters = []
+
+        for spot in spots:
+            added = False
+            for cluster in clusters:
+                if distance_km(spot, cluster["center"]) <= MAX_DIST_KM:
+                    cluster["spots"].append(spot)
+                    added = True
+                    break
+            if not added:
+                clusters.append({
+                    "center": {"lat": spot["lat"], "lon": spot["lon"]},
+                    "spots": [spot]
+                })
+
+        results = []
+
+        for c in clusters:
+            spots_c = c["spots"]
+            timestamps = [s["timestamp"] for s in spots_c]
+            calls = {s.get("dx") for s in spots_c if s.get("dx")}
+
+            duration_min = int((max(timestamps) - min(timestamps)) / 60)
+            spot_count = len(spots_c)
+            unique_calls = len(calls)
+
+            if spot_count < 3:
+                status = "calibration"
+                confidence = "low"
+            elif spot_count < 6 or duration_min < 20:
+                status = "suspect"
+                confidence = "medium"
+            else:
+                status = "confirmed"
+                confidence = "high"
+
+            results.append({
+                "band": band,
+                "center": c["center"],
+                "status": status,
+                "confidence": confidence,
+                "metrics": {
+                    "spot_count": spot_count,
+                    "unique_calls": unique_calls,
+                    "duration_min": duration_min
+                },
+                "examples": [
+                    {
+                        "dx": s.get("dx"),
+                        "freq_khz": s.get("freq"),
+                        "mode": s.get("mode"),
+                        "utc": datetime.utcfromtimestamp(
+                            s["timestamp"]
+                        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    }
+                    for s in spots_c[:3]
+                ]
+            })
+
+        if any(r["status"] == "confirmed" for r in results):
+            mode = "active"
+        elif any(r["status"] == "suspect" for r in results):
+            mode = "suspect"
+        else:
+            mode = "calibration"
 
         return jsonify({
             "ok": True,
-            "count": len(clusters),
-            "clusters": clusters
+            "mode": mode,
+            "clusters": results,
+            "count": len(results),
+            "spot_count": len(spots)
         })
 
     except Exception as e:
-        logger.error(f"Forecast anomalies error: {e}")
-        return jsonify({"ok": False, "error": str(e)}), 500
+        logger.exception("api_forecast_anomalies failed")
+        return jsonify({
+            "ok": False,
+            "error": str(e),
+            "mode": "error",
+            "clusters": []
+        }), 500
 
+
+def distance_km(a, b):
+    """Distance Haversine en km entre deux points dict {'lat','lon'}"""
+    R = 6371.0
+
+    lat1 = math.radians(a["lat"])
+    lon1 = math.radians(a["lon"])
+    lat2 = math.radians(b["lat"])
+    lon2 = math.radians(b["lon"])
+
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    h = math.sin(dlat / 2)**2 + \
+        math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+
+    return 2 * R * math.asin(math.sqrt(h)) 
 
 @app.route("/api/forecast/heatmap.png")
 def api_forecast_heatmap():
-    """
-    V1 heatmap placeholder:
-    image transparente (le frontend Leaflet gère la colorisation)
-    """
     from PIL import Image
     import io
 
@@ -1354,7 +1557,6 @@ def api_forecast_heatmap():
     buf.seek(0)
 
     return Response(buf.getvalue(), mimetype="image/png")
-
 
 # --- SOLAR ROUTES (XML + JSON) ---
 @app.route('/solar.xml')
