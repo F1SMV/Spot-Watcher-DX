@@ -9,6 +9,8 @@ import ssl
 import math
 import re
 import logging
+import html
+import calendar
 from datetime import datetime
 from logging.handlers import TimedRotatingFileHandler
 from collections import deque, Counter, defaultdict
@@ -113,6 +115,43 @@ CTY_FILE = "cty.dat"
 WATCHLIST_FILE = "watchlist.json"
 SOLAR_URL = "https://services.swpc.noaa.gov/text/wwv.txt"
 NOAA_KP_URL = "https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"
+BRIEFING_SOURCES_FILE = Path("data/briefing_sources.json")
+BRIEFING_CACHE_TTL = 60 * 60 * 12
+BRIEFING_FEED_TIMEOUT = 15
+BRIEFING_ITEM_LIMIT = 8
+BRIEFING_USER_AGENT = "Spot-Watcher-DX/6.0 (+https://github.com/)"
+BRIEFING_DEFAULT_SOURCES = [
+    {
+        "id": "clublog",
+        "name": "Club Log DXpeditions",
+        "url": "https://clublog.org/rss/dxpeditions",
+        "site": "https://clublog.org/",
+    },
+    {
+        "id": "dxworld",
+        "name": "DX-World",
+        "url": "https://www.dx-world.net/feed/",
+        "site": "https://www.dx-world.net/",
+    },
+    {
+        "id": "iota",
+        "name": "IOTA News",
+        "url": "https://www.iota-world.org/rss.xml",
+        "site": "https://www.iota-world.org/",
+    },
+    {
+        "id": "pota",
+        "name": "Parks on the Air",
+        "url": "https://pota.app/spot/activators/rss",
+        "site": "https://pota.app/",
+    },
+    {
+        "id": "qo100dx",
+        "name": "QO-100 DX Club",
+        "url": "https://qo100dx.club",
+        "site": "https://qo100dx.club",
+    },
+]
 
 # --- SOLAR (XML) FETCHER ---
 
@@ -1816,6 +1855,163 @@ def api_dx_briefing():
 # --- END DX BRIEFING ---
 
 
+def _strip_html(value: str) -> str:
+    if not value:
+        return ""
+    cleaned = re.sub(r"<[^>]+>", " ", value)
+    return re.sub(r"\s+", " ", html.unescape(cleaned)).strip()
+
+def _entry_timestamp(entry) -> float:
+    for key in ("published_parsed", "updated_parsed"):
+        ts = entry.get(key)
+        if ts:
+            return float(calendar.timegm(ts))
+    return time.time()
+
+def _entry_summary(entry, limit: int = 220) -> str:
+    summary = entry.get("summary") or entry.get("description") or ""
+    summary = _strip_html(summary)
+    if len(summary) > limit:
+        return summary[: limit - 1].rstrip() + "…"
+    return summary
+
+def _load_briefing_sources():
+    if BRIEFING_SOURCES_FILE.exists():
+        try:
+            data = json.loads(BRIEFING_SOURCES_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, list):
+                return [
+                    src for src in data
+                    if isinstance(src, dict) and src.get("url") and src.get("name")
+                ]
+        except Exception:
+            pass
+    return BRIEFING_DEFAULT_SOURCES
+
+def _fetch_feed(url: str):
+    req = urllib.request.Request(url, headers={"User-Agent": BRIEFING_USER_AGENT, "Accept": "*/*"})
+    with urllib.request.urlopen(req, timeout=BRIEFING_FEED_TIMEOUT) as r:
+        data = r.read()
+    return feedparser.parse(data)
+
+def _build_briefing_payload(limit: int = BRIEFING_ITEM_LIMIT):
+    sources = _load_briefing_sources()
+    source_payloads = []
+    combined_items = []
+    now = time.time()
+
+    for src in sources:
+        fetched_utc = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now))
+        items = []
+        status = "ok"
+        error = None
+
+        try:
+            parsed = _fetch_feed(src["url"])
+            entries = parsed.entries or []
+            for entry in entries[: limit * 2]:
+                ts = _entry_timestamp(entry)
+                item = {
+                    "title": _strip_html(entry.get("title", "Sans titre")) or "Sans titre",
+                    "link": entry.get("link"),
+                    "published_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts)),
+                    "summary": _entry_summary(entry),
+                    "source_id": src.get("id"),
+                    "timestamp": ts,
+                }
+                items.append(item)
+            items.sort(key=lambda it: it["timestamp"], reverse=True)
+            items = items[:limit]
+            combined_items.extend(items)
+        except Exception as exc:
+            status = "error"
+            error = str(exc)
+
+        source_payloads.append({
+            "id": src.get("id"),
+            "name": src.get("name"),
+            "url": src.get("url"),
+            "site": src.get("site"),
+            "status": status,
+            "error": error,
+            "fetched_utc": fetched_utc,
+            "items": items,
+        })
+
+    combined_items.sort(key=lambda it: it["timestamp"], reverse=True)
+    combined_items = combined_items[: limit * 2]
+
+    for item in combined_items:
+        item.pop("timestamp", None)
+
+    payload = {
+        "ok": True,
+        "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
+        "cache": {
+            "ttl_seconds": BRIEFING_CACHE_TTL,
+            "generated_epoch": now,
+        },
+        "sources": source_payloads,
+        "items": combined_items,
+        "total_sources": len(source_payloads),
+    }
+    return payload
+
+briefing_lock = threading.Lock()
+briefing_cache = {
+    "ts": 0.0,
+    "payload": None,
+}
+
+def briefing_refresh_worker():
+    logger = logging.getLogger(__name__)
+    while True:
+        now = time.time()
+        try:
+            payload = _build_briefing_payload(limit=BRIEFING_ITEM_LIMIT)
+            payload["cache"]["age_seconds"] = 0
+            payload["cache"]["next_refresh_utc"] = time.strftime(
+                "%Y-%m-%dT%H:%M:%SZ", time.gmtime(now + BRIEFING_CACHE_TTL)
+            )
+            with briefing_lock:
+                briefing_cache["ts"] = now
+                briefing_cache["payload"] = payload
+            logger.info("Briefing cache refreshed.")
+        except Exception as exc:
+            logger.warning(f"Briefing refresh failed: {exc}")
+        time.sleep(BRIEFING_CACHE_TTL)
+
+@app.route("/briefing")
+@app.route("/briefing.html")
+def briefing_page():
+    return render_template("briefing.html")
+
+@app.route("/api/briefing.json")
+def api_briefing():
+    limit = int(request.args.get("limit", BRIEFING_ITEM_LIMIT))
+    force = request.args.get("force") in ("1", "true", "yes")
+    now = time.time()
+
+    with briefing_lock:
+        cache_age = now - (briefing_cache.get("ts") or 0.0)
+        cached = briefing_cache.get("payload")
+        if (not force) and cached is not None and cache_age < BRIEFING_CACHE_TTL:
+            cached["cache"]["age_seconds"] = int(cache_age)
+            cached["cache"]["next_refresh_utc"] = time.strftime(
+                "%Y-%m-%dT%H:%M:%SZ", time.gmtime(briefing_cache["ts"] + BRIEFING_CACHE_TTL)
+            )
+            return jsonify(cached)
+
+    payload = _build_briefing_payload(limit=limit)
+    payload["cache"]["age_seconds"] = 0
+    payload["cache"]["next_refresh_utc"] = time.strftime(
+        "%Y-%m-%dT%H:%M:%SZ", time.gmtime(now + BRIEFING_CACHE_TTL)
+    )
+    with briefing_lock:
+        briefing_cache["ts"] = now
+        briefing_cache["payload"] = payload
+    return jsonify(payload)
+
 
 
 @app.route('/history.json')
@@ -1881,6 +2077,7 @@ if __name__ == "__main__":
     threading.Thread(target=ticker_worker, daemon=True).start()
     threading.Thread(target=solar_worker, daemon=True).start()
     threading.Thread(target=history_maintenance_worker, daemon=True).start()
+    threading.Thread(target=briefing_refresh_worker, daemon=True).start()
 
     logger.info("Tous les Workers ont été démarrés. Lancement du serveur Flask...")
     app.run(host='0.0.0.0', port=WEB_PORT, debug=False, use_reloader=False)

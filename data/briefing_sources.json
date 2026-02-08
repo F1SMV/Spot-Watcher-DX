@@ -1,0 +1,32 @@
+[
+  {
+    "id": "clublog",
+    "name": "Club Log DXpeditions",
+    "url": "https://clublog.org/rss/dxpeditions",
+    "site": "https://clublog.org/"
+  },
+  {
+    "id": "dxworld",
+    "name": "DX-World",
+    "url": "https://www.dx-world.net/feed/",
+    "site": "https://www.dx-world.net/"
+  },
+  {
+    "id": "iota",
+    "name": "IOTA News",
+    "url": "https://www.iota-world.org/rss.xml",
+    "site": "https://www.iota-world.org/"
+  },
+  {
+    "id": "pota",
+    "name": "Parks on the Air",
+    "url": "https://pota.app/spot/activators/rss",
+    "site": "https://pota.app/"
+  },
+  {
+    "id": "qo100dx",
+    "name": "QO-100 DX Club",
+    "url": "https://qo100dx.club",
+    "site": "https://qo100dx.club"
+  }
+]
