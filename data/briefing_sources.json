@@ -1,0 +1,37 @@
+[
+  {
+    "id": "dxworld",
+    "name": "DX-World",
+    "url": "https://www.dx-world.net/feed/",
+    "site": "https://www.dx-world.net/",
+    "type": "rss"
+  },
+  {
+    "id": "iota",
+    "name": "IOTA News",
+    "url": "https://www.iota-world.org/rss.xml",
+    "site": "https://www.iota-world.org/",
+    "type": "rss"
+  },
+  {
+    "id": "dxnews",
+    "name": "DXNews",
+    "url": "https://dxnews.com/",
+    "site": "https://dxnews.com/",
+    "type": "html"
+  },
+  {
+    "id": "pota",
+    "name": "POTA",
+    "url": "https://pota.app/",
+    "site": "https://pota.app/",
+    "type": "html"
+  },
+  {
+    "id": "qo100dx",
+    "name": "QO-100 DX Club",
+    "url": "https://qo100dx.club",
+    "site": "https://qo100dx.club",
+    "type": "html"
+  }
+]
