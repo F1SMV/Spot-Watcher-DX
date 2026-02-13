@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v6.0
+﻿# 📡 Radio Spot Watcher DX — v6.1
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -95,6 +95,7 @@ La page **World** est **fondamentalement différente** de la page Map.
 
 👉 **World décide, Map exécute.**
 
+### 5️⃣ nouvelle page « Briefing » qui se met a jour toutes les 12, reprenant les infos dx essentielles
 ---
 📸 Aperçu
 
@@ -113,6 +114,8 @@ Aucune dépendance cloud.
 ---
 
 ## 🗂️ Historique des versions
+
+### v6.1 nouvelle page « briefing dxpeditions » et modification des cartes de la page index.html
 
 ### v6.0 — Release stable
 - Finalisation de la page **World**

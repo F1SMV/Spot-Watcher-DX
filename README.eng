@@ -1,149 +1,156 @@
-# 📡 Radio Spot Watcher DX — v6.0
+# 📡 Radio Spot Watcher DX — v6.1
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
-Local web application for DX cluster monitoring and advanced radio analysis, designed for demanding radio amateurs.  
-Built to **observe**, **understand**, and **step back** — not to generate visual noise.
+A local web application for DX monitoring and radio analysis designed for demanding Ham Radio operators.
+Built to **observe**, **understand**, and **gain perspective** — not just to add visual noise.
 
 ---
 
-## 🧭 General Overview
+## 🧭 Overview
 
-**Radio Spot Watcher DX** is a local web application that:
+**Radio Spot Watcher DX** is a local web app that:
 
-- connects to one or more **DX Clusters (Telnet)**
-- displays **real-time spots** (HF / VHF / UHF)
-- integrates **solar indices** (SFI, A, Kp…)
-- maintains an **exploitable activity memory**
-- offers **multiple reading levels**, from live monitoring to strategic analysis
+- Connects to one or multiple **DX Clusters (Telnet)**
+- Displays **real-time spots** (HF / VHF / UHF)
+- Integrates **solar indices** (SFI, A, Kp…)
+- Maintains an **actionable memory** of activity
+- Offers **multiple levels of data reading**, from live feeds to strategic analysis
 
-> The goal is not to see more,  
-> but to **see more accurately**.
+> The goal is not to see a lot,
+> but to **see right**.
 
 ---
 
 ## 🖥️ Main Pages
 
-### 1️⃣ **Index Page** — Real-time & Operator View
+### 1️⃣ **Index** Page — Real-time & Operator Monitoring
 
 Immediate observation page.
 
 It displays:
-- live spot stream
-- active bands
-- wanted DX
-- solar indices
-- activity surge indicators
+- Live spot stream
+- Active bands
+- Wanted DX stations (*watchlist*)
+- Solar indices
+- Activity **surge** signals
 
-👉 **Goal: understand what is happening right now.**
-
----
-
-### 📡 **WATCHLIST · Tracking Panel**
-
-Feature designed to answer a simple question:
-
-> *“I wasn’t in front of the screen — what did I miss?”*
-
-- based on the watchlist
-- uses an in-memory spot history
-- shows the latest spots per callsign
-
-Philosophy:
-- ❌ not a raw log  
-- ❌ not a massive dump  
-- ✅ a recovery tool  
-- ✅ designed for the human operator  
+👉 **Goal: Know what is happening right now.**
 
 ---
 
-### 2️⃣ **Map Page** — Observation Map (Micro View)
+### 📡 **WATCHLIST · Tracking** Block
 
-Classic map showing **individual spots**:
+A feature introduced to answer a simple need:
 
-- one point = one station
-- immediate geographic visualization
-- real-time perception
+> *"I wasn't in front of the screen: what did I miss?"*
 
-👉 **Goal: see where activity is occurring.**
+- Based on your watchlist
+- Utilizes in-memory history
+- Displays the latest spots by callsign
+
+**Philosophy:**
+- ❌ Not a raw log
+- ❌ Not a massive data dump
+- ✅ A catch-up tool
+- ✅ Designed for the human operator
+
+---
+
+### 2️⃣ **Map** Page — Observation Map (Micro-reading)
+
+Classic map of **individual spots**:
+
+- Each point = **one station**
+- Immediate geographical representation
+- Instantaneous vision
+
+👉 **Goal: See where the action is.**
 
 The **Map** page is an **execution tool**.
 
 ---
 
-### 3️⃣ **Analysis Page** — Deferred META ANALYSIS
+### 3️⃣ **Analysis** Page — Delayed META-ANALYSIS
 
-A deliberately **non-real-time** analysis tool based on the application log.
+A deliberately **non-real-time** tool based on the application log analysis.
 
-👉 **A tool for perspective**, not a gadget.
+👉 **A perspective tool**, not a gadget.
 
 ---
 
-### 4️⃣ **World Page** — Forecast & Anomalies (Major v6 Feature)
+### 4️⃣ **World** Page — Forecast & Anomalies (New in v6)
 
 The **World** page is **fundamentally different** from the Map page.
 
 | Page | Nature | Question |
 |---|---|---|
-| Map | Raw observation | Who is active right now? |
-| World | Interpreted analysis | Where is propagation abnormally favorable? |
+| Map | Raw Observation | Who is active right now? |
+| World | Interpreted Analysis | Where is propagation abnormally favorable? |
 
-- displays **zones**, not stations
-- spatio-temporal clustering
-- noise filtering
-- controlled auto-refresh
+- Displays **zones**, not individual stations
+- Spatio-temporal clustering
+- Noise filtering
+- Controlled refresh rates
 
 👉 **World decides, Map executes.**
 
 ---
 
+### 5️⃣ **Briefing** Page — Essential DX updates every 12h
+
+A newly introduced summary page that updates every 12 hours, capturing the most critical DX information and upcoming events.
+
+---
+
+📸 **Preview**
+
+![Dashboard Preview](apercu.png)
+
 ## ⚙️ Technical Architecture
 
-- Backend: Python / Flask  
-- Frontend: HTML / CSS / JavaScript  
-- Cluster: Telnet DX Cluster  
-- Analysis: dedicated Python scripts  
-- Storage: memory + local JSON files  
+- **Backend:** Python / Flask
+- **Frontend:** HTML / CSS / JavaScript
+- **Cluster:** Telnet DX Cluster
+- **Analysis:** Dedicated Python scripts
+- **Storage:** RAM + local JSON files
 
-No cloud dependency.
+Zero cloud dependencies.
 
 ---
 
 ## 🗂️ Version History
 
+### v6.1
+- New **"DXpedition Briefing"** page
+- Updated maps on the `index.html` page
+
 ### v6.0 — Stable Release
 - Finalized **World** page
 - Clear separation between Map / World
-- Stabilized spatio-temporal clustering
-- Controlled automatic refresh
-- Improved UX clarity
-- User state persistence
+- Stabilized clustering
+- Auto-refresh enabled
+- Clarified UX
+- User state saving
 
-> Upgrade from **v5.7 to v6.0**  
-> justified by multiple unpublished experimental iterations.
+> Jump from **v5.7 to v6.0** due to several unreleased trial versions.
 
----
-
-### v5.7 — Experimental Builds (Unpublished)
+### v5.7 — Working Versions
 - World prototypes
-- scoring adjustments
-- frontend/backend structural fixes
-
----
+- Scoring adjustments
+- Structural fixes
 
 ### v5.6
-- Initial introduction of the World page (experimental)
-- WATCHLIST · Tracking panel
-
----
+- Introduction of World (experimental)
+- WATCHLIST · Tracking block
 
 ### v5.2
-- Introduction of META ANALYSIS
+- Introduction of META-ANALYSIS
 
 ---
 
 ## 👤 Author
 
-Developed by **F1SMV – Eric**  
-with assistance from ChatGPT 5.2 and Gemini  
-in service of the radio amateur community.
+Developed by **F1SMV – Eric** with the assistance of ChatGPT 5.2 and Gemini, serving the Amateur Radio community.
+
+You can contact me via **X**.

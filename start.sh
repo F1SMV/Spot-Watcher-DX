@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export PYTHONPATH=$(pwd)
 # 1. Définition des couleurs pour les logs
 GREEN='\033[0;32m'
 RED='\033[0;31m'
