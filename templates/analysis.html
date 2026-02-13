@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/base.css">
-    <title>NEURAL AI 5.1 - ANALYSE & PRÉDICTION</title>
+    <title>NEURAL AI 6.2 - ANALYSE & PRÉDICTION</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <style>
@@ -58,6 +58,18 @@
             --wl-bg: #4cff7e;
             --wl-text: #000000;
             --open-color: #00aa00;
+        }
+
+        body[data-theme='bento'] {
+            --bg-color: #f3efe6;
+            --panel-bg: #fffaf1;
+            --text-main: #2b2a27;
+            --accent: #ff7a59;
+            --alert: #e23d5d;
+            --border: 1px solid #d9cfc1;
+            --wl-bg: #ffe08a;
+            --wl-text: #2b2a27;
+            --open-color: #b66a1d;
         }
         
         body { background-color: var(--bg-color); color: var(--text-main); font-family: var(--font-sans); margin: 0; padding: 20px; transition: all 0.3s; }
@@ -144,6 +156,7 @@
         <button class="btn" onclick="location.href='/map'">DX Map</button>
         <button class="btn" onclick="location.href='/'">Dashboard</button>
         <button class="btn" onclick="location.href='/world'">World</button>
+        <button class="btn" onclick="location.href='/briefing'">Briefing</button>
     </div>
 </header>
 

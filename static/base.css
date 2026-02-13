@@ -87,6 +87,28 @@ body[data-theme='softtech']{
   --panel-glow: 0 0 0 1px rgba(255,255,255,0.06) inset;
 }
 
+
+
+/* Bento Grid */
+body[data-theme='bento']{
+  --bg-color: #f3efe6;
+  --panel-bg: #fffaf1;
+  --text-main: #2b2a27;
+  --accent: #ff7a59;
+  --alert: #e23d5d;
+  --border: 1px solid #d9cfc1;
+  --wl-bg: #ffe08a;
+  --wl-text: #2b2a27;
+  --open-color: #b66a1d;
+
+  --chart-text: #2b2a27;
+  --chart-grid: rgba(43,42,39,0.16);
+
+  --panel-border-strong: rgba(43,42,39,0.18);
+  --panel-shadow: 0 12px 24px rgba(104,88,67,0.12);
+  --panel-glow: 0 0 0 1px rgba(255,255,255,0.75) inset;
+}
+
 /* Matrix */
 body[data-theme='matrix']{
   --bg-color: #000000;
@@ -208,3 +230,11 @@ body[data-page="world"] .topbar {
   z-index: 2147483647 !important;
 }
 
+
+
+body[data-theme='bento']{
+  background:
+    radial-gradient(800px 500px at 8% 8%, rgba(255,122,89,0.14), transparent 60%),
+    radial-gradient(700px 420px at 92% 12%, rgba(255,212,102,0.16), transparent 62%),
+    var(--bg-color);
+}
