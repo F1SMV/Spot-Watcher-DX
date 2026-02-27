@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>NEURAL DX v6.2</title>
+<title>NEURAL DX v6.3</title>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -460,8 +460,16 @@
 </style>
 </head>
 <body>
+
+<!-- BANDEAU DE MISE À JOUR -->
+<div id="update-banner" style="display:none; position:fixed; top:0; left:0; width:100%; background:#ff9800; color:#fff; text-align:center; padding:10px; z-index:9999; font-weight:bold;">
+    🚀 Une nouvelle version (<span id="new-version"></span>) est disponible !
+    <a href="#" id="changelog-link" style="color:#fff; text-decoration:underline;">Voir les nouveautés</a>
+    <button onclick="document.getElementById('update-banner').style.display='none'" style="float:right; background:#fff; color:#ff9800; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Fermer</button>
+</div>
+
 <div id="header">
-<div id="title">NEURAL DX WATCHER V6.2</div>
+<div id="title">NEURAL DX WATCHER V6.3</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -590,6 +598,11 @@
 <option value="PSK31">PSK31</option>
 <option value="PACTOR">PACTOR</option>
 </select>
+<select id="hf-freq-sort">
+<option value="none">Tri: Aucun</option>
+<option value="asc">Tri: Fréq ↑</option>
+<option value="desc">Tri: Fréq ↓</option>
+</select>
 </div>
 <div id="spots-container-hf">
 <table class="spot-table">
@@ -620,6 +633,11 @@
 <option value="CW">CW</option>
 <option value="SSB">SSB</option>
 <option value="FM">FM</option>
+</select>
+<select id="vhf-freq-sort">
+<option value="none">Tri: Aucun</option>
+<option value="asc">Tri: Fréq ↑</option>
+<option value="desc">Tri: Fréq ↓</option>
 </select>
 </div>
 <div id="spots-container-vhf">
@@ -733,7 +751,7 @@
         let historyChart, liveHFChart, liveVHFChart;
         let isVoiceEnabled = true;
         let voiceDistanceFilter = 'ALL';
-        let voiceLanguageFilter = 'fr-FR'; 
+        let voiceLanguageFilter = 'fr-FR';
         let announcedSpots = new Set();
 
         window.addEventListener('watchingListUpdated', () => {
@@ -779,7 +797,7 @@
         function isWanted(call) {
             return watchlist.has(call.toUpperCase());
         }
-        
+       
         function getCssVar(name) {
              return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#a0a0a0';
         }
@@ -792,7 +810,7 @@
                 console.log('Synthèse vocale activée.');
             } else {
                 button.textContent = '🔇 VOICE OFF';
-                window.speechSynthesis.cancel(); 
+                window.speechSynthesis.cancel();
                 console.log('Synthèse vocale désactivée.');
             }
             localStorage.setItem('voiceEnabled', isVoiceEnabled);
@@ -802,11 +820,11 @@
             const filter = voiceDistanceFilter;
             if (filter === 'ALL') {
                 return true;
-            } else if (filter === 'LOW') { 
+            } else if (filter === 'LOW') {
                 return distanceKm < 5000;
-            } else if (filter === 'MID') { 
+            } else if (filter === 'MID') {
                 return distanceKm >= 5000 && distanceKm <= 10000;
-            } else if (filter === 'HIGH') { 
+            } else if (filter === 'HIGH') {
                 return distanceKm > 10000;
             }
             return true;
@@ -869,7 +887,7 @@
         function displayWatchlist() {
             const body = document.getElementById('watchlist-body');
             body.innerHTML = '';
-            
+           
             if (watchlist.size === 0) {
                 body.innerHTML = '<tr><td colspan="4" style="text-align: center;">Watchlist is empty.</td></tr>';
                 return;
@@ -884,13 +902,13 @@
 
             watchlist.forEach(call => {
                 const row = body.insertRow();
-                
-                const itemData = watchListData.find(item => 
+               
+                const itemData = watchListData.find(item =>
                     (item.call === call || item.callsign === call) && item.autoadded === true
                 );
-                
+               
                 const dxBadge = itemData ? '<span class="dx-badge">📡 DX</span>' : '';
-                
+               
                 row.innerHTML = `
                     <td class="call">
                         <a href="https://qrz.com/db/${call}" target="_blank" style="color: inherit;">${call}</a>
@@ -912,13 +930,13 @@
                 });
                 if (response.ok) {
                     watchlist.delete(call.toUpperCase());
-                    
+                   
                     let watchListData = JSON.parse(localStorage.getItem('watchingList') || '[]');
-                    watchListData = watchListData.filter(item => 
+                    watchListData = watchListData.filter(item =>
                         item.call !== call && item.callsign !== call
                     );
                     localStorage.setItem('watchingList', JSON.stringify(watchListData));
-                    
+                   
                     displayWatchlist();
                 }
             } catch (e) {
@@ -1073,22 +1091,22 @@
                  historyChart.options.plugins.tooltip.borderColor = accentColor;
                  historyChart.update();
              }
-             if (liveHFChart) { 
+             if (liveHFChart) {
                 liveHFChart.options.plugins.title.color = accentColor;
                 liveHFChart.options.scales.x.ticks.color = mainColor;
                 liveHFChart.options.scales.y.ticks.color = mainColor;
-                liveHFChart.update(); 
+                liveHFChart.update();
              }
-             if (liveVHFChart) { 
+             if (liveVHFChart) {
                 liveVHFChart.options.plugins.title.color = accentColor;
                 liveVHFChart.options.scales.x.ticks.color = mainColor;
                 liveVHFChart.options.scales.y.ticks.color = mainColor;
-                liveVHFChart.update(); 
+                liveVHFChart.update();
              }
         }
 
         function updateHistoryChart(data) {
-            const BAND_COLORS_JS = JSON.parse('{{ band_colors | tojson }}'); 
+            const BAND_COLORS_JS = JSON.parse('{{ band_colors | tojson }}');
 
             const bands = Object.keys(data.data);
             const datasets = bands.map(band => ({
@@ -1126,7 +1144,7 @@
              const activeKeys = new Set(allActiveSpots.map(s => `${s.dx_call}-${s.freq}-${s.time}`));
              const newAnnouncedSpots = new Set();
              announcedSpots.forEach(key => { if (activeKeys.has(key)) newAnnouncedSpots.add(key); });
-             announcedSpots = newAnnouncedSpots; 
+             announcedSpots = newAnnouncedSpots;
         }
 
         function pickSolarUpdated(d){
@@ -1219,12 +1237,12 @@
             console.log("Fetching new data...");
             await updateSpots('hf');
             await updateSpots('vhf');
-            
+           
             try {
                 const allSpotsResponse = await fetch('/spots.json');
                 const allSpots = await allSpotsResponse.json();
                 updateMaps(allSpots);
-                clearExpiredAnnouncedSpots(allSpots); 
+                clearExpiredAnnouncedSpots(allSpots);
             } catch(e) { console.error("Failed to fetch all spots for map/cleanup:", e); }
 
             try {
@@ -1265,45 +1283,59 @@
             await loadWatchlist();
         }
 
+        function parseFreqForSort(freqStr) {
+            const num = parseFloat(freqStr);
+            return isNaN(num) ? 0 : num;
+        }
+
         async function updateSpots(type) {
             const bodyId = `spots-body-${type}`;
             const filterBand = document.getElementById(`${type}-band-filter`).value;
             const filterMode = document.getElementById(`${type}-mode-filter`).value;
+            const freqSort = document.getElementById(`${type}-freq-sort`).value;
 
             let url = `/spots.json?band=${filterBand}&mode=${filterMode}`;
 
             try {
                 const response = await fetch(url);
-                const spots = await response.json();
+                let spots = await response.json();
                 const tbody = document.getElementById(bodyId);
                 tbody.innerHTML = '';
 
                 if (spots.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="7" style="text-align: center;">No ${type.toUpperCase()} spots received.</td></tr>`;
                 } else {
-                    spots.forEach(spot => {
-                        if (spot.type.toLowerCase() === type) {
-                            const row = tbody.insertRow();
-                            const isWantedCall = isWanted(spot.dx_call);
-                            const callsignClass = isWantedCall ? 'spot-call-watchlist' : 'spot-call-white-bold';
-                            const rowClass = isWantedCall ? 'spot-row-watchlist' : '';
+                    // Filtrer par type
+                    spots = spots.filter(spot => spot.type.toLowerCase() === type);
 
-                            if (rowClass) row.classList.add(rowClass);
-                            row.innerHTML = `
-                                <td>${spot.time}</td>
-                                <td>${spot.freq}</td>
-                                <td><span class="${callsignClass}"><a href="https://qrz.com/db/${spot.dx_call}" target="_blank" title="Look up on QRZ.com">${spot.dx_call}</a></span></td>
-                                <td><span class="band-tag" style="background-color: ${spot.color};">${spot.band}</span></td>
-                                <td>${spot.mode}</td>
-                                <td class="${(spot.score >= SPD_THRESHOLD) ? 'high-spd' : ''}">${spot.score}</td>
-                                <td>${spot.distance_km.toFixed(0)}</td>`;
-                            row.querySelector('td:nth-child(3)').onclick = () => {
-                                if (!isWantedCall) {
-                                     addToWatchlist(spot.dx_call);
-                                }
-                            };
-                            announceSpot(spot);
-                        }
+                    // Tri par fréquence si demandé
+                    if (freqSort === 'asc') {
+                        spots.sort((a, b) => parseFreqForSort(a.freq) - parseFreqForSort(b.freq));
+                    } else if (freqSort === 'desc') {
+                        spots.sort((a, b) => parseFreqForSort(b.freq) - parseFreqForSort(a.freq));
+                    }
+
+                    spots.forEach(spot => {
+                        const row = tbody.insertRow();
+                        const isWantedCall = isWanted(spot.dx_call);
+                        const callsignClass = isWantedCall ? 'spot-call-watchlist' : 'spot-call-white-bold';
+                        const rowClass = isWantedCall ? 'spot-row-watchlist' : '';
+
+                        if (rowClass) row.classList.add(rowClass);
+                        row.innerHTML = `
+                            <td>${spot.time}</td>
+                            <td>${spot.freq}</td>
+                            <td><span class="${callsignClass}"><a href="https://qrz.com/db/${spot.dx_call}" target="_blank" title="Look up on QRZ.com">${spot.dx_call}</a></span></td>
+                            <td><span class="band-tag" style="background-color: ${spot.color};">${spot.band}</span></td>
+                            <td>${spot.mode}</td>
+                            <td class="${(spot.score >= SPD_THRESHOLD) ? 'high-spd' : ''}">${spot.score}</td>
+                            <td>${spot.distance_km.toFixed(0)}</td>`;
+                        row.querySelector('td:nth-child(3)').onclick = () => {
+                            if (!isWantedCall) {
+                                 addToWatchlist(spot.dx_call);
+                            }
+                        };
+                        announceSpot(spot);
                     });
                 }
             } catch(e) {
@@ -1427,9 +1459,11 @@
 
             hfBandSelect.addEventListener('change', () => updateSpots('hf'));
             document.getElementById('hf-mode-filter').addEventListener('change', () => updateSpots('hf'));
+            document.getElementById('hf-freq-sort').addEventListener('change', () => updateSpots('hf'));
 
             vhfBandSelect.addEventListener('change', () => updateSpots('vhf'));
             document.getElementById('vhf-mode-filter').addEventListener('change', () => updateSpots('vhf'));
+            document.getElementById('vhf-freq-sort').addEventListener('change', () => updateSpots('vhf'));
 
             const distanceFilterSelect = document.getElementById('voice-distance-filter');
             const savedDistanceFilter = localStorage.getItem('voiceDistanceFilter');
@@ -1462,7 +1496,7 @@
              console.log("Starting client-side initialization...");
 
              const savedVoiceState = localStorage.getItem('voiceEnabled');
-             isVoiceEnabled = (savedVoiceState === 'true' || savedVoiceState === null); 
+             isVoiceEnabled = (savedVoiceState === 'true' || savedVoiceState === null);
              if (!isVoiceEnabled) {
                 document.getElementById('synth-toggle-button').textContent = '🔇 VOICE OFF';
              }
@@ -1479,7 +1513,7 @@
 
              try {
                  await loadWatchlist();
-                 populateFilterOptions(); 
+                 populateFilterOptions();
              } catch (e) {
                   console.error("CRITICAL: Failed to load and display Watchlist/Filters.", e);
              }
@@ -1562,7 +1596,7 @@
          }
 
         document.addEventListener('DOMContentLoaded', initApp);
-    
+   
 (function(){
   const elCall = document.getElementById('spot-call');
   const elFreq = document.getElementById('spot-freq');
@@ -1687,5 +1721,20 @@ document.getElementById('wl-track-limit').onchange = loadWatchlistTracking;
 setInterval(loadWatchlistTracking, 30000);
 
 </script>
+
+<script>
+// Vérifie les mises à jour au chargement de la page
+fetch('/api/check_update')
+    .then(res => res.json())
+    .then(data => {
+        if (data.update_available) {
+            document.getElementById('update-banner').style.display = 'block';
+            document.getElementById('new-version').textContent = data.latest_version;
+            document.getElementById('changelog-link').href = data.changelog_url;
+        }
+    })
+    .catch(err => console.warn('Erreur lors de la vérification des mises à jour:', err));
+</script>
+
 </body>
 </html>

@@ -1,4 +1,4 @@
-📡 Radio Spot Watcher DX — v6.2
+📡 Radio Spot Watcher DX — v6.3
 
 DX Cluster Dashboard & Advanced Radio Analysis Engine
 
@@ -128,6 +128,8 @@ Storage: Memory + local JSON
 No cloud dependency.
 
 🗂️ Version History
+V6.3 update information and frequency sorting in dx hf and vhf 
+
 v6.2
 
 Optional automatic addition of callsigns to the dashboard watchlist

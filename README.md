@@ -1,4 +1,4 @@
-﻿# 📡 Radio Spot Watcher DX — v6.2
+﻿# 📡 Radio Spot Watcher DX — v6.3
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -117,6 +117,8 @@ Aucune dépendance cloud.
 
 ## 🗂️ Historique des versions
 
+### v6.3 ajout du tri par fréquences dans les pavés DX HF et DX VHF et bandeau update quand une nouvelle version apparait 
+
 ### v6.2 ajout sur option des calls dans la watching list du dashboard et rajout du nouveau mode FT2
 
 ### v6.1 nouvelle page « briefing dxpeditions » et modification des cartes de la page index.html
@@ -149,6 +151,6 @@ Aucune dépendance cloud.
 ## 👤 Auteur
 
 Développé par **F1SMV – Eric**  
-avec l’assistance de ChatGPT 5.2 et Gemini  
+avec l’assistance de ChatGPT 5.2 et Gemini & Claude 
 au service de la communauté radioamateur.
 vous pouvez me contacter via X

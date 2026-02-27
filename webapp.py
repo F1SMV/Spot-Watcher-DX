@@ -32,7 +32,7 @@ tn_lock = threading.Lock()
 tn_current = None  # telnetlib.Telnet when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "NEURAL v6.2"
+APP_VERSION = "6.3"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -2272,6 +2272,35 @@ def get_live_bands_data():
     return jsonify({"hf": hf_data, "vhf": vhf_data})
 
 
+
+
+
+@app.route('/api/check_update')
+def check_update():
+    """Vérifie si une nouvelle version est disponible sur GitHub."""
+    GITHUB_VERSION_URL = "https://raw.githubusercontent.com/F1SMV/Spot-Watcher-DX/main/version.json"
+   
+    try:
+        req = urllib.request.Request(GITHUB_VERSION_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            remote_data = json.loads(r.read().decode('utf-8'))
+       
+        remote_version = remote_data.get("version", "0.0.0")
+        current_version = APP_VERSION.split()[-1]  # Extrait "6.3" de "NEURAL v6.3"
+       
+        update_available = (remote_version != current_version)
+       
+        return jsonify({
+            "update_available": update_available,
+            "current_version": current_version,
+            "latest_version": remote_version,
+            "release_date": remote_data.get("release_date"),
+            "changelog_url": remote_data.get("changelog_url"),
+            "download_url": remote_data.get("download_url")
+        })
+    except Exception as e:
+        logger.warning(f"Impossible de vérifier les mises à jour: {e}")
+        return jsonify({"update_available": False, "error": str(e)})
 
 
 if __name__ == "__main__":
