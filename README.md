@@ -155,4 +155,4 @@ Aucune dépendance cloud.
 Développé par **F1SMV – Eric**  
 avec l’assistance de ChatGPT 5.2 et Gemini & Claude 
 au service de la communauté radioamateur.
-vous pouvez me contacter via X
+vous pouvez me contacter via @f1smv sur X
