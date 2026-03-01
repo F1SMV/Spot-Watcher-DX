@@ -1,4 +1,4 @@
-﻿# 📡 Radio Spot Watcher DX — v6.3
+﻿# 📡 Radio Spot Watcher DX — v6.4
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -116,6 +116,8 @@ Aucune dépendance cloud.
 ---
 
 ## 🗂️ Historique des versions
+
+## v6.4 ajout de la bandemap sur la page d'accueil; selection par bande et mode
 
 ### v6.3 ajout du tri par fréquences dans les pavés DX HF et DX VHF et bandeau update quand une nouvelle version apparait 
 

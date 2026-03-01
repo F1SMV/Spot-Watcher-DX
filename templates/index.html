@@ -4,7 +4,8 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>NEURAL DX v6.3</title>
+<title>📡 NEURAL DX v6.4</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -90,7 +91,7 @@
         }
         #main-container {
             display: grid;
-            grid-template-columns: repeat(3, minmax(320px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 10px;
             padding: 10px;
             align-items: start;
@@ -457,6 +458,150 @@
         .dashboard-grid, .grid, .container{
             gap: 14px !important;
         }
+
+        /* ===== BANDMAP WATERFALL ===== */
+        #bandmap-section {
+            grid-column: 1 / -1;
+            width: 100%;
+        }
+        #bandmap-panel {
+            width: 100%;
+            cursor: default;
+            user-select: none;
+        }
+        #bandmap-panel .panel-header {
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #bandmap-panel .panel-header:active { cursor: grabbing; }
+        #bandmap-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 10px 4px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(0,243,255,0.15);
+        }
+        #bandmap-controls select {
+            background: #111;
+            color: var(--accent);
+            border: 1px solid rgba(0,243,255,0.35);
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.82em;
+        }
+        #bandmap-status {
+            font-size: 0.78em;
+            opacity: 0.7;
+            margin-left: auto;
+        }
+        /* Waterfall canvas zone */
+        #bandmap-waterfall-wrap {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(180deg, #000a1a 0%, #00112e 100%);
+        }
+        #bandmap-canvas {
+            display: block;
+            width: 100%;
+            height: 70px;
+            image-rendering: pixelated;
+        }
+        /* Spot tracks below waterfall */
+        #bandmap-spots-area {
+            overflow-x: auto;
+            overflow-y: visible;
+            position: relative;
+            height: 80px;
+            background: linear-gradient(180deg, #00061a 0%, #000d22 100%);
+            border-top: 1px solid rgba(0,243,255,0.18);
+        }
+        #bandmap-spots-track {
+            position: absolute;
+            top: 0; left: 0;
+            height: 100%;
+            white-space: nowrap;
+        }
+        .bm-spot-pin {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            position: absolute;
+            transform: translateX(-50%);
+            cursor: pointer;
+            z-index: 2;
+        }
+        .bm-spot-pin .bm-pin-call {
+            font-size: 0.75em;
+            font-weight: bold;
+            color: #ffffff !important;
+            background: rgba(5, 10, 30, 0.92);
+            border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 3px;
+            padding: 1px 5px;
+            white-space: nowrap;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .bm-spot-pin .bm-pin-call a {
+            color: #ffffff !important;
+            text-decoration: none !important;
+        }
+        .bm-spot-pin:hover .bm-pin-call,
+        .bm-spot-pin.bm-focused .bm-pin-call {
+            background: rgba(0,50,80,0.95);
+            border-color: #00f3ff;
+            color: #ffffff !important;
+            box-shadow: 0 0 6px rgba(0,243,255,0.5);
+        }
+        .bm-spot-pin:hover .bm-pin-call a,
+        .bm-spot-pin.bm-focused .bm-pin-call a {
+            color: #ffffff !important;
+        }
+        .bm-spot-pin .bm-pin-call.wl-pin {
+            background: #b8860b;
+            color: #ffffff !important;
+            border-color: #ffd700;
+        }
+        .bm-spot-pin .bm-pin-call.wl-pin a {
+            color: #ffffff !important;
+        }
+        .bm-spot-pin .bm-pin-line {
+            width: 1px;
+            height: 10px;
+            background: rgba(0,243,255,0.5);
+        }
+        .bm-spot-pin .bm-pin-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 4px var(--accent);
+        }
+        /* Freq axis */
+        #bandmap-freq-axis {
+            height: 18px;
+            position: relative;
+            background: #000a14;
+            border-top: 1px solid rgba(0,243,255,0.12);
+            font-size: 0.68em;
+            color: rgba(0,243,255,0.7);
+            overflow: hidden;
+        }
+        .bm-freq-tick {
+            position: absolute;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            top: 2px;
+        }
+        /* Keyboard hint */
+        #bandmap-kbd-hint {
+            font-size: 0.72em;
+            opacity: 0.55;
+            padding: 2px 8px 4px;
+        }
 </style>
 </head>
 <body>
@@ -468,8 +613,63 @@
     <button onclick="document.getElementById('update-banner').style.display='none'" style="float:right; background:#fff; color:#ff9800; border:none; padding:5px 10px; cursor:pointer; border-radius:3px;">Fermer</button>
 </div>
 
+<!-- BANDMAP WATERFALL (pleine largeur) -->
+<div id="bandmap-section" style="padding:10px 10px 0;">
+<div class="panel" id="bandmap-panel" data-panel-id="bandmap">
+  <div class="panel-header" id="bandmap-drag-handle" style="cursor:grab;">
+    <span class="dd-handle">⋮⋮</span>
+    📻 BANDMAP WATERFALL
+    <span id="bandmap-status" style="margin-left:auto;font-size:0.78em;opacity:0.7;">0 spots · 10 min TTL</span>
+  </div>
+  <!-- Contrôles HORS du header pour éviter le blocage des événements souris par le drag -->
+  <div id="bandmap-controls" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+    <label style="font-size:0.82em;opacity:0.8;">Bande :</label>
+    <select id="bm-band-select">
+      <option value="ALL">Toutes</option>
+      <option value="160m">160m</option>
+      <option value="80m">80m</option>
+      <option value="60m">60m</option>
+      <option value="40m">40m</option>
+      <option value="30m">30m</option>
+      <option value="20m">20m</option>
+      <option value="17m">17m</option>
+      <option value="15m">15m</option>
+      <option value="12m">12m</option>
+      <option value="10m">10m</option>
+      <option value="6m">6m</option>
+      <option value="4m">4m</option>
+      <option value="2m">2m</option>
+      <option value="70cm">70cm</option>
+    </select>
+    <label style="font-size:0.82em;opacity:0.8;">Mode :</label>
+    <select id="bm-mode-select">
+      <option value="ALL">Tous</option>
+      <option value="CW">CW</option>
+      <option value="SSB">SSB</option>
+      <option value="FT8">FT8</option>
+      <option value="FT4">FT4</option>
+      <option value="FT2">FT2</option>
+      <option value="JT65">JT65</option>
+      <option value="PSK31">PSK31</option>
+      <option value="RTTY">RTTY</option>
+    </select>
+  </div>
+  <!-- Waterfall canvas (scrolling) -->
+  <div id="bandmap-waterfall-wrap">
+    <canvas id="bandmap-canvas" height="110"></canvas>
+  </div>
+  <!-- Spots axis avec pins -->
+  <div id="bandmap-spots-area">
+    <div id="bandmap-spots-track"></div>
+  </div>
+  <!-- Freq axis -->
+  <div id="bandmap-freq-axis"></div>
+  <div id="bandmap-kbd-hint">↑↓ ou ← → pour naviguer · Entrée = QRZ.com · Clic sur un call</div>
+</div>
+</div>
+
 <div id="header">
-<div id="title">NEURAL DX WATCHER V6.3</div>
+<div id="title">📡 NEURAL DX WATCHER V6.4</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -1243,6 +1443,7 @@
                 const allSpots = await allSpotsResponse.json();
                 updateMaps(allSpots);
                 clearExpiredAnnouncedSpots(allSpots);
+                bandmapRefresh(allSpots);  // BANDMAP update
             } catch(e) { console.error("Failed to fetch all spots for map/cleanup:", e); }
 
             try {
@@ -1425,6 +1626,91 @@
                     }
                 });
             });
+
+            // ---- Drag & Drop natif pour le panneau Bandmap (pleine largeur) ----
+            const bmPanel  = document.getElementById('bandmap-panel');
+            const bmHandle = document.getElementById('bandmap-drag-handle');
+            const bmSection = document.getElementById('bandmap-section');
+            if (bmPanel && bmHandle && bmSection) {
+                let dragging = false, startX, startY, origTop, origLeft, clone;
+
+                function bmDragStart(cx, cy) {
+                    dragging = true;
+                    startX = cx; startY = cy;
+                    const rect = bmPanel.getBoundingClientRect();
+                    origLeft = rect.left;
+                    origTop  = rect.top + window.scrollY;
+
+                    // Create floating clone
+                    clone = bmPanel.cloneNode(true);
+                    clone.style.cssText = `
+                        position:fixed; left:${rect.left}px; top:${rect.top}px;
+                        width:${rect.width}px; z-index:10000; opacity:0.88;
+                        pointer-events:none; box-shadow:0 8px 32px rgba(0,243,255,0.25);
+                        transition:none; margin:0;
+                    `;
+                    document.body.appendChild(clone);
+                    bmPanel.style.opacity = '0.25';
+                    document.body.style.userSelect = 'none';
+                }
+
+                function bmDragMove(cx, cy) {
+                    if (!dragging || !clone) return;
+                    const dx = cx - startX, dy = cy - startY;
+                    const rect = bmPanel.getBoundingClientRect();
+                    clone.style.left = (rect.left + dx) + 'px';
+                    clone.style.top  = (rect.top  + dy) + 'px';
+                    startX = cx; startY = cy;
+                }
+
+                function bmDragEnd() {
+                    if (!dragging) return;
+                    dragging = false;
+                    if (clone) { clone.remove(); clone = null; }
+                    bmPanel.style.opacity = '1';
+                    document.body.style.userSelect = '';
+                    // Redraw waterfall after drop
+                    setTimeout(() => { bandmapDrawWaterfall(); bandmapRender(); }, 50);
+                }
+
+                // Mouse
+                bmHandle.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0) return;
+                    if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION' || e.target.tagName === 'LABEL') return;
+                    bmDragStart(e.clientX, e.clientY);
+                    e.preventDefault();
+                });
+                document.addEventListener('mousemove', (e) => { if (dragging) bmDragMove(e.clientX, e.clientY); });
+                document.addEventListener('mouseup',   ()  => { if (dragging) bmDragEnd(); });
+
+                // Touch
+                bmHandle.addEventListener('touchstart', (e) => {
+                    const t = e.touches[0];
+                    bmDragStart(t.clientX, t.clientY);
+                }, { passive: true });
+                document.addEventListener('touchmove', (e) => {
+                    if (!dragging) return;
+                    const t = e.touches[0];
+                    bmDragMove(t.clientX, t.clientY);
+                }, { passive: true });
+                document.addEventListener('touchend', () => { if (dragging) bmDragEnd(); });
+            }
+
+            // Initial waterfall draw after layout settles
+            setTimeout(() => {
+                const bs = document.getElementById('bm-band-select');
+                const ms = document.getElementById('bm-mode-select');
+                if (bs) {
+                    bmCurrentBand = bs.value;
+                    bs.addEventListener('change', bandmapChangeBand);
+                }
+                if (ms) {
+                    bmCurrentMode = ms.value;
+                    ms.addEventListener('change', bandmapChangeMode);
+                }
+                bandmapDrawWaterfall();
+                bandmapRender();
+            }, 300);
         }
 
         function toggleTheme() {
@@ -1595,6 +1881,282 @@
              });
          }
 
+        // ===== BANDMAP WATERFALL =====
+        const BANDMAP_TTL_MS = 10 * 60 * 1000;
+        const BAND_RANGES = {
+            '160m':[1800,2000],'80m':[3500,4000],'60m':[5250,5450],
+            '40m':[7000,7300],'30m':[10100,10150],'20m':[14000,14350],
+            '17m':[18068,18168],'15m':[21000,21450],'12m':[24890,24990],
+            '10m':[28000,29700],'6m':[50000,54000],'4m':[69900,70600],
+            '2m':[144000,148000],'70cm':[430000,440000]
+        };
+        let bandmapSpots = [];
+        let bandmapFocusIdx = -1;
+        let bmWaterfallRows = [];    // array of ImageData rows for scrolling
+        let bmAnimFrame = null;
+        let bmCurrentBand = 'ALL';
+        let bmCurrentMode = 'ALL';
+
+        function bandmapGetRange() {
+            if (bmCurrentBand !== 'ALL' && BAND_RANGES[bmCurrentBand]) return BAND_RANGES[bmCurrentBand];
+            // Auto range: min/max of visible spots
+            const spots = bandmapVisibleSpots();
+            if (spots.length === 0) return [14000, 14350];
+            const freqs = spots.map(s => s.freqNum);
+            const mn = Math.min(...freqs), mx = Math.max(...freqs);
+            const pad = (mx - mn) * 0.08 || 50;
+            return [mn - pad, mx + pad];
+        }
+
+        function bandmapVisibleSpots() {
+            const now = Date.now();
+            // Purge expired spots first
+            bandmapSpots = bandmapSpots.filter(s => (now - s.time_ms) < BANDMAP_TTL_MS);
+            return bandmapSpots.filter(s => {
+                if (bmCurrentMode !== 'ALL' && s.mode !== bmCurrentMode) return false;
+                if (bmCurrentBand !== 'ALL') {
+                    const r = BAND_RANGES[bmCurrentBand];
+                    if (r && (s.freqNum < r[0] || s.freqNum > r[1])) return false;
+                }
+                return true;
+            });
+        }
+
+        function freqToX(freq, fmin, fmax, width) {
+            return Math.round(((freq - fmin) / (fmax - fmin)) * width);
+        }
+
+        function bandmapRefresh(allSpots) {
+            const now = Date.now();
+            // Pour chaque spot entrant, l'ajouter seulement s'il n'existe pas déjà
+            // Ne PAS rafraîchir time_ms des spots existants → expiration réelle en 10 min
+            allSpots.forEach(spot => {
+                const key = `${spot.dx_call}-${spot.freq}`;
+                const existing = bandmapSpots.find(s => s.key === key);
+                if (!existing) {
+                    // Nouveau spot : on l'ajoute avec time_ms = now
+                    bandmapSpots.push({
+                        key, freq: spot.freq,
+                        freqNum: parseFloat(spot.freq) || 0,
+                        call: spot.dx_call, mode: spot.mode,
+                        band: spot.band, color: spot.color,
+                        time_ms: now, isWL: watchlist.has(spot.dx_call),
+                        score: spot.score || 0
+                    });
+                } else {
+                    // Spot existant : on met à jour isWL et mode mais PAS time_ms
+                    existing.isWL = watchlist.has(spot.dx_call);
+                    existing.mode = spot.mode;
+                }
+            });
+            bandmapSpots.sort((a, b) => a.freqNum - b.freqNum);
+            if (bandmapFocusIdx >= bandmapSpots.length) bandmapFocusIdx = bandmapSpots.length - 1;
+            bandmapDrawWaterfall();
+            bandmapRender();
+        }
+
+        function bandmapChangeBand() {
+            const sel = document.getElementById('bm-band-select');
+            if (sel) bmCurrentBand = sel.value;
+            bmWaterfallRows = [];
+            bandmapDrawWaterfall();
+            bandmapRender();
+        }
+
+        function bandmapChangeMode() {
+            const sel = document.getElementById('bm-mode-select');
+            if (sel) bmCurrentMode = sel.value;
+            bmWaterfallRows = [];
+            bandmapDrawWaterfall();
+            bandmapRender();
+        }
+
+        function bandmapDrawWaterfall() {
+            const canvas = document.getElementById('bandmap-canvas');
+            if (!canvas) return;
+            const W = canvas.offsetWidth || canvas.parentElement.offsetWidth || 800;
+            canvas.width = W;
+            const H = 110;
+            canvas.height = H;
+            const ctx = canvas.getContext('2d');
+            const spots = bandmapVisibleSpots();
+            const [fmin, fmax] = bandmapGetRange();
+            const now = Date.now();
+
+            // Build new waterfall row based on current spots
+            const rowData = new Uint8ClampedArray(W * 4);
+            // Base: deep blue background
+            for (let x = 0; x < W; x++) {
+                rowData[x*4]   = 0;
+                rowData[x*4+1] = 8;
+                rowData[x*4+2] = 30;
+                rowData[x*4+3] = 255;
+            }
+            // Paint spots as bright spikes
+            spots.forEach(s => {
+                const x = freqToX(s.freqNum, fmin, fmax, W);
+                const age = (now - s.time_ms) / BANDMAP_TTL_MS; // 0=new, 1=old
+                const intensity = Math.max(0, 1 - age);
+                const spread = Math.max(2, Math.round(3 * intensity));
+                // Color: cyan→white for high score, yellow for WL
+                const r = s.isWL ? 255 : Math.round(0   + 180 * intensity);
+                const g = s.isWL ? 220 : Math.round(200 + 55  * intensity);
+                const b = s.isWL ? 0   : 255;
+                for (let dx = -spread; dx <= spread; dx++) {
+                    const px = x + dx;
+                    if (px < 0 || px >= W) continue;
+                    const falloff = 1 - Math.abs(dx) / (spread + 1);
+                    const v = Math.round(intensity * falloff * 255);
+                    rowData[px*4]   = Math.min(255, rowData[px*4]   + r * falloff * intensity);
+                    rowData[px*4+1] = Math.min(255, rowData[px*4+1] + g * falloff * intensity);
+                    rowData[px*4+2] = Math.min(255, rowData[px*4+2] + b * falloff * intensity * 0.4);
+                    rowData[px*4+3] = 255;
+                }
+            });
+
+            // Keep last H rows
+            bmWaterfallRows.unshift(rowData);
+            if (bmWaterfallRows.length > H) bmWaterfallRows = bmWaterfallRows.slice(0, H);
+
+            // Draw all rows top→bottom (oldest at top)
+            ctx.clearRect(0, 0, W, H);
+            for (let y = 0; y < bmWaterfallRows.length; y++) {
+                const row = bmWaterfallRows[y];
+                const rowY = H - 1 - y; // newest at bottom
+                const imgData = ctx.createImageData(W, 1);
+                imgData.data.set(row);
+                ctx.putImageData(imgData, 0, rowY);
+            }
+
+            // Grid lines for known mode sub-bands
+            ctx.strokeStyle = 'rgba(0,243,255,0.08)';
+            ctx.lineWidth = 1;
+            const step = (fmax - fmin) / 10;
+            for (let f = fmin; f <= fmax; f += step) {
+                const x = freqToX(f, fmin, fmax, W);
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+            }
+
+            // Draw freq axis
+            const axis = document.getElementById('bandmap-freq-axis');
+            if (axis) {
+                axis.innerHTML = '';
+                axis.style.width = W + 'px';
+                const tickCount = Math.min(12, Math.floor(W / 70));
+                for (let i = 0; i <= tickCount; i++) {
+                    const f = fmin + (fmax - fmin) * i / tickCount;
+                    const x = freqToX(f, fmin, fmax, W);
+                    const tick = document.createElement('span');
+                    tick.className = 'bm-freq-tick';
+                    tick.style.left = x + 'px';
+                    tick.textContent = f >= 1000 ? (f/1000).toFixed(3).replace(/\.?0+$/,'') + ' MHz' : f.toFixed(0) + ' kHz';
+                    axis.appendChild(tick);
+                }
+            }
+        }
+
+        function bandmapRender() {
+            const canvas = document.getElementById('bandmap-canvas');
+            const spotsArea = document.getElementById('bandmap-spots-area');
+            const spotsTrack = document.getElementById('bandmap-spots-track');
+            const statusEl = document.getElementById('bandmap-status');
+            if (!spotsTrack) return;
+
+            const spots = bandmapVisibleSpots();
+            const now = Date.now();
+            const W = canvas ? (canvas.offsetWidth || 800) : 800;
+            const [fmin, fmax] = bandmapGetRange();
+
+            // Update status
+            if (statusEl) {
+                statusEl.textContent = `${spots.length} spots · TTL 10min`;
+            }
+
+            // Track width = canvas width
+            spotsArea.style.overflowX = 'hidden';
+            spotsTrack.style.width = W + 'px';
+            spotsTrack.style.position = 'relative';
+
+            // Clamp focus
+            if (spots.length === 0) bandmapFocusIdx = -1;
+            else if (bandmapFocusIdx >= spots.length) bandmapFocusIdx = spots.length - 1;
+
+            // Build pins with anti-collision staggering
+            spotsTrack.innerHTML = '';
+            const PIN_WIDTH = 68; // estimated px width of a callsign label
+            const ROW_H = 24;     // height per stagger row (px)
+            const MAX_ROWS = 3;   // max stagger levels
+            // rows[level] = rightmost X occupied
+            const rows = new Array(MAX_ROWS).fill(-Infinity);
+
+            spots.forEach((s, i) => {
+                const x = freqToX(s.freqNum, fmin, fmax, W);
+                const ageMin = Math.floor((now - s.time_ms) / 60000);
+                const focused = (i === bandmapFocusIdx);
+                const callClass = s.isWL ? 'bm-pin-call wl-pin' : 'bm-pin-call';
+
+                // Find the first row where this pin won't overlap
+                let row = 0;
+                for (let r = 0; r < MAX_ROWS; r++) {
+                    if (x - PIN_WIDTH / 2 > rows[r] + 4) { row = r; break; }
+                    if (r === MAX_ROWS - 1) row = r; // fallback: last row
+                }
+                rows[row] = x + PIN_WIDTH / 2;
+
+                const topOffset = row * ROW_H + 2;
+                // Line height varies with stagger row
+                const lineH = Math.max(4, 10 - row * 3);
+
+                const pin = document.createElement('div');
+                pin.className = 'bm-spot-pin' + (focused ? ' bm-focused' : '');
+                pin.style.left = x + 'px';
+                pin.style.top = topOffset + 'px';
+                pin.title = `${s.call} · ${s.freq} kHz · ${s.mode} · ${ageMin}m`;
+                pin.innerHTML = `<div class="${callClass}"><a href="https://qrz.com/db/${s.call}" target="_blank">${s.call}</a></div><div class="bm-pin-line" style="height:${lineH}px"></div><div class="bm-pin-dot" style="background:${s.color};box-shadow:0 0 5px ${s.color};"></div>`;
+                pin.addEventListener('click', (e) => {
+                    if (!e.target.closest('a')) { bandmapFocusIdx = i; bandmapRender(); }
+                });
+                spotsTrack.appendChild(pin);
+            });
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            const spots = bandmapVisibleSpots();
+            if (spots.length === 0) return;
+            if (['ArrowRight','ArrowDown'].includes(e.key)) {
+                e.preventDefault();
+                bandmapFocusIdx = Math.min(bandmapFocusIdx + 1, spots.length - 1);
+                if (bandmapFocusIdx < 0) bandmapFocusIdx = 0;
+                bandmapRender();
+            } else if (['ArrowLeft','ArrowUp'].includes(e.key)) {
+                e.preventDefault();
+                bandmapFocusIdx = Math.max(bandmapFocusIdx - 1, 0);
+                bandmapRender();
+            } else if (e.key === 'Enter' && bandmapFocusIdx >= 0) {
+                const s = spots[bandmapFocusIdx];
+                if (s) window.open(`https://qrz.com/db/${s.call}`, '_blank');
+            }
+        });
+
+        // Refresh ages every 15s, redraw waterfall
+        setInterval(() => {
+            const now = Date.now();
+            bandmapSpots = bandmapSpots.filter(s => (now - s.time_ms) < BANDMAP_TTL_MS);
+            bandmapDrawWaterfall();
+            bandmapRender();
+        }, 15000);
+
+        // Redraw waterfall on resize
+        window.addEventListener('resize', () => {
+            bmWaterfallRows = [];
+            bandmapDrawWaterfall();
+            bandmapRender();
+        });
+
+        // ===== DRAG & DROP for bandmap header (réorganiser dans la page) =====
+        // Le bandmap est dans le flux normal (pas fixed), il peut être drag & drop via SortableJS
+        // Drag via handle sur la section entière bandmap-section
         document.addEventListener('DOMContentLoaded', initApp);
    
 (function(){

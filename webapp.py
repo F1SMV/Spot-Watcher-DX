@@ -32,7 +32,7 @@ tn_lock = threading.Lock()
 tn_current = None  # telnetlib.Telnet when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "6.3"
+APP_VERSION = "6.4"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -2286,7 +2286,7 @@ def check_update():
             remote_data = json.loads(r.read().decode('utf-8'))
        
         remote_version = remote_data.get("version", "0.0.0")
-        current_version = APP_VERSION.split()[-1]  # Extrait "6.3" de "NEURAL v6.3"
+        current_version = APP_VERSION.split()[-1]  # Extrait "6.4" de "NEURAL v6.4"
        
         update_available = (remote_version != current_version)
        
