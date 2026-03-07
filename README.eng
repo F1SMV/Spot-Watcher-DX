@@ -1,188 +1,168 @@
-📡 Radio Spot Watcher DX — v6.4
+# 📡 Radio Spot Watcher DX — v6.5
 
-DX Cluster Dashboard & Advanced Radio Analysis Engine
+**DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
-Local DX monitoring and radio analysis web application designed for demanding amateur radio operators.
-Built to observe, understand, and gain perspective — not to create visual noise.
+A local web application for DX monitoring and radio analysis, designed for the demanding amateur radio operator.  
+Built to **observe**, **understand** and **step back** — not to generate visual noise.
 
-🧭 Overview
+---
 
-Radio Spot Watcher DX is a local web application that:
+## 🧭 Overview
 
-connects to one or multiple DX Clusters (Telnet)
+**Radio Spot Watcher DX** is a local web application that:
 
-displays real-time spots (HF / VHF / UHF)
+- connects to one or more **DX Clusters (Telnet)**
+- displays **real-time spots** (HF / VHF / UHF)
+- integrates **solar indices** (SFI, A, Kp…)
+- maintains a **usable memory** of activity
+- offers **multiple reading levels**, from live monitoring to strategic analysis
 
-integrates solar indices (SFI, A, Kp…)
+> The goal is not to see a lot,  
+> but to **see clearly**.
 
-maintains a usable activity memory
+---
 
-provides multiple levels of interpretation, from live monitoring to strategic analysis
+## 🖥️ Main Pages
 
-The goal is not to see more,
-but to see clearly.
+### 1️⃣ **Index** Page — Real-time & Operator Tracking
 
-🖥️ Main Pages
-1️⃣ Index Page — Real-Time Monitoring & Operator Tracking
+Immediate observation page.
 
-Immediate observation interface.
+Displays:
+- live spot stream
+- active bands
+- wanted DX (*wanted*)
+- solar indices
+- **activity surge** alerts
 
-It displays:
+👉 **Goal: know what's happening right now.**
 
-live spot stream
+---
 
-active bands
+### 📡 **WATCHLIST · Tracking** Panel
 
-wanted DX
+A feature introduced to answer a simple need:
 
-solar indices
+> *"I wasn't at my desk — what did I miss?"*
 
-activity surge signals
-
-👉 Objective: understand what is happening now.
-
-📡 WATCHLIST · Tracking Panel
-
-Feature introduced to answer a simple need:
-
-“I wasn’t in front of the screen — what did I miss?”
-
-based on the watchlist
-
-uses in-memory historical tracking
-
-displays latest spots per callsign
+- based on the watchlist
+- uses an in-memory history
+- shows the latest spots per callsign
 
 Philosophy:
+- ❌ not a raw log  
+- ❌ not a massive data dump  
+- ✅ a catch-up tool  
+- ✅ designed for the human operator  
 
-❌ not a raw log
+---
 
-❌ not a massive data dump
+### 2️⃣ **Map** Page — Observation Map (micro-view)
 
-✅ a catch-up tool
+Classic map of **individual spots**:
 
-✅ designed for the human operator
+- each point = **one station**
+- immediate geographical representation
+- instant snapshot
 
-2️⃣ Map Page — Observation Map (Micro-Level View)
+👉 **Goal: see where it's happening.**
 
-Classic view of individual spots:
+The **Map** page is an **execution tool**.
 
-each point = one station
+---
 
-immediate geographical representation
+### 3️⃣ **Analysis** Page — Deferred META ANALYSIS
 
-instant visibility
+A deliberately **non-real-time** tool, based on application log analysis.
 
-👉 Objective: see where activity is occurring.
+👉 **A tool for stepping back**, not a gimmick.
 
-The Map page is an execution tool.
+---
 
-3️⃣ Analysis Page — Deferred META Analysis
+### 4️⃣ **World** Page — Forecast & Anomalies
 
-A deliberately non-real-time tool, based on application log analysis.
+The **World** page is **fundamentally different** from the Map page.
 
-👉 A perspective tool, not a gadget.
+| Page | Nature | Question |
+|---|---|---|
+| Map | Raw observation | Who is active right now? |
+| World | Interpreted analysis | Where is propagation abnormally favorable? |
 
-4️⃣ World Page — Forecast & Anomalies
+- displays **zones**, not stations
+- spatio-temporal clustering
+- noise filtering
+- controlled refresh rate
 
-The World page is fundamentally different from the Map page.
+👉 **World decides, Map executes.**
 
-Page	Nature	Core Question
-Map	Raw observation	Who is active right now?
-World	Interpreted analysis	Where is propagation unusually favorable?
+### 5️⃣ **Briefing** — updated every 12 hours, summarizing essential DX information and, most importantly, now offering the ability to automatically add callsigns (if you wish) to the **Watchlist** on the Index page.  
+This way you won't miss any expedition — as soon as an expedition callsign is spotted, it will be highlighted in yellow.
 
-displays zones, not stations
-
-spatio-temporal clustering
-
-noise filtering
-
-controlled refresh
-
-👉 World decides, Map executes.
-
-5️⃣ DX Briefing
-
-A “Briefing” page updated every 12 hours, summarizing essential DX information and now including:
-
-the ability to automatically add selected callsigns (optional) to the watchlist on the Index page
-
-ensuring you never miss an expedition
-
-As soon as an expedition callsign is spotted, it appears highlighted in yellow.
+---
 
 📸 Preview
 
-⚙️ Technical Architecture
+![Dashboard Preview](apercu.png)
 
-Backend: Python / Flask
+## ⚙️ Technical Architecture
 
-Frontend: HTML / CSS / JavaScript
-
-Cluster: Telnet DX Cluster
-
-Analysis: Dedicated Python scripts
-
-Storage: Memory + local JSON
+- Backend: Python / Flask  
+- Frontend: HTML / CSS / JavaScript  
+- Cluster: Telnet DX Cluster  
+- Analysis: dedicated Python scripts  
+- Storage: memory + local JSON files  
 
 No cloud dependency.
 
-🗂️ Version History
-v6.4 add bandmap on landing page
+---
 
-V6.3 update information and frequency sorting in dx hf and vhf 
+## 🗂️ Version History
 
-v6.2
+### v6.5
+Removal of the `telnetlib` library, replaced by `Telnetlib3` following a suggestion from F5UGQ.  
+Introduction of AI with the addition of a **"AI Vocal Brief"** button in the "Solar Indices" panel on index.html — optional, only if you wish to try it.  
+Requires a Perplexity API key. Cost: ~€0.01 per call.
 
-Optional automatic addition of callsigns to the dashboard watchlist
+### v6.4
+Addition of the bandmap on the home page; filtering by band and mode.
 
-Introduction of the new FT2 mode
+### v6.3
+Added frequency-based sorting in the HF and VHF DX panels, and an update banner when a new version is available.
 
-v6.1
+### v6.2
+Optional addition of callsigns to the watchlist from the dashboard, and support for the new FT2 mode.
 
-New “DXpeditions Briefing” page
+### v6.1
+New "DXpedition Briefing" page and updates to the index.html maps.
 
-Modifications to the maps on index.html
+### v6.0 — Stable Release
+- Finalization of the **World** page
+- Clear separation between Map and World
+- Stabilized clustering
+- Automatic refresh
+- Clarified UX
+- User state persistence
 
-v6.0 — Stable Release
+> Jump from **v5.7 to v6.0**  
+> due to several unpublished trial versions.
 
-Finalization of the World page
+### v5.7 — Work-in-progress versions
+- World page prototypes
+- Scoring adjustments
+- Structural fixes
 
-Clear separation between Map / World
+### v5.6
+- Experimental introduction of World
+- WATCHLIST · Tracking panel
 
-Stabilized clustering
+### v5.2
+- Introduction of META ANALYSIS
 
-Automatic refresh
+---
 
-Clarified UX
+## 👤 Author
 
-User state persistence
-
-Version jump from v5.7 to v6.0
-due to multiple unpublished internal testing builds.
-
-v5.7 — Development Versions
-
-World prototypes
-
-Scoring adjustments
-
-Structural corrections
-
-v5.6
-
-Introduction of World (experimental)
-
-WATCHLIST · Tracking panel
-
-v5.2
-
-Introduction of META Analysis
-
-👤 Author
-
-Developed by F1SMV – Eric
-with assistance from ChatGPT 5.2 and Gemini
-in service of the amateur radio community.
-
-You can contact me via X.
+Developed by **F1SMV – Eric**  
+with the assistance of ChatGPT 5.2, Gemini & Claude  
+for the amateur radio community.  
+Contact: @f1smv on X

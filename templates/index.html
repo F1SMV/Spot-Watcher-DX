@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v6.4</title>
+<title>📡 NEURAL DX v6.5</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -669,7 +669,7 @@
 </div>
 
 <div id="header">
-<div id="title">📡 NEURAL DX WATCHER V6.4</div>
+<div id="title">📡 NEURAL DX WATCHER V6.5</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -903,6 +903,25 @@
 <b>EN</b> : Higher <b>SFI</b> often helps HF openings (10–12–15m). <b>A</b> and <b>K</b> indicate geomagnetic disturbance: higher values can mean less stable propagation.
 </div>
 <div id="solar-error" style="margin-top:6px; font-size:0.85em; color: var(--alert); display:none;"></div>
+
+<!-- IA BRIEF VOCAL — masqué si PERPLEXITY_API_KEY non défini -->
+<div id="ai-brief-container" style="display:none; margin-top:10px; border-top:1px solid #1a1a2e; padding-top:8px;">
+  <button id="ai-brief-btn" onclick="aiBriefSpeak()" style="
+      background: #00f3ff18;
+      border: 1px solid #00f3ff88;
+      color: #00f3ff;
+      padding: 5px 14px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 12px;
+      letter-spacing: 1px;
+      transition: background 0.2s;
+  ">🎙️ BRIEF VOCAL IA</button>
+  <span id="ai-brief-status" style="color:#606080; font-size:11px; margin-left:8px;"></span>
+  <div id="ai-brief-text" style="display:none; margin-top:6px; color:#8888aa; font-size:11px; font-style:italic; line-height:1.5;"></div>
+</div>
+
 </div>
 </div>
 
@@ -2298,5 +2317,68 @@ fetch('/api/check_update')
     .catch(err => console.warn('Erreur lors de la vérification des mises à jour:', err));
 </script>
 
+<script>
+/* ---- IA BRIEF VOCAL (Perplexity) ---- */
+(function () {
+  fetch('/api/ai_brief_status.json')
+    .then(r => r.json())
+    .then(d => {
+      if (d.enabled) {
+        document.getElementById('ai-brief-container').style.display = 'block';
+      }
+    })
+    .catch(() => {});
+
+  const lang = (navigator.language || 'fr').startsWith('fr') ? 'fr' : 'en';
+
+  window.aiBriefSpeak = function (force) {
+    const btn    = document.getElementById('ai-brief-btn');
+    const status = document.getElementById('ai-brief-status');
+    const txtDiv = document.getElementById('ai-brief-text');
+
+    btn.disabled = true;
+    status.textContent = '⏳ Génération...';
+
+    fetch(`/api/ai_brief.json?lang=${lang}${force ? '&force=1' : ''}`)
+      .then(r => r.json())
+      .then(d => {
+        btn.disabled = false;
+        if (!d.ok || !d.text) {
+          status.textContent = '⚠️ Erreur';
+          return;
+        }
+        const age = d.age_sec ? ` (cache ${d.age_sec}s)` : '';
+        const fb  = d.fallback ? ' [local]' : '';
+        status.textContent = `✅ ${d.lang.toUpperCase()}${age}${fb}`;
+        txtDiv.textContent = d.text;
+        txtDiv.style.display = 'block';
+
+        if (!window.speechSynthesis) {
+          status.textContent += ' — TTS non supporté';
+          return;
+        }
+        window.speechSynthesis.cancel();
+        const utt  = new SpeechSynthesisUtterance(d.text);
+        utt.lang   = d.lang === 'fr' ? 'fr-FR' : 'en-US';
+        utt.rate   = 0.95;
+        utt.pitch  = 1.0;
+        const voices = window.speechSynthesis.getVoices();
+        const best = voices.find(v =>
+          v.lang.startsWith(d.lang === 'fr' ? 'fr' : 'en') && v.localService
+        );
+        if (best) utt.voice = best;
+        utt.onstart = () => { btn.textContent = '🔊 LECTURE...'; };
+        utt.onend   = () => { btn.textContent = '🎙️ BRIEF VOCAL IA'; };
+        utt.onerror = () => { btn.textContent = '🎙️ BRIEF VOCAL IA'; };
+        window.speechSynthesis.speak(utt);
+      })
+      .catch(err => {
+        btn.disabled = false;
+        status.textContent = '⚠️ ' + err.message;
+      });
+  };
+})();
+/* ---- FIN IA BRIEF VOCAL ---- */
+</script>
 </body>
 </html>

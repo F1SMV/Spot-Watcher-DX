@@ -1,5 +1,5 @@
 import time
-import telnetlib
+import socket
 import threading
 import json
 import os
@@ -27,12 +27,24 @@ ANALYZER = Path("tools/log_meta_analyzer.py")
 
 META_RUN_TOKEN = os.getenv("META_RUN_TOKEN", "")  # optionnel
 
+# =============================================================
+# CONFIGURATION IA BRIEF VOCAL (optionnel)
+# Activer : définir la variable d'environnement PERPLEXITY_API_KEY
+# Ex: export PERPLEXITY_API_KEY="pplx-xxxxxxxxxxxx"
+# Désactiver : ne pas définir la variable (feature masquée automatiquement)
+# =============================================================
+PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY", "")
+AI_BRIEF_ENABLED = bool(PERPLEXITY_API_KEY)
+AI_BRIEF_MODEL = "sonar-pro"        # modèle chat Perplexity actuel (2025)
+AI_BRIEF_CACHE_TTL = 600           # 10 min entre deux appels API
+AI_BRIEF_MAX_TOKENS = 300          # brief court = lecture vocale fluide
+
 # --- CLUSTER TX (Spot) ---
 tn_lock = threading.Lock()
-tn_current = None  # telnetlib.Telnet when connected
+tn_current = None  # socket.socket when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "6.4"
+APP_VERSION = "6.5"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -828,45 +840,69 @@ def ticker_worker():
         logger.info(f"Ticker mis à jour.")
         time.sleep(1800)
 
+def _socket_readline(sock, timeout=2):
+    """Lit une ligne complète depuis un socket TCP, avec timeout. Retourne str ou lève exception."""
+    sock.settimeout(timeout)
+    buf = b""
+    while True:
+        chunk = sock.recv(1024)
+        if not chunk:
+            raise EOFError("Connexion fermée par le cluster")
+        buf += chunk
+        if b"\n" in buf:
+            line, _, _ = buf.partition(b"\n")
+            return line.decode('ascii', errors='ignore').strip()
+
+
+def _socket_send(sock, text):
+    """Envoie une ligne texte sur le socket."""
+    sock.sendall(text.encode('latin-1', errors='ignore'))
+
+
 def telnet_worker():
-    """Tâche pour se connecter et écouter le DX Cluster."""
+    """Tâche pour se connecter et écouter le DX Cluster (socket TCP brut, sans telnetlib)."""
     threading.current_thread().name = 'TelnetWorker'
     logger.info("TelnetWorker démarré.")
     idx = 0
     while True:
         host, port = CLUSTERS[idx]
         logger.info(f"Tentative de connexion au Cluster: {host}:{port} ({idx + 1}/{len(CLUSTERS)})")
+        tn = None
         try:
-            tn = telnetlib.Telnet(host, port, timeout=10)
+            tn = socket.create_connection((host, port), timeout=10)
             # Expose current connection for TX (spotting)
             global tn_current
             with tn_lock:
                 tn_current = tn
+
+            # Attente prompt login (best-effort, pas bloquant)
             try:
-                tn.read_until(b"login: ", timeout=3)
-            except:
+                _socket_readline(tn, timeout=3)
+            except Exception:
                 pass
 
-            tn.write(MY_CALL.encode('latin-1') + b"\n")
+            _socket_send(tn, MY_CALL + "\n")
             time.sleep(1)
-            tn.write(b"set/dx/filter\n")
-            tn.write(b"show/dx 50\n")
+            _socket_send(tn, "set/dx/filter\n")
+            _socket_send(tn, "show/dx 50\n")
             logger.info(f"Connexion établie sur {host}:{port}. Écoute des spots en cours.")
             last_ping = time.time()
 
             while True:
                 try:
-                    line = tn.read_until(b"\n", timeout=2).decode('ascii', errors='ignore').strip()
+                    line = _socket_readline(tn, timeout=2)
                 except EOFError:
                     logger.warning(f"Cluster {host} a fermé la connexion (EOFError).")
                     break
+                except socket.timeout:
+                    line = ""
                 except Exception as e:
-                    logger.warning(f"Erreur de lecture Telnet: {e}")
+                    logger.warning(f"Erreur de lecture socket: {e}")
                     line = ""
 
                 if not line:
                     if time.time() - last_ping > KEEP_ALIVE:
-                        tn.write(b"\n")
+                        _socket_send(tn, "\n")
                         last_ping = time.time()
                     analyze_surges()
                     continue
@@ -936,6 +972,15 @@ def telnet_worker():
         except Exception as e:
             logger.error(f"ERREUR CRITIQUE Cluster {host}:{port}: {e}. Basculement vers un autre cluster.")
             time.sleep(10)
+        finally:
+            with tn_lock:
+                if tn_current is tn:
+                    tn_current = None
+            if tn:
+                try:
+                    tn.close()
+                except Exception:
+                    pass
 
         idx = (idx + 1) % len(CLUSTERS)
 
@@ -1047,8 +1092,7 @@ def cluster_send_line(line: str) -> bool:
     if tn is None:
         return False
     try:
-        # Cluster expects latin-1 compatible bytes in most cases
-        tn.write(line.encode('latin-1', errors='ignore') + b"\n")
+        _socket_send(tn, line + "\n")
         return True
     except Exception:
         return False
@@ -1909,6 +1953,276 @@ def api_dx_briefing():
         dx_briefing_cache[payload['lang']] = payload
     return jsonify(payload)
 # --- END DX BRIEFING ---
+
+
+# =============================================================
+# IA BRIEF VOCAL — Perplexity API (optionnel)
+# =============================================================
+ai_brief_lock = threading.Lock()
+ai_brief_cache = {"ts": 0.0, "text": None, "lang": None}
+
+
+def _band_velocity(spots, band, window_sec=300):
+    """Retourne le nombre de spots sur une bande dans les dernières window_sec secondes."""
+    now_ts = time.time()
+    return sum(1 for s in spots
+               if s.get("band") == band and (now_ts - s.get("timestamp", 0)) < window_sec)
+
+
+def _build_ai_context(lang="fr"):
+    """Compile un contexte riche avec tendances temporelles pour raisonnement IA."""
+    with solar_lock:
+        sc = dict(solar_cache)
+
+    now_ts = time.time()
+
+    # Fenêtres temporelles
+    w5  = [s for s in spots_buffer if (now_ts - s.get("timestamp", 0)) < 300]
+    w15 = [s for s in spots_buffer if (now_ts - s.get("timestamp", 0)) < 900]
+    w30 = [s for s in spots_buffer if (now_ts - s.get("timestamp", 0)) < 1800]
+    w1h = [s for s in spots_buffer if (now_ts - s.get("timestamp", 0)) < 3600]
+
+    # Vélocité par bande : tendance montante/descendante/stable
+    band_velocity = {}
+    for band in HF_BANDS + VHF_BANDS:
+        v5  = _band_velocity(spots_buffer, band, 300)
+        v30 = _band_velocity(spots_buffer, band, 1800)
+        rate_30 = v30 / 6  # moyenne spots/5min sur 30min
+        if v5 > 0 or v30 > 0:
+            trend = "montante" if v5 > rate_30 * 1.5 else \
+                    "descendante" if (v5 < rate_30 * 0.5 and rate_30 > 0) else "stable"
+            band_velocity[band] = {
+                "spots_5min": v5,
+                "spots_30min": v30,
+                "tendance": trend
+            }
+
+    # Watchlist — détail par call : dernier spot, âge, bande, fréquence
+    watchlist_detail = []
+    for call in sorted(watchlist):
+        spots_wl = [s for s in w1h if s.get("dx_call", "").upper() == call]
+        if spots_wl:
+            last = max(spots_wl, key=lambda s: s.get("timestamp", 0))
+            age_min = int((now_ts - last.get("timestamp", 0)) / 60)
+            watchlist_detail.append({
+                "call": call,
+                "age_min": age_min,
+                "band": last.get("band"),
+                "mode": last.get("mode"),
+                "freq": last.get("freq"),
+                "score": last.get("score"),
+            })
+
+    # Spots rares avec détail
+    rare_detail = []
+    seen_rare = set()
+    for s in sorted(w1h, key=lambda x: x.get("timestamp", 0), reverse=True):
+        if s.get("is_rare") and s.get("dx_call") not in seen_rare:
+            seen_rare.add(s.get("dx_call"))
+            age_min = int((now_ts - s.get("timestamp", 0)) / 60)
+            rare_detail.append({
+                "call": s.get("dx_call"),
+                "country": s.get("country"),
+                "band": s.get("band"),
+                "mode": s.get("mode"),
+                "age_min": age_min,
+                "score": s.get("score"),
+            })
+            if len(rare_detail) >= 5:
+                break
+
+    # Longue distance avec détail
+    long_dist_detail = []
+    seen_ld = set()
+    for s in sorted(w1h, key=lambda x: x.get("distance_km", 0), reverse=True):
+        if (s.get("distance_km") or 0) >= 10000 and s.get("dx_call") not in seen_ld:
+            seen_ld.add(s.get("dx_call"))
+            long_dist_detail.append({
+                "call": s.get("dx_call"),
+                "country": s.get("country"),
+                "band": s.get("band"),
+                "dist_km": int(s.get("distance_km", 0)),
+                "age_min": int((now_ts - s.get("timestamp", 0)) / 60),
+            })
+            if len(long_dist_detail) >= 3:
+                break
+
+    # Tendance activité globale
+    global_trend = "stable"
+    if len(w30) > 0:
+        rate_5  = len(w5)
+        rate_30 = len(w30) / 6
+        if rate_5 > rate_30 * 1.8:
+            global_trend = "forte accélération"
+        elif rate_5 > rate_30 * 1.3:
+            global_trend = "accélération"
+        elif rate_5 < rate_30 * 0.4:
+            global_trend = "forte baisse"
+        elif rate_5 < rate_30 * 0.7:
+            global_trend = "baisse"
+
+    try:
+        surges = analyze_surges()
+    except Exception:
+        surges = []
+
+    return {
+        "ts_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "my_call": MY_CALL,
+        "solar": {
+            "sfi": sc.get("sfi"), "a": sc.get("a"),
+            "k": sc.get("k"), "kp": sc.get("kp")
+        },
+        "activite": {
+            "spots_5min": len(w5),
+            "spots_15min": len(w15),
+            "spots_30min": len(w30),
+            "spots_1h": len(w1h),
+            "tendance_globale": global_trend,
+        },
+        "bandes": {b: v for b, v in band_velocity.items() if v["spots_30min"] > 0},
+        "watchlist": watchlist_detail,
+        "spots_rares": rare_detail,
+        "longue_distance": long_dist_detail,
+        "surges": surges,
+    }
+
+
+def call_perplexity_brief(lang="fr"):
+    """Appelle l'API Perplexity et retourne le texte du brief IA, ou None en cas d'erreur."""
+    if not AI_BRIEF_ENABLED:
+        return None
+
+    ctx = _build_ai_context(lang)
+
+    # Résumé lisible des bandes avec tendance
+    bandes_actives = []
+    for band, v in ctx["bandes"].items():
+        trend_sym = "↑" if v["tendance"] == "montante" else \
+                    "↓" if v["tendance"] == "descendante" else "→"
+        bandes_actives.append(f"{band}({v['spots_5min']}sp/5min {trend_sym})")
+
+    watchlist_str = ""
+    if ctx["watchlist"]:
+        parts = [f"{w['call']} sur {w['band']} {w['mode']} il y a {w['age_min']}min"
+                 for w in ctx["watchlist"]]
+        watchlist_str = " ; ".join(parts)
+
+    rares_str = ""
+    if ctx["spots_rares"]:
+        parts = [f"{r['call']} ({r['country']}) {r['band']} il y a {r['age_min']}min"
+                 for r in ctx["spots_rares"]]
+        rares_str = " ; ".join(parts)
+
+    ld_str = ""
+    if ctx["longue_distance"]:
+        parts = [f"{l['call']} {l['country']} {l['dist_km']}km {l['band']}"
+                 for l in ctx["longue_distance"]]
+        ld_str = " ; ".join(parts)
+
+    lang_instr = "en français" if lang == "fr" else "in English"
+
+    prompt = (
+        f"Tu es un expert DX radio. Analyse ces données LIVE et dis à l'opérateur {MY_CALL} "
+        f"CE QU'IL DOIT FAIRE MAINTENANT — pas ce qu'il voit déjà à l'écran.\n\n"
+        f"DONNÉES ({ctx['ts_utc']}) :\n"
+        f"- Solaire : SFI={ctx['solar']['sfi']}, A={ctx['solar']['a']}, K={ctx['solar']['k']}\n"
+        f"- Activité : {ctx['activite']['spots_5min']} spots/5min, tendance {ctx['activite']['tendance_globale']}\n"
+        f"- Bandes avec tendance : {', '.join(bandes_actives) or 'aucune'}\n"
+        f"- Watchlist active : {watchlist_str or 'aucune'}\n"
+        f"- Entités rares (1h) : {rares_str or 'aucune'}\n"
+        f"- Longue distance (>10000km) : {ld_str or 'aucune'}\n"
+        f"- Surges : {', '.join(ctx['surges']) or 'aucun'}\n\n"
+        f"RÈGLES DE RÉPONSE :\n"
+        f"- 2-3 phrases maximum, {lang_instr}, ton opérateur radio direct\n"
+        f"- Commence par l'action prioritaire (ex: 'Va sur 15m maintenant', 'VP2ELX sur watchlist, pile-up léger, tente-le')\n"
+        f"- Si watchlist active : mentionne-la en premier\n"
+        f"- Si tendance montante sur une bande : dis-le explicitement\n"
+        f"- Si rien d'urgent : dis-le clairement plutôt que de reformuler les chiffres\n"
+        f"- NE PAS répéter les chiffres bruts déjà visibles (SFI, K, comptages)\n"
+        f"- Réponds UNIQUEMENT avec le texte du brief, sans introduction"
+    )
+
+    try:
+        resp = requests.post(
+            "https://api.perplexity.ai/chat/completions",
+            headers={
+                "Authorization": f"Bearer {PERPLEXITY_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": AI_BRIEF_MODEL,
+                "max_tokens": AI_BRIEF_MAX_TOKENS,
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        logger.warning(f"AI brief Perplexity failed: {e}")
+        return None
+
+
+@app.route("/api/ai_brief.json")
+def api_ai_brief():
+    """
+    Brief vocal IA via Perplexity (optionnel, activé si PERPLEXITY_API_KEY est défini).
+    Params:
+      - lang=fr|en
+      - force=1 pour ignorer le cache
+    Retourne: {"ok": true, "enabled": true, "text": "...", "lang": "fr", "cached": false}
+    """
+    if not AI_BRIEF_ENABLED:
+        return jsonify({
+            "ok": True, "enabled": False,
+            "text": None, "reason": "PERPLEXITY_API_KEY not set"
+        })
+
+    lang = (request.args.get("lang") or "fr").lower()
+    lang = "en" if lang.startswith("en") else "fr"
+    force = request.args.get("force") in ("1", "true", "yes")
+    now = time.time()
+
+    with ai_brief_lock:
+        age = now - ai_brief_cache["ts"]
+        if (not force and ai_brief_cache["text"]
+                and ai_brief_cache["lang"] == lang
+                and age < AI_BRIEF_CACHE_TTL):
+            return jsonify({
+                "ok": True, "enabled": True,
+                "text": ai_brief_cache["text"],
+                "lang": lang, "cached": True, "age_sec": int(age)
+            })
+
+    text = call_perplexity_brief(lang=lang)
+    fallback = False
+
+    if text is None:
+        # Fallback sur le brief déterministe si Perplexity échoue
+        payload = build_dx_briefing(lang=lang)
+        text = payload.get("briefing", "")
+        fallback = True
+
+    with ai_brief_lock:
+        ai_brief_cache.update({"ts": now, "text": text, "lang": lang})
+
+    return jsonify({
+        "ok": True, "enabled": True, "text": text,
+        "lang": lang, "cached": False, "fallback": fallback
+    })
+
+
+@app.route("/api/ai_brief_status.json")
+def api_ai_brief_status():
+    """Indique si la feature IA est activée (utilisé par le widget JS)."""
+    return jsonify({
+        "enabled": AI_BRIEF_ENABLED,
+        "model": AI_BRIEF_MODEL if AI_BRIEF_ENABLED else None
+    })
+
+# --- END IA BRIEF VOCAL ---
 
 
 def _strip_html(value: str) -> str:
