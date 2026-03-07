@@ -117,20 +117,20 @@ Aucune dépendance cloud.
 
 ## 🗂️ Historique des versions
 
-### v6.5 suppression de l'utilisation de la librairie telnetlib pat Telnetlib3 sur une suggestion de F5UGQ, 
+# v6.5 suppression de l'utilisation de la librairie telnetlib pat Telnetlib3 sur une suggestion de F5UGQ, 
     introduction d'une dose d'IA par l'adjonction d'un bouton "bref vocal IA" dans le pavé "solar indices" de la page index.html
     uniquement si vous souhaitez tester. 
     Il vous faudra une clef api chez perplexity, cout 0.01 € par appel
 
-## v6.4 ajout de la bandemap sur la page d'accueil; selection par bande et mode
+# v6.4 ajout de la bandemap sur la page d'accueil; selection par bande et mode
 
-### v6.3 ajout du tri par fréquences dans les pavés DX HF et DX VHF et bandeau update quand une nouvelle version apparait 
+# v6.3 ajout du tri par fréquences dans les pavés DX HF et DX VHF et bandeau update quand une nouvelle version apparait 
 
-### v6.2 ajout sur option des calls dans la watching list du dashboard et rajout du nouveau mode FT2
+# v6.2 ajout sur option des calls dans la watching list du dashboard et rajout du nouveau mode FT2
 
-### v6.1 nouvelle page « briefing dxpeditions » et modification des cartes de la page index.html
+# v6.1 nouvelle page « briefing dxpeditions » et modification des cartes de la page index.html
 
-### v6.0 — Release stable
+# v6.0 — Release stable
 - Finalisation de la page **World**
 - Séparation claire Map / World
 - Clustering stabilisé
@@ -141,16 +141,16 @@ Aucune dépendance cloud.
 > Passage de **v5.7 à v6.0**  
 > dû à plusieurs versions d’essai non publiées.
 
-### v5.7 — Versions de travail
+# v5.7 — Versions de travail
 - prototypes World
 - ajustements de scoring
 - corrections structurelles
 
-### v5.6
+# v5.6
 - Introduction de World (expérimentale)
 - Pavé WATCHLIST · Tracking
 
-### v5.2
+# v5.2
 - Introduction de la META ANALYSE
 
 ---
