@@ -117,10 +117,10 @@ Aucune dépendance cloud.
 
 ## 🗂️ Historique des versions
 
-#  v6.5 suppression de l'utilisation de la librairie telnetlib pat Telnetlib3 sur une suggestion de F5UGQ, 
-   introduction d'une dose d'IA par l'adjonction d'un bouton "bref vocal IA" dans le pavé "solar indices" de la page index.html
-   uniquement si vous souhaitez tester. 
-   Il vous faudra une clef api chez perplexity, cout 0.01 € par appel
+### v6.5 suppression de l'utilisation de la librairie telnetlib pat Telnetlib3 sur une suggestion de F5UGQ, 
+    introduction d'une dose d'IA par l'adjonction d'un bouton "bref vocal IA" dans le pavé "solar indices" de la page index.html
+    uniquement si vous souhaitez tester. 
+    Il vous faudra une clef api chez perplexity, cout 0.01 € par appel
 
 ## v6.4 ajout de la bandemap sur la page d'accueil; selection par bande et mode
 
