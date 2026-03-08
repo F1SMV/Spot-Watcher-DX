@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v6.5</title>
+<title>📡 NEURAL DX v6.6</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -638,7 +638,7 @@
       <option value="10m">10m</option>
       <option value="6m">6m</option>
       <option value="4m">4m</option>
-      <option value="2m">2m</option>
+      <option value="2m\">2m</option>
       <option value="70cm">70cm</option>
     </select>
     <label style="font-size:0.82em;opacity:0.8;">Mode :</label>
@@ -653,6 +653,20 @@
       <option value="PSK31">PSK31</option>
       <option value="RTTY">RTTY</option>
     </select>
+    <!-- Curseur zoom : double-clic sur zone -->
+    <label style="font-size:0.82em;opacity:0.8;margin-left:10px;" title="Zoom : réduit la plage de fréquences visible. Double-clic sur le waterfall pour centrer.">Zoom :</label>
+    <input type="range" id="bm-zoom-slider" min="1" max="10" value="1" step="1"
+      style="width:80px;vertical-align:middle;accent-color:#00f3ff;"
+      title="Zoom fréquences (1=tout, 10=très zoomé)"
+      oninput="bandmapZoomChange(this.value)">
+    <span id="bm-zoom-label" style="font-size:0.78em;opacity:0.7;min-width:18px;display:inline-block;">1×</span>
+    <!-- Curseur densité : filtre les labels à faible score -->
+    <label style="font-size:0.82em;opacity:0.8;margin-left:10px;" title="Densité : masque les stations à faible score SPD quand le waterfall est chargé">Densité :</label>
+    <input type="range" id="bm-density-slider" min="0" max="100" value="0" step="10"
+      style="width:80px;vertical-align:middle;accent-color:#ffcc00;"
+      title="Score SPD minimum pour afficher un label (0=tous, 100=seulement les rares)"
+      oninput="bandmapDensityChange(this.value)">
+    <span id="bm-density-label" style="font-size:0.78em;opacity:0.7;min-width:30px;display:inline-block;">Tous</span>
   </div>
   <!-- Waterfall canvas (scrolling) -->
   <div id="bandmap-waterfall-wrap">
@@ -669,7 +683,7 @@
 </div>
 
 <div id="header">
-<div id="title">📡 NEURAL DX WATCHER V6.5</div>
+<div id="title">📡 NEURAL DX WATCHER V6.6</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -903,25 +917,6 @@
 <b>EN</b> : Higher <b>SFI</b> often helps HF openings (10–12–15m). <b>A</b> and <b>K</b> indicate geomagnetic disturbance: higher values can mean less stable propagation.
 </div>
 <div id="solar-error" style="margin-top:6px; font-size:0.85em; color: var(--alert); display:none;"></div>
-
-<!-- IA BRIEF VOCAL — masqué si PERPLEXITY_API_KEY non défini -->
-<div id="ai-brief-container" style="display:none; margin-top:10px; border-top:1px solid #1a1a2e; padding-top:8px;">
-  <button id="ai-brief-btn" onclick="aiBriefSpeak()" style="
-      background: #00f3ff18;
-      border: 1px solid #00f3ff88;
-      color: #00f3ff;
-      padding: 5px 14px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-family: monospace;
-      font-size: 12px;
-      letter-spacing: 1px;
-      transition: background 0.2s;
-  ">🎙️ BRIEF VOCAL IA</button>
-  <span id="ai-brief-status" style="color:#606080; font-size:11px; margin-left:8px;"></span>
-  <div id="ai-brief-text" style="display:none; margin-top:6px; color:#8888aa; font-size:11px; font-style:italic; line-height:1.5;"></div>
-</div>
-
 </div>
 </div>
 
@@ -1915,16 +1910,30 @@
         let bmAnimFrame = null;
         let bmCurrentBand = 'ALL';
         let bmCurrentMode = 'ALL';
+        let bmZoomLevel = 1;         // 1=tout, 10=très zoomé
+        let bmZoomCenter = null;     // fréquence centrale du zoom (kHz), null=auto
+        let bmMinScore = 0;          // score SPD minimum pour afficher un label
 
         function bandmapGetRange() {
-            if (bmCurrentBand !== 'ALL' && BAND_RANGES[bmCurrentBand]) return BAND_RANGES[bmCurrentBand];
-            // Auto range: min/max of visible spots
-            const spots = bandmapVisibleSpots();
-            if (spots.length === 0) return [14000, 14350];
-            const freqs = spots.map(s => s.freqNum);
-            const mn = Math.min(...freqs), mx = Math.max(...freqs);
-            const pad = (mx - mn) * 0.08 || 50;
-            return [mn - pad, mx + pad];
+            // Plage de base selon la bande sélectionnée ou auto
+            let [fmin, fmax] = (() => {
+                if (bmCurrentBand !== 'ALL' && BAND_RANGES[bmCurrentBand]) return BAND_RANGES[bmCurrentBand];
+                const spots = bandmapVisibleSpots();
+                if (spots.length === 0) return [14000, 14350];
+                const freqs = spots.map(s => s.freqNum);
+                const mn = Math.min(...freqs), mx = Math.max(...freqs);
+                const pad = (mx - mn) * 0.08 || 50;
+                return [mn - pad, mx + pad];
+            })();
+
+            // Appliquer zoom si > 1
+            if (bmZoomLevel > 1) {
+                const center = bmZoomCenter !== null ? bmZoomCenter : (fmin + fmax) / 2;
+                const halfSpan = (fmax - fmin) / (2 * bmZoomLevel);
+                fmin = center - halfSpan;
+                fmax = center + halfSpan;
+            }
+            return [fmin, fmax];
         }
 
         function bandmapVisibleSpots() {
@@ -1977,6 +1986,7 @@
         function bandmapChangeBand() {
             const sel = document.getElementById('bm-band-select');
             if (sel) bmCurrentBand = sel.value;
+            bmZoomCenter = null; // reset centre zoom sur changement de bande
             bmWaterfallRows = [];
             bandmapDrawWaterfall();
             bandmapRender();
@@ -1989,6 +1999,91 @@
             bandmapDrawWaterfall();
             bandmapRender();
         }
+
+        function bandmapZoomChange(val) {
+            bmZoomLevel = parseInt(val);
+            const lbl = document.getElementById('bm-zoom-label');
+            if (lbl) lbl.textContent = bmZoomLevel + '×';
+            const canvas = document.getElementById('bandmap-canvas');
+            if (canvas) canvas.style.cursor = bmZoomLevel > 1 ? 'grab' : 'default';
+            bmWaterfallRows = [];
+            bandmapDrawWaterfall();
+            bandmapRender();
+        }
+
+        function bandmapDensityChange(val) {
+            bmMinScore = parseInt(val);
+            const lbl = document.getElementById('bm-density-label');
+            if (lbl) lbl.textContent = bmMinScore === 0 ? 'Tous' : 'SPD≥' + bmMinScore;
+            bandmapRender(); // pas besoin de redessiner le waterfall
+        }
+
+        // Interactions souris sur le canvas : pan (drag) + double-clic pour centrer
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('bandmap-canvas');
+            if (!canvas) return;
+
+            let isPanning = false;
+            let panStartX = null;
+            let panStartCenter = null;
+
+            // Double-clic : centre le zoom sur la fréquence cliquée
+            canvas.addEventListener('dblclick', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const xPct = (e.clientX - rect.left) / rect.width;
+                const [fmin, fmax] = bandmapGetRange();
+                bmZoomCenter = fmin + xPct * (fmax - fmin);
+                // Auto-zoom à 3× si on était à 1×
+                if (bmZoomLevel === 1) {
+                    bmZoomLevel = 3;
+                    const slider = document.getElementById('bm-zoom-slider');
+                    const lbl = document.getElementById('bm-zoom-label');
+                    if (slider) slider.value = bmZoomLevel;
+                    if (lbl) lbl.textContent = bmZoomLevel + '×';
+                }
+                bmWaterfallRows = [];
+                bandmapDrawWaterfall();
+                bandmapRender();
+            });
+
+            // Pan : drag horizontal pour recentrer (uniquement si zoom > 1)
+            canvas.addEventListener('mousedown', (e) => {
+                if (bmZoomLevel <= 1) return;
+                if (e.button !== 0) return;
+                isPanning = true;
+                panStartX = e.clientX;
+                const [fmin, fmax] = bandmapGetRange();
+                panStartCenter = bmZoomCenter !== null ? bmZoomCenter : (fmin + fmax) / 2;
+                canvas.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isPanning) return;
+                const rect = canvas.getBoundingClientRect();
+                const W = rect.width;
+                const [fmin, fmax] = bandmapGetRange();
+                const freqPerPx = (fmax - fmin) / W;
+                const dx = e.clientX - panStartX;
+                // Déplacer vers la gauche = fréquences plus hautes, vers droite = plus basses
+                bmZoomCenter = panStartCenter - dx * freqPerPx;
+                bmWaterfallRows = [];
+                bandmapDrawWaterfall();
+                bandmapRender();
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isPanning) {
+                    isPanning = false;
+                    canvas.style.cursor = bmZoomLevel > 1 ? 'grab' : 'default';
+                }
+            });
+
+            // Curseur grab quand zoomé
+            canvas.addEventListener('mouseover', () => {
+                canvas.style.cursor = bmZoomLevel > 1 ? 'grab' : 'default';
+            });
+        });
 
         function bandmapDrawWaterfall() {
             const canvas = document.getElementById('bandmap-canvas');
@@ -2114,6 +2209,10 @@
                 const focused = (i === bandmapFocusIdx);
                 const callClass = s.isWL ? 'bm-pin-call wl-pin' : 'bm-pin-call';
 
+                // Filtre densité : masque les labels sous le seuil SPD
+                // sauf watchlist, rares et spot focalisé qui passent toujours
+                if (bmMinScore > 0 && s.score < bmMinScore && !s.isWL && !focused) return;
+
                 // Find the first row where this pin won't overlap
                 let row = 0;
                 for (let r = 0; r < MAX_ROWS; r++) {
@@ -2133,7 +2232,16 @@
                 pin.title = `${s.call} · ${s.freq} kHz · ${s.mode} · ${ageMin}m`;
                 pin.innerHTML = `<div class="${callClass}"><a href="https://qrz.com/db/${s.call}" target="_blank">${s.call}</a></div><div class="bm-pin-line" style="height:${lineH}px"></div><div class="bm-pin-dot" style="background:${s.color};box-shadow:0 0 5px ${s.color};"></div>`;
                 pin.addEventListener('click', (e) => {
-                    if (!e.target.closest('a')) { bandmapFocusIdx = i; bandmapRender(); }
+                    if (!e.target.closest('a')) {
+                        bandmapFocusIdx = i;
+                        // Recentre le zoom sur la fréquence du call sélectionné
+                        if (bmZoomLevel > 1) {
+                            bmZoomCenter = s.freqNum;
+                            bmWaterfallRows = [];
+                            bandmapDrawWaterfall();
+                        }
+                        bandmapRender();
+                    }
                 });
                 spotsTrack.appendChild(pin);
             });
@@ -2147,15 +2255,22 @@
                 e.preventDefault();
                 bandmapFocusIdx = Math.min(bandmapFocusIdx + 1, spots.length - 1);
                 if (bandmapFocusIdx < 0) bandmapFocusIdx = 0;
-                bandmapRender();
             } else if (['ArrowLeft','ArrowUp'].includes(e.key)) {
                 e.preventDefault();
                 bandmapFocusIdx = Math.max(bandmapFocusIdx - 1, 0);
-                bandmapRender();
             } else if (e.key === 'Enter' && bandmapFocusIdx >= 0) {
                 const s = spots[bandmapFocusIdx];
                 if (s) window.open(`https://qrz.com/db/${s.call}`, '_blank');
+                return;
+            } else { return; }
+            // Recentre le zoom sur le call focalisé
+            const focused = spots[bandmapFocusIdx];
+            if (focused && bmZoomLevel > 1) {
+                bmZoomCenter = focused.freqNum;
+                bmWaterfallRows = [];
+                bandmapDrawWaterfall();
             }
+            bandmapRender();
         });
 
         // Refresh ages every 15s, redraw waterfall
@@ -2317,68 +2432,5 @@ fetch('/api/check_update')
     .catch(err => console.warn('Erreur lors de la vérification des mises à jour:', err));
 </script>
 
-<script>
-/* ---- IA BRIEF VOCAL (Perplexity) ---- */
-(function () {
-  fetch('/api/ai_brief_status.json')
-    .then(r => r.json())
-    .then(d => {
-      if (d.enabled) {
-        document.getElementById('ai-brief-container').style.display = 'block';
-      }
-    })
-    .catch(() => {});
-
-  const lang = (navigator.language || 'fr').startsWith('fr') ? 'fr' : 'en';
-
-  window.aiBriefSpeak = function (force) {
-    const btn    = document.getElementById('ai-brief-btn');
-    const status = document.getElementById('ai-brief-status');
-    const txtDiv = document.getElementById('ai-brief-text');
-
-    btn.disabled = true;
-    status.textContent = '⏳ Génération...';
-
-    fetch(`/api/ai_brief.json?lang=${lang}${force ? '&force=1' : ''}`)
-      .then(r => r.json())
-      .then(d => {
-        btn.disabled = false;
-        if (!d.ok || !d.text) {
-          status.textContent = '⚠️ Erreur';
-          return;
-        }
-        const age = d.age_sec ? ` (cache ${d.age_sec}s)` : '';
-        const fb  = d.fallback ? ' [local]' : '';
-        status.textContent = `✅ ${d.lang.toUpperCase()}${age}${fb}`;
-        txtDiv.textContent = d.text;
-        txtDiv.style.display = 'block';
-
-        if (!window.speechSynthesis) {
-          status.textContent += ' — TTS non supporté';
-          return;
-        }
-        window.speechSynthesis.cancel();
-        const utt  = new SpeechSynthesisUtterance(d.text);
-        utt.lang   = d.lang === 'fr' ? 'fr-FR' : 'en-US';
-        utt.rate   = 0.95;
-        utt.pitch  = 1.0;
-        const voices = window.speechSynthesis.getVoices();
-        const best = voices.find(v =>
-          v.lang.startsWith(d.lang === 'fr' ? 'fr' : 'en') && v.localService
-        );
-        if (best) utt.voice = best;
-        utt.onstart = () => { btn.textContent = '🔊 LECTURE...'; };
-        utt.onend   = () => { btn.textContent = '🎙️ BRIEF VOCAL IA'; };
-        utt.onerror = () => { btn.textContent = '🎙️ BRIEF VOCAL IA'; };
-        window.speechSynthesis.speak(utt);
-      })
-      .catch(err => {
-        btn.disabled = false;
-        status.textContent = '⚠️ ' + err.message;
-      });
-  };
-})();
-/* ---- FIN IA BRIEF VOCAL ---- */
-</script>
 </body>
 </html>

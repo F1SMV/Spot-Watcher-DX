@@ -118,6 +118,9 @@ No cloud dependency.
 
 ## 🗂️ Version History
 
+### v6.6 band map, setting up zoom sliders and SPD selection. 
+Click on the point below the call sign at zoom level 2 and the band will recenter on the band portion.
+
 ### v6.5
 Removal of the `telnetlib` library, replaced by `Telnetlib3` following a suggestion from F5UGQ.  
 Introduction of AI with the addition of a **"AI Vocal Brief"** button in the "Solar Indices" panel on index.html — optional, only if you wish to try it.  

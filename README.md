@@ -1,4 +1,4 @@
-﻿# 📡 Radio Spot Watcher DX — v6.5
+﻿# 📡 Radio Spot Watcher DX — v6.6
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -116,6 +116,9 @@ Aucune dépendance cloud.
 ---
 
 ### 🗂️ Historique des versions
+
+#   v6.6 bande map, mise en place de curseurs de zoom et choix spd. cliquez sur le point sous le call dès le zoom 2 et 
+    la bande se recentre sur la portion de bande
 
 ### v6.5 suppression de l'utilisation de la librairie telnetlib pat Telnetlib3 sur une suggestion de F5UGQ, 
     introduction d'une dose d'IA par l'adjonction d'un bouton "bref vocal IA" dans le pavé "solar indices" de la page index.html
