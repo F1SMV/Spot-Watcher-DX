@@ -2600,7 +2600,7 @@ def check_update():
             remote_data = json.loads(r.read().decode('utf-8'))
        
         remote_version = remote_data.get("version", "0.0.0")
-        current_version = APP_VERSION.split()[-1]  # Extrait "6.4" de "NEURAL v6.4"
+        current_version = APP_VERSION.split()[-1]  # Extrait "6.6" de "NEURAL v6.6"
        
         update_available = (remote_version != current_version)
        
