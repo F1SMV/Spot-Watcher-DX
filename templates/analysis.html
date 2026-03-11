@@ -361,7 +361,7 @@ function runAIAnalysis(stats, solar) {
                 const solar = await resSolar.json();
 
                 document.getElementById('stat-dxcc').textContent = stats.unique_dxcc_count;
-                document.getElementById('stat-rarity').textContent = stats.rarity_rate_percent + "%";
+                document.getElementById('stat-rarity').textContent = stats.rarity_rate_percent;
                 document.getElementById('stat-spots').textContent = stats.total_spots_24h;
 
                 runAIAnalysis(stats, solar);

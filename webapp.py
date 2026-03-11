@@ -44,7 +44,7 @@ tn_lock = threading.Lock()
 tn_current = None  # socket.socket when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "6.6"
+APP_VERSION = "6.7"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -2589,31 +2589,44 @@ def get_live_bands_data():
 
 
 
+# Cache de vérification de mise à jour (évite le rate-limiting GitHub)
+_update_cache = {"data": None, "ts": 0}
+UPDATE_CACHE_TTL = 24 * 3600  # 24 heures
+
 @app.route('/api/check_update')
 def check_update():
-    """Vérifie si une nouvelle version est disponible sur GitHub."""
+    """Vérifie si une nouvelle version est disponible sur GitHub (cache 6h)."""
     GITHUB_VERSION_URL = "https://raw.githubusercontent.com/F1SMV/Spot-Watcher-DX/main/version.json"
-   
+    global _update_cache
+
+    now = time.time()
+    if _update_cache["data"] and (now - _update_cache["ts"]) < UPDATE_CACHE_TTL:
+        return jsonify(_update_cache["data"])
+
     try:
-        req = urllib.request.Request(GITHUB_VERSION_URL, headers={'User-Agent': 'Mozilla/5.0'})
+        req = urllib.request.Request(GITHUB_VERSION_URL, headers={'User-Agent': 'Spot-Watcher-DX/6.6'})
         with urllib.request.urlopen(req, timeout=10) as r:
             remote_data = json.loads(r.read().decode('utf-8'))
-       
+
         remote_version = remote_data.get("version", "0.0.0")
-        current_version = APP_VERSION.split()[-1]  # Extrait "6.6" de "NEURAL v6.6"
-       
-        update_available = (remote_version != current_version)
-       
-        return jsonify({
-            "update_available": update_available,
+        current_version = APP_VERSION.split()[-1]
+
+        result = {
+            "update_available": (remote_version != current_version),
             "current_version": current_version,
             "latest_version": remote_version,
             "release_date": remote_data.get("release_date"),
             "changelog_url": remote_data.get("changelog_url"),
             "download_url": remote_data.get("download_url")
-        })
+        }
+        _update_cache = {"data": result, "ts": now}
+        return jsonify(result)
+
     except Exception as e:
         logger.warning(f"Impossible de vérifier les mises à jour: {e}")
+        # En cas d'erreur, retourner le cache même expiré s'il existe
+        if _update_cache["data"]:
+            return jsonify(_update_cache["data"])
         return jsonify({"update_available": False, "error": str(e)})
 
 

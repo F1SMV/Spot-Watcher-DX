@@ -1,4 +1,4 @@
-﻿# 📡 Radio Spot Watcher DX — v6.6
+﻿# 📡 Radio Spot Watcher DX — v6.7
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -120,9 +120,17 @@ Aucune dépendance cloud.
 
 ### 🗂️ Historique des versions
 
+### v6.7
+
+    le programme n'interrogera github que toutes les 24:00 afin de verifier les mises a jour au lieu de toutes les x secondes
+    la bandmap a été corrigé : bouton "wl" pour suivre uniquement les stations de la watchlist comme ca vous verrez uniquement 
+    les stations dx qui vous interressent.
+    filtre sur la bande map avec les bandes hf/vhf/qo100.
+    correction d'un bug d'affichage sur la page analyse.
+
 ### v6.6 
 
-    bande map, mise en place de curseurs de zoom et choix spd. cliquez sur le point sous le call dès le zoom 2 et 
+    bandemap, mise en place de curseurs de zoom et choix spd. cliquez sur le point sous le call dès le zoom 2 et 
     la bande se recentre sur la portion de bande
 
 ### v6.5 

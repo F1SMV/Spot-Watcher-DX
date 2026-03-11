@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v6.6</title>
+<title>📡 NEURAL DX v6.7</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -502,7 +502,7 @@
         #bandmap-waterfall-wrap {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(180deg, #000a1a 0%, #00112e 100%);
+            background: linear-gradient(180deg, #000d20 0%, #001830 50%, #002040 100%);
         }
         #bandmap-canvas {
             display: block;
@@ -516,7 +516,7 @@
             overflow-y: visible;
             position: relative;
             height: 80px;
-            background: linear-gradient(180deg, #00061a 0%, #000d22 100%);
+            background: linear-gradient(180deg, #000d20 0%, #001830 100%);
             border-top: 1px solid rgba(0,243,255,0.18);
         }
         #bandmap-spots-track {
@@ -623,6 +623,29 @@
   </div>
   <!-- Contrôles HORS du header pour éviter le blocage des événements souris par le drag -->
   <div id="bandmap-controls" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+    <!-- Boutons groupes de bandes -->
+    <div id="bm-group-btns" style="display:inline-flex;gap:4px;margin-right:10px;vertical-align:middle;">
+      <button class="bm-grp-btn" data-group="ALL"
+        style="padding:3px 10px;font-size:0.78em;cursor:pointer;border-radius:5px;font-family:monospace;
+               background:#00f3ff;border:1px solid #00f3ff;color:#000;font-weight:bold;transition:all 0.2s;">
+        TOUT
+      </button>
+      <button class="bm-grp-btn" data-group="HF"
+        style="padding:3px 10px;font-size:0.78em;cursor:pointer;border-radius:5px;font-family:monospace;
+               background:#1a1a1a;border:1px solid #444;color:#aaa;transition:all 0.2s;">
+        HF
+      </button>
+      <button class="bm-grp-btn" data-group="VHF"
+        style="padding:3px 10px;font-size:0.78em;cursor:pointer;border-radius:5px;font-family:monospace;
+               background:#1a1a1a;border:1px solid #444;color:#aaa;transition:all 0.2s;">
+        VHF
+      </button>
+      <button class="bm-grp-btn" data-group="QO-100"
+        style="padding:3px 10px;font-size:0.78em;cursor:pointer;border-radius:5px;font-family:monospace;
+               background:#1a1a1a;border:1px solid #444;color:#aaa;transition:all 0.2s;">
+        QO-100
+      </button>
+    </div>
     <label style="font-size:0.82em;opacity:0.8;">Bande :</label>
     <select id="bm-band-select">
       <option value="ALL">Toutes</option>
@@ -640,6 +663,7 @@
       <option value="4m">4m</option>
       <option value="2m">2m</option>
       <option value="70cm">70cm</option>
+      <option value="QO-100">QO-100</option>
     </select>
     <label style="font-size:0.82em;opacity:0.8;">Mode :</label>
     <select id="bm-mode-select">
@@ -667,6 +691,13 @@
       title="Score SPD minimum pour afficher un label (0=tous, 100=seulement les rares)"
       oninput="bandmapDensityChange(this.value)">
     <span id="bm-density-label" style="font-size:0.78em;opacity:0.7;min-width:30px;display:inline-block;">Tous</span>
+    <button id="bm-wl-only-btn"
+      style="margin-left:14px;padding:4px 14px;font-size:0.8em;cursor:pointer;
+             background:#1a1a1a;border:1px solid #444;color:#666;border-radius:6px;
+             font-family:monospace;letter-spacing:0.05em;transition:all 0.2s;white-space:nowrap;"
+      title="Filtrer Watchlist / Filter Watchlist">
+      ☆ WL
+    </button>
   </div>
   <!-- Waterfall canvas (scrolling) -->
   <div id="bandmap-waterfall-wrap">
@@ -683,7 +714,7 @@
 </div>
 
 <div id="header">
-<div id="title">📡 NEURAL DX WATCHER V6.6</div>
+<div id="title">📡 NEURAL DX WATCHER V6.7</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -1901,8 +1932,8 @@
             '160m':[1800,2000],'80m':[3500,4000],'60m':[5250,5450],
             '40m':[7000,7300],'30m':[10100,10150],'20m':[14000,14350],
             '17m':[18068,18168],'15m':[21000,21450],'12m':[24890,24990],
-            '10m':[28000,29700],'6m':[50000,54000],'4m':[69900,70600],
-            '2m':[144000,146000],'70cm':[430000,440000]
+            '10m':[28000,29700],'6m':[50000,52000],'4m':[69900,70600],
+            '2m':[144000,146000],'70cm':[430000,440000],'QO-100':[10489000,10490000]
         };
         let bandmapSpots = [];
         let bandmapFocusIdx = -1;
@@ -1913,12 +1944,25 @@
         let bmZoomLevel = 1;         // 1=tout, 10=très zoomé
         let bmZoomCenter = null;     // fréquence centrale du zoom (kHz), null=auto
         let bmMinScore = 0;          // score SPD minimum pour afficher un label
+        let bmWLOnly = false;
 
         function bandmapGetRange() {
             // Plage de base selon la bande sélectionnée ou auto
             let [fmin, fmax] = (() => {
+                // Bande individuelle sélectionnée : plage fixe
                 if (bmCurrentBand !== 'ALL' && BAND_RANGES[bmCurrentBand]) return BAND_RANGES[bmCurrentBand];
-                const spots = bandmapVisibleSpots();
+                // Groupe actif : plage couvrant toutes les bandes du groupe
+                if (bmCurrentGroup !== 'ALL' && BM_GROUPS[bmCurrentGroup]) {
+                    const groupBands = BM_GROUPS[bmCurrentGroup];
+                    const ranges = groupBands.map(b => BAND_RANGES[b]).filter(Boolean);
+                    if (ranges.length > 0) {
+                        return [Math.min(...ranges.map(r => r[0])), Math.max(...ranges.map(r => r[1]))];
+                    }
+                }
+                // ALL : calculer depuis les spots actifs (sans filtre WL pour éviter fallback 20m)
+                const now = Date.now();
+                const allActive = bandmapSpots.filter(s => (now - s.time_ms) < BANDMAP_TTL_MS);
+                const spots = allActive.length > 0 ? allActive : bandmapVisibleSpots();
                 if (spots.length === 0) return [14000, 14350];
                 const freqs = spots.map(s => s.freqNum);
                 const mn = Math.min(...freqs), mx = Math.max(...freqs);
@@ -1941,10 +1985,21 @@
             // Purge expired spots first
             bandmapSpots = bandmapSpots.filter(s => (now - s.time_ms) < BANDMAP_TTL_MS);
             return bandmapSpots.filter(s => {
+                if (bmWLOnly && !s.isWL) return false;
                 if (bmCurrentMode !== 'ALL' && s.mode !== bmCurrentMode) return false;
+                // Filtre bande individuelle
                 if (bmCurrentBand !== 'ALL') {
                     const r = BAND_RANGES[bmCurrentBand];
                     if (r && (s.freqNum < r[0] || s.freqNum > r[1])) return false;
+                }
+                // Filtre groupe (HF / VHF / QO-100)
+                if (bmCurrentGroup !== 'ALL' && BM_GROUPS[bmCurrentGroup]) {
+                    const groupBands = BM_GROUPS[bmCurrentGroup];
+                    const inGroup = groupBands.some(b => {
+                        const r = BAND_RANGES[b];
+                        return r && s.freqNum >= r[0] && s.freqNum <= r[1];
+                    });
+                    if (!inGroup) return false;
                 }
                 return true;
             });
@@ -1979,6 +2034,68 @@
             });
             bandmapSpots.sort((a, b) => a.freqNum - b.freqNum);
             if (bandmapFocusIdx >= bandmapSpots.length) bandmapFocusIdx = bandmapSpots.length - 1;
+            bandmapDrawWaterfall();
+            bandmapRender();
+        }
+
+        function bandmapToggleWLOnly() {
+            bmWLOnly = !bmWLOnly;
+            const btn = document.getElementById('bm-wl-only-btn');
+            if (btn) {
+                if (bmWLOnly) {
+                    btn.style.background = '#ffeb3b';
+                    btn.style.border = '1px solid #ffeb3b';
+                    btn.style.color = '#000';
+                    btn.style.fontWeight = 'bold';
+                    btn.textContent = '★ WL ONLY';
+                    btn.title = 'Watchlist uniquement actif — cliquer pour tout afficher / WL filter ON — click to show all';
+                } else {
+                    btn.style.background = '#1a1a1a';
+                    btn.style.border = '1px solid #444';
+                    btn.style.color = '#666';
+                    btn.style.fontWeight = 'normal';
+                    btn.textContent = '☆ WL';
+                    btn.title = 'Filtrer Watchlist / Filter Watchlist';
+                }
+            }
+            bmWaterfallRows = [];
+            bandmapDrawWaterfall();
+            bandmapRender();
+        }
+        // Groupes de bandes
+        const BM_GROUPS = {
+            'ALL':    null,
+            'HF':     ['160m','80m','60m','40m','30m','20m','17m','15m','12m','10m','6m','4m'],
+            'VHF':    ['2m','70cm'],
+            'QO-100': ['QO-100']
+        };
+        let bmCurrentGroup = 'ALL';
+
+        function bandmapSetGroup(group) {
+            bmCurrentGroup = group;
+            // Màj style boutons
+            document.querySelectorAll('.bm-grp-btn').forEach(b => {
+                const active = b.dataset.group === group;
+                b.style.background = active ? '#00f3ff' : '#1a1a1a';
+                b.style.border     = active ? '1px solid #00f3ff' : '1px solid #444';
+                b.style.color      = active ? '#000' : '#aaa';
+                b.style.fontWeight = active ? 'bold' : 'normal';
+            });
+            // Filtrer le sélecteur de bande
+            const sel = document.getElementById('bm-band-select');
+            if (!sel) return;
+            const bands = BM_GROUPS[group];
+            Array.from(sel.options).forEach(opt => {
+                if (!bands) { opt.style.display = ''; }
+                else { opt.style.display = (opt.value === 'ALL' || bands.includes(opt.value)) ? '' : 'none'; }
+            });
+            // Remettre sur ALL si la bande sélectionnée n'est pas dans le groupe
+            if (bands && bmCurrentBand !== 'ALL' && !bands.includes(bmCurrentBand)) {
+                sel.value = 'ALL';
+                bmCurrentBand = 'ALL';
+            }
+            bmZoomCenter = null;
+            bmWaterfallRows = [];
             bandmapDrawWaterfall();
             bandmapRender();
         }
@@ -2022,6 +2139,23 @@
         document.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('bandmap-canvas');
             if (!canvas) return;
+
+            // Boutons groupe HF / VHF / QO-100
+            document.querySelectorAll('.bm-grp-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    bandmapSetGroup(btn.dataset.group);
+                });
+            });
+
+            // Bouton WL only — addEventListener pour éviter conflit avec stopPropagation du parent
+            const wlBtn = document.getElementById('bm-wl-only-btn');
+            if (wlBtn) {
+                wlBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    bandmapToggleWLOnly();
+                });
+            }
 
             let isPanning = false;
             let panStartX = null;
@@ -2099,11 +2233,11 @@
 
             // Build new waterfall row based on current spots
             const rowData = new Uint8ClampedArray(W * 4);
-            // Base: deep blue background
+            // Base: SDR-style blue background
             for (let x = 0; x < W; x++) {
                 rowData[x*4]   = 0;
-                rowData[x*4+1] = 8;
-                rowData[x*4+2] = 30;
+                rowData[x*4+1] = 18;
+                rowData[x*4+2] = 55;
                 rowData[x*4+3] = 255;
             }
             // Paint spots as bright spikes
