@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v6.7</title>
+<title>📡 NEURAL DX v6.8</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -484,6 +484,13 @@
             flex-wrap: wrap;
             border-bottom: 1px solid rgba(0,243,255,0.15);
         }
+        .bm-color-swatch {
+            width: 16px; height: 16px; border-radius: 3px; cursor: pointer;
+            border: 2px solid transparent; transition: border 0.15s, transform 0.15s;
+            display: inline-block;
+        }
+        .bm-color-swatch:hover { transform: scale(1.2); border-color: #fff; }
+        .bm-color-swatch.active { border-color: #00f3ff; transform: scale(1.15); }
         #bandmap-controls select {
             background: #111;
             color: var(--accent);
@@ -638,7 +645,12 @@
       <button class="bm-grp-btn" data-group="VHF"
         style="padding:3px 10px;font-size:0.78em;cursor:pointer;border-radius:5px;font-family:monospace;
                background:#1a1a1a;border:1px solid #444;color:#aaa;transition:all 0.2s;">
-        VHF
+        VHF 2m
+      </button>
+      <button class="bm-grp-btn" data-group="UHF"
+        style="padding:3px 10px;font-size:0.78em;cursor:pointer;border-radius:5px;font-family:monospace;
+               background:#1a1a1a;border:1px solid #444;color:#aaa;transition:all 0.2s;">
+        UHF 70cm
       </button>
       <button class="bm-grp-btn" data-group="QO-100"
         style="padding:3px 10px;font-size:0.78em;cursor:pointer;border-radius:5px;font-family:monospace;
@@ -679,7 +691,7 @@
     </select>
     <!-- Curseur zoom : double-clic sur zone -->
     <label style="font-size:0.82em;opacity:0.8;margin-left:10px;" title="Zoom : réduit la plage de fréquences visible. Double-clic sur le waterfall pour centrer.">Zoom :</label>
-    <input type="range" id="bm-zoom-slider" min="1" max="10" value="1" step="1"
+    <input type="range" id="bm-zoom-slider" min="1" max="100" value="1" step="1"
       style="width:80px;vertical-align:middle;accent-color:#00f3ff;"
       title="Zoom fréquences (1=tout, 10=très zoomé)"
       oninput="bandmapZoomChange(this.value)">
@@ -698,6 +710,57 @@
       title="Filtrer Watchlist / Filter Watchlist">
       ☆ WL
     </button>
+    <!-- Sélecteur couleur fond bandmap -->
+    <div id="bm-color-picker" style="display:inline-flex;align-items:center;margin-left:14px;gap:6px;vertical-align:middle;">
+      <span style="font-size:0.72em;color:#555;font-family:monospace;">BG:</span>
+      <div id="bm-palette" style="display:inline-flex;gap:5px;align-items:flex-end;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div class="bm-color-swatch" data-r="0"  data-g="18" data-b="55"  title="Bleu nuit" style="background:#001237;"></div>
+          <span style="font-size:0.58em;color:#555;font-family:monospace;white-space:nowrap;">Nuit</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div class="bm-color-swatch" data-r="2"  data-g="36" data-b="76"  title="Bleu marine" style="background:#02244C;"></div>
+          <span style="font-size:0.58em;color:#555;font-family:monospace;white-space:nowrap;">Marine</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div class="bm-color-swatch" data-r="3"  data-g="21" data-b="3"   title="Matrix vert" style="background:#031503;"></div>
+          <span style="font-size:0.58em;color:#555;font-family:monospace;white-space:nowrap;">Matrix</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div class="bm-color-swatch" data-r="6"  data-g="55" data-b="60"  title="Bleu paon" style="background:#06373C;"></div>
+          <span style="font-size:0.58em;color:#555;font-family:monospace;white-space:nowrap;">Paon</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div class="bm-color-swatch" data-r="0"  data-g="51" data-b="102" title="Bleu de Prusse" style="background:#003366;"></div>
+          <span style="font-size:0.58em;color:#555;font-family:monospace;white-space:nowrap;">Prusse</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div class="bm-color-swatch" data-r="34" data-g="36" data-b="44"  title="Bleu cobalt" style="background:#22242C;"></div>
+          <span style="font-size:0.58em;color:#555;font-family:monospace;white-space:nowrap;">Cobalt</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div class="bm-color-swatch" data-r="15" data-g="24" data-b="48"  title="Bleu minuit" style="background:#0F1830;"></div>
+          <span style="font-size:0.58em;color:#555;font-family:monospace;white-space:nowrap;">Minuit</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div class="bm-color-swatch" data-r="0"  data-g="0"  data-b="0"   title="Noir pur" style="background:#000000;"></div>
+          <span style="font-size:0.58em;color:#555;font-family:monospace;white-space:nowrap;">Noir</span>
+        </div>
+      </div>
+    </div>
+    <!-- Légende modes -->
+    <div id="bm-mode-legend" style="display:inline-flex;align-items:center;margin-left:14px;gap:5px;vertical-align:middle;flex-wrap:wrap;">
+      <span style="font-size:0.72em;color:#555;font-family:monospace;">Modes:</span>
+      <span style="font-size:0.68em;padding:1px 5px;border-radius:3px;font-family:monospace;background:rgba(0,80,20,0.92);border:1px solid #00dd44;color:#00ff55;">CW</span>
+      <span style="font-size:0.68em;padding:1px 5px;border-radius:3px;font-family:monospace;background:rgba(0,30,90,0.92);border:1px solid #4488ff;color:#88bbff;">SSB</span>
+      <span style="font-size:0.68em;padding:1px 5px;border-radius:3px;font-family:monospace;background:rgba(80,0,80,0.92);border:1px solid #dd00ff;color:#ee88ff;">FT8</span>
+      <span style="font-size:0.68em;padding:1px 5px;border-radius:3px;font-family:monospace;background:rgba(80,0,60,0.92);border:1px solid #ff00cc;color:#ff88ee;">FT4</span>
+      <span style="font-size:0.68em;padding:1px 5px;border-radius:3px;font-family:monospace;background:rgba(60,0,80,0.92);border:1px solid #bb00ff;color:#dd88ff;">FT2</span>
+      <span style="font-size:0.68em;padding:1px 5px;border-radius:3px;font-family:monospace;background:rgba(80,40,0,0.92);border:1px solid #ff8800;color:#ffaa44;">RTTY</span>
+      <span style="font-size:0.68em;padding:1px 5px;border-radius:3px;font-family:monospace;background:rgba(60,60,0,0.92);border:1px solid #dddd00;color:#ffff44;">PSK31</span>
+      <span style="font-size:0.68em;padding:1px 5px;border-radius:3px;font-family:monospace;background:rgba(0,60,60,0.92);border:1px solid #00cccc;color:#44eeff;">JT65</span>
+      <span style="font-size:0.68em;padding:1px 5px;border-radius:3px;font-family:monospace;background:rgba(5,10,30,0.92);border:1px solid rgba(255,255,255,0.35);color:#ffffff;">Autre</span>
+    </div>
   </div>
   <!-- Waterfall canvas (scrolling) -->
   <div id="bandmap-waterfall-wrap">
@@ -714,7 +777,7 @@
 </div>
 
 <div id="header">
-<div id="title">📡 NEURAL DX WATCHER V6.7</div>
+<div id="title">📡 NEURAL DX WATCHER V6.8</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -1928,6 +1991,21 @@
 
         // ===== BANDMAP WATERFALL =====
         const BANDMAP_TTL_MS = 10 * 60 * 1000;
+        // Couleurs des étiquettes par mode
+        const MODE_COLORS = {
+            'CW':    { bg: 'rgba(0,80,20,0.92)',   border: '#00dd44', text: '#00ff55' },
+            'SSB':   { bg: 'rgba(0,30,90,0.92)',   border: '#4488ff', text: '#88bbff' },
+            'FT8':   { bg: 'rgba(80,0,80,0.92)',   border: '#dd00ff', text: '#ee88ff' },
+            'FT4':   { bg: 'rgba(80,0,60,0.92)',   border: '#ff00cc', text: '#ff88ee' },
+            'FT2':   { bg: 'rgba(60,0,80,0.92)',   border: '#bb00ff', text: '#dd88ff' },
+            'RTTY':  { bg: 'rgba(80,40,0,0.92)',   border: '#ff8800', text: '#ffaa44' },
+            'PSK31': { bg: 'rgba(60,60,0,0.92)',   border: '#dddd00', text: '#ffff44' },
+            'JT65':  { bg: 'rgba(0,60,60,0.92)',   border: '#00cccc', text: '#44eeff' },
+            'AM':    { bg: 'rgba(60,20,0,0.92)',   border: '#ff6600', text: '#ff9944' },
+            'FM':    { bg: 'rgba(0,50,50,0.92)',   border: '#00bbbb', text: '#44dddd' },
+        };
+        const MODE_DEFAULT = { bg: 'rgba(5,10,30,0.92)', border: 'rgba(255,255,255,0.35)', text: '#ffffff' };
+
         const BAND_RANGES = {
             '160m':[1800,2000],'80m':[3500,4000],'60m':[5250,5450],
             '40m':[7000,7300],'30m':[10100,10150],'20m':[14000,14350],
@@ -1939,12 +2017,15 @@
         let bandmapFocusIdx = -1;
         let bmWaterfallRows = [];    // array of ImageData rows for scrolling
         let bmAnimFrame = null;
-        let bmCurrentBand = 'ALL';
-        let bmCurrentMode = 'ALL';
-        let bmZoomLevel = 1;         // 1=tout, 10=très zoomé
+        const _bms = JSON.parse(localStorage.getItem('bm_state') || '{}');
+        let bmCurrentBand  = _bms.band  || 'ALL';
+        let bmCurrentMode  = _bms.mode  || 'ALL';
+        let bmZoomLevel = 1;         // 1=tout, 100=très zoomé
         let bmZoomCenter = null;     // fréquence centrale du zoom (kHz), null=auto
         let bmMinScore = 0;          // score SPD minimum pour afficher un label
-        let bmWLOnly = false;
+        let bmWLOnly = _bms.wlOnly || false;
+        // Couleur de fond waterfall (RGB) — persistée en localStorage
+        let bmBgColor = JSON.parse(localStorage.getItem('bm_bg_color') || '[0,18,55]');
 
         function bandmapGetRange() {
             // Plage de base selon la bande sélectionnée ou auto
@@ -1972,7 +2053,9 @@
 
             // Appliquer zoom si > 1
             if (bmZoomLevel > 1) {
-                const center = bmZoomCenter !== null ? bmZoomCenter : (fmin + fmax) / 2;
+                let center = bmZoomCenter !== null ? bmZoomCenter : (fmin + fmax) / 2;
+                // S'assurer que le centre reste dans la plage de la bande/groupe
+                center = Math.max(fmin, Math.min(fmax, center));
                 const halfSpan = (fmax - fmin) / (2 * bmZoomLevel);
                 fmin = center - halfSpan;
                 fmax = center + halfSpan;
@@ -2040,6 +2123,7 @@
 
         function bandmapToggleWLOnly() {
             bmWLOnly = !bmWLOnly;
+            bmSaveState();
             const btn = document.getElementById('bm-wl-only-btn');
             if (btn) {
                 if (bmWLOnly) {
@@ -2066,10 +2150,20 @@
         const BM_GROUPS = {
             'ALL':    null,
             'HF':     ['160m','80m','60m','40m','30m','20m','17m','15m','12m','10m','6m','4m'],
-            'VHF':    ['2m','70cm'],
+            'VHF':    ['2m'],
+            'UHF':    ['70cm'],
             'QO-100': ['QO-100']
         };
-        let bmCurrentGroup = 'ALL';
+        let bmCurrentGroup = _bms.group || 'ALL';
+
+        function bmSaveState() {
+            localStorage.setItem('bm_state', JSON.stringify({
+                band:   bmCurrentBand,
+                mode:   bmCurrentMode,
+                group:  bmCurrentGroup,
+                wlOnly: bmWLOnly
+            }));
+        }
 
         function bandmapSetGroup(group) {
             bmCurrentGroup = group;
@@ -2094,7 +2188,13 @@
                 sel.value = 'ALL';
                 bmCurrentBand = 'ALL';
             }
+            bmZoomLevel = 1;
             bmZoomCenter = null;
+            const sliderG = document.getElementById('bm-zoom-slider');
+            const lblG = document.getElementById('bm-zoom-label');
+            if (sliderG) sliderG.value = 1;
+            if (lblG) lblG.textContent = '1×';
+            bmSaveState();
             bmWaterfallRows = [];
             bandmapDrawWaterfall();
             bandmapRender();
@@ -2103,7 +2203,13 @@
         function bandmapChangeBand() {
             const sel = document.getElementById('bm-band-select');
             if (sel) bmCurrentBand = sel.value;
-            bmZoomCenter = null; // reset centre zoom sur changement de bande
+            bmZoomLevel = 1;
+            bmZoomCenter = null;
+            const sliderB = document.getElementById('bm-zoom-slider');
+            const lblB = document.getElementById('bm-zoom-label');
+            if (sliderB) sliderB.value = 1;
+            if (lblB) lblB.textContent = '1×';
+            bmSaveState();
             bmWaterfallRows = [];
             bandmapDrawWaterfall();
             bandmapRender();
@@ -2112,6 +2218,7 @@
         function bandmapChangeMode() {
             const sel = document.getElementById('bm-mode-select');
             if (sel) bmCurrentMode = sel.value;
+            bmSaveState();
             bmWaterfallRows = [];
             bandmapDrawWaterfall();
             bandmapRender();
@@ -2140,6 +2247,60 @@
             const canvas = document.getElementById('bandmap-canvas');
             if (!canvas) return;
 
+            // Init palette couleur fond
+            function bmSetBgColor(r, g, b) {
+                bmBgColor = [r, g, b];
+                localStorage.setItem('bm_bg_color', JSON.stringify(bmBgColor));
+                // Màj CSS du wrap et spots area
+                const hex = '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+                const wrap = document.getElementById('bandmap-waterfall-wrap');
+                const sa   = document.getElementById('bandmap-spots-area');
+                if (wrap) wrap.style.background = hex;
+                if (sa)   sa.style.background   = hex;
+                bmWaterfallRows = [];
+                bandmapDrawWaterfall();
+            }
+
+            document.querySelectorAll('.bm-color-swatch').forEach(sw => {
+                sw.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const r = parseInt(sw.dataset.r), g = parseInt(sw.dataset.g), b = parseInt(sw.dataset.b);
+                    bmSetBgColor(r, g, b);
+                    document.querySelectorAll('.bm-color-swatch').forEach(s => s.classList.remove('active'));
+                    sw.classList.add('active');
+                });
+                // Marquer la swatch active au chargement
+                const [cr, cg, cb] = bmBgColor;
+                if (parseInt(sw.dataset.r)===cr && parseInt(sw.dataset.g)===cg && parseInt(sw.dataset.b)===cb) {
+                    sw.classList.add('active');
+                }
+            });
+            // Appliquer la couleur sauvegardée au chargement
+            bmSetBgColor(...bmBgColor);
+
+            // Restaurer l'état bandmap sauvegardé
+            (function restoreBmState() {
+                const bs = document.getElementById('bm-band-select');
+                const ms = document.getElementById('bm-mode-select');
+                if (bs) bs.value = bmCurrentBand;
+                if (ms) ms.value = bmCurrentMode;
+                // Groupe
+                if (bmCurrentGroup !== 'ALL') {
+                    bandmapSetGroup(bmCurrentGroup);
+                }
+                // WL
+                if (bmWLOnly) {
+                    const btn = document.getElementById('bm-wl-only-btn');
+                    if (btn) {
+                        btn.style.background = '#ffeb3b';
+                        btn.style.border = '1px solid #ffeb3b';
+                        btn.style.color = '#000';
+                        btn.style.fontWeight = 'bold';
+                        btn.textContent = '★ WL ONLY';
+                    }
+                }
+            })();
+
             // Boutons groupe HF / VHF / QO-100
             document.querySelectorAll('.bm-grp-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -2162,6 +2323,34 @@
             let panStartCenter = null;
 
             // Double-clic : centre le zoom sur la fréquence cliquée
+            // Molette : zoom centré sur le curseur (attaché sur le wrap pour couvrir canvas + spots)
+            function handleBandmapWheel(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const rect = canvas.getBoundingClientRect();
+                const xPct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                const [fmin, fmax] = bandmapGetRange();
+                const freqUnderCursor = fmin + xPct * (fmax - fmin);
+                const delta = e.deltaY < 0 ? 1 : -1;
+                const newZoom = Math.max(1, Math.min(100, bmZoomLevel + delta));
+                if (newZoom === bmZoomLevel) return;
+                bmZoomLevel = newZoom;
+                bmZoomCenter = bmZoomLevel > 1 ? freqUnderCursor : null;
+                const slider = document.getElementById('bm-zoom-slider');
+                const lbl = document.getElementById('bm-zoom-label');
+                if (slider) slider.value = bmZoomLevel;
+                if (lbl) lbl.textContent = bmZoomLevel + '×';
+                canvas.style.cursor = bmZoomLevel > 1 ? 'grab' : 'default';
+                bmWaterfallRows = [];
+                bandmapDrawWaterfall();
+                bandmapRender();
+            }
+            const bmWrap = document.getElementById('bandmap-waterfall-wrap');
+            const bmSpotsArea = document.getElementById('bandmap-spots-area');
+            if (bmWrap) bmWrap.addEventListener('wheel', handleBandmapWheel, { passive: false });
+            if (bmSpotsArea) bmSpotsArea.addEventListener('wheel', handleBandmapWheel, { passive: false });
+            canvas.addEventListener('wheel', handleBandmapWheel, { passive: false });
+
             canvas.addEventListener('dblclick', (e) => {
                 const rect = canvas.getBoundingClientRect();
                 const xPct = (e.clientX - rect.left) / rect.width;
@@ -2181,26 +2370,39 @@
             });
 
             // Pan : drag horizontal pour recentrer (uniquement si zoom > 1)
-            canvas.addEventListener('mousedown', (e) => {
-                if (bmZoomLevel <= 1) return;
+            // Pan : actif toujours (zoom>=1) sur canvas ET zone des pins
+            function bmStartPan(e) {
                 if (e.button !== 0) return;
                 isPanning = true;
                 panStartX = e.clientX;
                 const [fmin, fmax] = bandmapGetRange();
                 panStartCenter = bmZoomCenter !== null ? bmZoomCenter : (fmin + fmax) / 2;
                 canvas.style.cursor = 'grabbing';
+                document.body.style.userSelect = 'none';
                 e.preventDefault();
-            });
+            }
+
+            canvas.addEventListener('mousedown', bmStartPan);
+            const spotsAreaPan = document.getElementById('bandmap-spots-area');
+            if (spotsAreaPan) spotsAreaPan.addEventListener('mousedown', bmStartPan);
 
             window.addEventListener('mousemove', (e) => {
                 if (!isPanning) return;
                 const rect = canvas.getBoundingClientRect();
-                const W = rect.width;
+                const W = rect.width || 800;
                 const [fmin, fmax] = bandmapGetRange();
                 const freqPerPx = (fmax - fmin) / W;
                 const dx = e.clientX - panStartX;
-                // Déplacer vers la gauche = fréquences plus hautes, vers droite = plus basses
+                if (Math.abs(dx) < 2) return; // seuil minimal pour éviter micro-jitter
                 bmZoomCenter = panStartCenter - dx * freqPerPx;
+                // Activer zoom à 2× si on était à 1× et qu'on commence à panner
+                if (bmZoomLevel === 1) {
+                    bmZoomLevel = 2;
+                    const slider = document.getElementById('bm-zoom-slider');
+                    const lbl = document.getElementById('bm-zoom-label');
+                    if (slider) slider.value = 2;
+                    if (lbl) lbl.textContent = '2×';
+                }
                 bmWaterfallRows = [];
                 bandmapDrawWaterfall();
                 bandmapRender();
@@ -2209,13 +2411,16 @@
             window.addEventListener('mouseup', () => {
                 if (isPanning) {
                     isPanning = false;
+                    document.body.style.userSelect = '';
                     canvas.style.cursor = bmZoomLevel > 1 ? 'grab' : 'default';
                 }
             });
 
-            // Curseur grab quand zoomé
             canvas.addEventListener('mouseover', () => {
-                canvas.style.cursor = bmZoomLevel > 1 ? 'grab' : 'default';
+                if (!isPanning) canvas.style.cursor = bmZoomLevel > 1 ? 'grab' : 'ew-resize';
+            });
+            canvas.addEventListener('mouseout', () => {
+                if (!isPanning) canvas.style.cursor = 'default';
             });
         });
 
@@ -2233,11 +2438,11 @@
 
             // Build new waterfall row based on current spots
             const rowData = new Uint8ClampedArray(W * 4);
-            // Base: SDR-style blue background
+            // Base: couleur de fond choisie par l'utilisateur
             for (let x = 0; x < W; x++) {
-                rowData[x*4]   = 0;
-                rowData[x*4+1] = 18;
-                rowData[x*4+2] = 55;
+                rowData[x*4]   = bmBgColor[0];
+                rowData[x*4+1] = bmBgColor[1];
+                rowData[x*4+2] = bmBgColor[2];
                 rowData[x*4+3] = 255;
             }
             // Paint spots as bright spikes
@@ -2285,21 +2490,42 @@
                 ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
             }
 
-            // Draw freq axis
+            // Draw freq axis — uniquement les limites des bandes RA visibles
             const axis = document.getElementById('bandmap-freq-axis');
             if (axis) {
                 axis.innerHTML = '';
                 axis.style.width = W + 'px';
-                const tickCount = Math.min(12, Math.floor(W / 70));
-                for (let i = 0; i <= tickCount; i++) {
-                    const f = fmin + (fmax - fmin) * i / tickCount;
+                // Fréquences de référence RA (bords de bandes + sous-bandes courantes)
+                const RA_TICKS = [
+                    1800, 2000,
+                    3500, 3800, 4000,
+                    5250, 5450,
+                    7000, 7200, 7300,
+                    10100, 10150,
+                    14000, 14150, 14350,
+                    18068, 18168,
+                    21000, 21200, 21450,
+                    24890, 24990,
+                    28000, 28500, 29700,
+                    50000, 51000, 52000,
+                    69900, 70600,
+                    144000, 144500, 145000, 145500, 146000,
+                    430000, 432000, 435000, 438000, 440000,
+                    10489000, 10489500, 10490000
+                ];
+                const minPxGap = 55; // espacement minimum entre ticks (px)
+                let lastX = -999;
+                RA_TICKS.forEach(f => {
+                    if (f < fmin || f > fmax) return;
                     const x = freqToX(f, fmin, fmax, W);
+                    if (x - lastX < minPxGap) return; // trop serré, on saute
+                    lastX = x;
                     const tick = document.createElement('span');
                     tick.className = 'bm-freq-tick';
                     tick.style.left = x + 'px';
-                    tick.textContent = f >= 1000 ? (f/1000).toFixed(3).replace(/\.?0+$/,'') + ' MHz' : f.toFixed(0) + ' kHz';
+                    tick.textContent = f >= 1000 ? (f/1000).toFixed(f>=1000000?3:3).replace(/\.?0+$/,'') + ' MHz' : f + ' kHz';
                     axis.appendChild(tick);
-                }
+                });
             }
         }
 
@@ -2342,6 +2568,9 @@
                 const ageMin = Math.floor((now - s.time_ms) / 60000);
                 const focused = (i === bandmapFocusIdx);
                 const callClass = s.isWL ? 'bm-pin-call wl-pin' : 'bm-pin-call';
+                const mc = s.isWL ? null : (MODE_COLORS[s.mode] || MODE_DEFAULT);
+                const pinStyle = mc ? `background:${mc.bg};border-color:${mc.border};color:${mc.text};` : '';
+                const aStyle   = mc ? `color:${mc.text}!important;` : '';
 
                 // Filtre densité : masque les labels sous le seuil SPD
                 // sauf watchlist, rares et spot focalisé qui passent toujours
@@ -2364,7 +2593,7 @@
                 pin.style.left = x + 'px';
                 pin.style.top = topOffset + 'px';
                 pin.title = `${s.call} · ${s.freq} kHz · ${s.mode} · ${ageMin}m`;
-                pin.innerHTML = `<div class="${callClass}"><a href="https://qrz.com/db/${s.call}" target="_blank">${s.call}</a></div><div class="bm-pin-line" style="height:${lineH}px"></div><div class="bm-pin-dot" style="background:${s.color};box-shadow:0 0 5px ${s.color};"></div>`;
+                pin.innerHTML = `<div class="${callClass}" style="${pinStyle}"><a href="https://qrz.com/db/${s.call}" target="_blank" style="${aStyle}">${s.call}</a></div><div class="bm-pin-line" style="height:${lineH}px"></div><div class="bm-pin-dot" style="background:${s.color};box-shadow:0 0 5px ${s.color};"></div>`;
                 pin.addEventListener('click', (e) => {
                     if (!e.target.closest('a')) {
                         bandmapFocusIdx = i;

@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v6.7
+# 📡 Radio Spot Watcher DX — v6.8
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -117,6 +117,11 @@ No cloud dependency.
 ---
 
 ## 🗂️ Version History
+
+### v6.8
+    Color palette for the bandmap
+    Zoom up to 100x on the band to view the selected portion
+    Calls with different colors depending on the mode used
 
 ### v6.7 
     The program will now query GitHub only every 24 hours to check for updates instead of every x seconds.
