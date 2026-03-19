@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v6.8</title>
+<title>📡 NEURAL DX v6.9</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -777,7 +777,7 @@
 </div>
 
 <div id="header">
-<div id="title">📡 NEURAL DX WATCHER V6.8</div>
+<div id="title">📡 NEURAL DX WATCHER V6.9</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -991,6 +991,41 @@
 <div class="panel" data-panel-id="surge" id="surge-panel">
 <div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> SURGE ALERTS ⚡</div>
 <div id="surge-container">No active surges...</div>
+</div>
+
+
+<div class="panel" data-panel-id="voacap" id="voacap-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> 📡 PROPAGATION HF · VOACAP EST.</div>
+<div id="voacap-content" style="padding:4px 0;">
+
+  <!-- Sélecteur zones -->
+  <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
+    <span style="font-size:0.75em;color:#888;font-family:monospace;">Zone RX :</span>
+    <button class="voacap-zone-btn" data-zone="EU"  style="padding:2px 10px;font-size:0.75em;cursor:pointer;border-radius:4px;font-family:monospace;background:#00f3ff;border:1px solid #00f3ff;color:#000;font-weight:bold;transition:all 0.2s;">EU</button>
+    <button class="voacap-zone-btn" data-zone="NA"  style="padding:2px 10px;font-size:0.75em;cursor:pointer;border-radius:4px;font-family:monospace;background:#1a1a1a;border:1px solid #444;color:#aaa;transition:all 0.2s;">NA</button>
+    <button class="voacap-zone-btn" data-zone="SA"  style="padding:2px 10px;font-size:0.75em;cursor:pointer;border-radius:4px;font-family:monospace;background:#1a1a1a;border:1px solid #444;color:#aaa;transition:all 0.2s;">SA</button>
+    <button class="voacap-zone-btn" data-zone="AS"  style="padding:2px 10px;font-size:0.75em;cursor:pointer;border-radius:4px;font-family:monospace;background:#1a1a1a;border:1px solid #444;color:#aaa;transition:all 0.2s;">AS</button>
+    <button class="voacap-zone-btn" data-zone="OC"  style="padding:2px 10px;font-size:0.75em;cursor:pointer;border-radius:4px;font-family:monospace;background:#1a1a1a;border:1px solid #444;color:#aaa;transition:all 0.2s;">OC</button>
+    <button class="voacap-zone-btn" data-zone="AF"  style="padding:2px 10px;font-size:0.75em;cursor:pointer;border-radius:4px;font-family:monospace;background:#1a1a1a;border:1px solid #444;color:#aaa;transition:all 0.2s;">AF</button>
+    <span id="voacap-meta" style="font-size:0.7em;color:#555;margin-left:8px;font-family:monospace;"></span>
+  </div>
+
+  <!-- Grille propagation -->
+  <div id="voacap-grid-wrap" style="overflow-x:auto;">
+    <canvas id="voacap-canvas" height="160" style="display:block;width:100%;"></canvas>
+  </div>
+
+  <!-- Légende -->
+  <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap;">
+    <span style="font-size:0.68em;color:#666;">REL%:</span>
+    <span style="font-size:0.65em;padding:1px 6px;background:#8b0000;border-radius:2px;color:#fff;">0–20</span>
+    <span style="font-size:0.65em;padding:1px 6px;background:#cc4400;border-radius:2px;color:#fff;">20–40</span>
+    <span style="font-size:0.65em;padding:1px 6px;background:#dd8800;border-radius:2px;color:#000;">40–60</span>
+    <span style="font-size:0.65em;padding:1px 6px;background:#aacc00;border-radius:2px;color:#000;">60–80</span>
+    <span style="font-size:0.65em;padding:1px 6px;background:#33bb00;border-radius:2px;color:#fff;">80–100</span>
+    <span id="voacap-muf-luf" style="margin-left:auto;font-size:0.72em;color:#00f3ff;font-family:monospace;"></span>
+  </div>
+</div>
 </div>
 
 <div class="panel" data-panel-id="solar" id="solar-panel">
@@ -1887,6 +1922,13 @@
         }
 
         async function initApp() {
+            // Init VOACAP panel
+            document.querySelectorAll('.voacap-zone-btn').forEach(btn => {
+                btn.addEventListener('click', () => loadVoacap(btn.dataset.zone));
+            });
+            loadVoacap(voacapCurrentZone);
+            setInterval(() => loadVoacap(voacapCurrentZone), 1800000); // refresh 30min
+
              console.log("Starting client-side initialization...");
 
              const savedVoiceState = localStorage.getItem('voiceEnabled');
@@ -2650,6 +2692,128 @@
             bandmapDrawWaterfall();
             bandmapRender();
         });
+
+
+        // ===== VOACAP PROPAGATION PANEL =====
+        let voacapCurrentZone = localStorage.getItem('voacap_zone') || 'EU';
+
+        function voacapRelColor(rel) {
+            if (rel >= 80) return [51, 187, 0];
+            if (rel >= 60) return [170, 204, 0];
+            if (rel >= 40) return [221, 136, 0];
+            if (rel >= 20) return [204, 68, 0];
+            return [139, 0, 0];
+        }
+
+        async function loadVoacap(zone) {
+            voacapCurrentZone = zone;
+            localStorage.setItem('voacap_zone', zone);
+
+            // Màj boutons
+            document.querySelectorAll('.voacap-zone-btn').forEach(b => {
+                const active = b.dataset.zone === zone;
+                b.style.background = active ? '#00f3ff' : '#1a1a1a';
+                b.style.border     = active ? '1px solid #00f3ff' : '1px solid #444';
+                b.style.color      = active ? '#000' : '#aaa';
+                b.style.fontWeight = active ? 'bold' : 'normal';
+            });
+
+            const meta = document.getElementById('voacap-meta');
+            if (meta) meta.textContent = 'Calcul…';
+
+            try {
+                const r = await fetch(`/api/voacap?zone=${zone}`);
+                const d = await r.json();
+                if (d.error) { if (meta) meta.textContent = d.error; return; }
+
+                if (meta) meta.textContent = `${d.zone_name} · ${d.dist_km} km · SFI ${d.sfi} · ${d.generated_utc}`;
+                const mufEl = document.getElementById('voacap-muf-luf');
+                if (mufEl) mufEl.textContent = `MUF ${d.muf} MHz · LUF ${d.luf} MHz`;
+
+                voacapDraw(d);
+            } catch(e) {
+                if (meta) meta.textContent = 'Erreur réseau';
+            }
+        }
+
+        function voacapDraw(d) {
+            const canvas = document.getElementById('voacap-canvas');
+            if (!canvas) return;
+            const bands = d.bands;   // ['80m','40m',...]
+            const grid  = d.grid;    // {band: [h0..h23]}
+            const nBands = bands.length;
+            const nHours = 24;
+
+            const W = canvas.parentElement.offsetWidth || 600;
+            canvas.width  = W;
+            canvas.height = 160;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, W, 160);
+
+            const labelW = 36;
+            const cellW  = Math.floor((W - labelW) / nHours);
+            const cellH  = Math.floor(120 / nBands);
+            const gridTop = 18;  // espace pour les heures UTC
+
+            // Heure UTC courante
+            const nowH = new Date().getUTCHours();
+
+            // Heures UTC (axe X)
+            ctx.fillStyle = '#555';
+            ctx.font = '9px monospace';
+            ctx.textAlign = 'center';
+            for (let h = 0; h < nHours; h += 3) {
+                const x = labelW + h * cellW + cellW / 2;
+                ctx.fillText(h, x, 12);
+            }
+
+            // Grille cellules
+            for (let bi = 0; bi < nBands; bi++) {
+                const band = bands[bi];
+                const y = gridTop + bi * cellH;
+
+                // Label bande (axe Y)
+                ctx.fillStyle = '#888';
+                ctx.font = 'bold 9px monospace';
+                ctx.textAlign = 'right';
+                ctx.fillText(band, labelW - 3, y + cellH * 0.72);
+
+                for (let h = 0; h < nHours; h++) {
+                    const rel = grid[band][h];
+                    const [r, g, b] = voacapRelColor(rel);
+                    const x = labelW + h * cellW;
+
+                    // Cellule colorée
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
+
+                    // Valeur si place suffisante
+                    if (cellW >= 20 && rel > 0) {
+                        ctx.fillStyle = rel >= 40 ? '#000' : '#ccc';
+                        ctx.font = '8px monospace';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(rel, x + cellW / 2, y + cellH * 0.72);
+                    }
+                }
+            }
+
+            // Ligne heure courante
+            const nowX = labelW + nowH * cellW + cellW / 2;
+            ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(nowX, gridTop);
+            ctx.lineTo(nowX, gridTop + nBands * cellH);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Label heure courante
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 9px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('▼', nowX, gridTop - 2);
+        }
 
         // ===== DRAG & DROP for bandmap header (réorganiser dans la page) =====
         // Le bandmap est dans le flux normal (pas fixed), il peut être drag & drop via SortableJS

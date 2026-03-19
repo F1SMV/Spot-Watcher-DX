@@ -1,4 +1,4 @@
-﻿# 📡 Radio Spot Watcher DX — v6.8
+﻿# 📡 Radio Spot Watcher DX — v6.9
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -119,6 +119,24 @@ Aucune dépendance cloud.
 ---
 
 ### 🗂️ Historique des versions
+
+### V6.9
+
+    webapp.py — endpoint /api/voacap?zone=EU qui calcule localement :
+
+    MUF estimée depuis SFI et distance TX→RX (formule W6ELprop)
+    LUF selon distance et heure (absorption couche D)
+    Fiabilité (REL%) pour chaque bande (80m→10m) × chaque heure UTC (0–23)
+    Correction Kp pour les perturbations géomagnétiques
+    Cache 30 min pour ne pas recalculer à chaque refresh
+
+    index.html — pavé drag & drop :
+
+    Boutons zones : EU / NA / SA / AS / OC / AF
+    Grille colorée bandes × heures style VOACAP : 🟥 rouge (0–20%) → 🟧 orange → 🟨 jaune → 🟩 vert (80–100%)
+    Ligne blanche ▼ indiquant l'heure UTC courante
+    MUF et LUF actuelles affichées en bas
+    Zone préférée sauvegardée en localStorage
 
 ### v6.8 
 

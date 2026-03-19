@@ -44,7 +44,7 @@ tn_lock = threading.Lock()
 tn_current = None  # socket.socket when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "6.8"
+APP_VERSION = "6.9"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -2629,6 +2629,150 @@ def check_update():
             return jsonify(_update_cache["data"])
         return jsonify({"update_available": False, "error": str(e)})
 
+
+# ============================================================
+# VOACAP-LIKE PROPAGATION ESTIMATE
+# Modèle simplifié basé sur SFI/Kp (W6ELprop-inspired)
+# Calcul local, pas de dépendance externe
+# ============================================================
+
+# Coordonnées des zones RX cibles
+VOACAP_ZONES = {
+    'EU': {'name': 'Europe',          'lat': 50.0,  'lon': 10.0},
+    'NA': {'name': 'Amérique du Nord','lat': 40.0,  'lon': -95.0},
+    'SA': {'name': 'Amérique du Sud', 'lat': -15.0, 'lon': -60.0},
+    'AS': {'name': 'Asie',            'lat': 35.0,  'lon': 105.0},
+    'OC': {'name': 'Océanie',         'lat': -25.0, 'lon': 135.0},
+    'AF': {'name': 'Afrique',         'lat': 0.0,   'lon': 20.0},
+}
+
+# Bandes HF radioamateur (MHz)
+VOACAP_BANDS = [3.5, 7.0, 10.1, 14.0, 18.1, 21.0, 24.9, 28.0]
+VOACAP_BAND_LABELS = ['80m','40m','30m','20m','17m','15m','12m','10m']
+
+def _voacap_muf(sfi, dist_km):
+    """Estime la MUF selon SFI et distance (formule empirique simplifiée)."""
+    # MUF de base augmente avec le SFI
+    base_muf = 5.0 + (sfi - 60) * 0.18
+    # Correction distance : trajets courts favorisent les hautes fréquences
+    if dist_km < 500:
+        dist_factor = 0.6
+    elif dist_km < 2000:
+        dist_factor = 0.8 + (dist_km - 500) / 7500
+    elif dist_km < 8000:
+        dist_factor = 1.0 + (dist_km - 2000) / 20000
+    else:
+        dist_factor = 1.3
+    return min(35.0, max(4.0, base_muf * dist_factor))
+
+def _voacap_reliability(freq_mhz, muf, luf, hour_utc, dist_km, kp):
+    """Calcule la fiabilité (0-1) pour une bande/heure donnée."""
+    import math
+    # Fenêtre MUF/LUF : fiabilité max au milieu
+    if freq_mhz > muf * 1.15:
+        return 0.0
+    if freq_mhz < luf * 0.85:
+        return 0.0
+
+    # Score de base : position dans la fenêtre
+    center = (muf + luf) / 2
+    half = (muf - luf) / 2 if muf > luf else 1.0
+    dist_from_center = abs(freq_mhz - center) / max(half, 0.1)
+    base = max(0.0, 1.0 - dist_from_center ** 1.5)
+
+    # Correction heure : nuit favorise les basses fréquences
+    night = (hour_utc < 6 or hour_utc >= 20)
+    if night and freq_mhz > 14:
+        base *= max(0.1, 1.0 - (freq_mhz - 14) * 0.08)
+    if not night and freq_mhz < 7:
+        base *= max(0.1, 1.0 - (7 - freq_mhz) * 0.15)
+
+    # Correction Kp : perturbations géomagnétiques réduisent la propagation
+    if kp is not None:
+        kp_val = float(kp)
+        if kp_val >= 5:
+            base *= max(0.05, 1.0 - (kp_val - 4) * 0.18)
+
+    return min(1.0, max(0.0, base))
+
+def _voacap_luf(dist_km, hour_utc):
+    """Estime la LUF (fréquence minimale utilisable)."""
+    # La nuit la LUF baisse (absorption D moindre)
+    night = (hour_utc < 6 or hour_utc >= 20)
+    if dist_km < 1000:
+        base = 4.0 if night else 7.0
+    elif dist_km < 5000:
+        base = 3.5 if night else 5.5
+    else:
+        base = 3.0 if night else 4.5
+    return base
+
+_voacap_cache = {}
+_voacap_cache_ts = {}
+VOACAP_TTL = 1800  # 30 min
+
+@app.route('/api/voacap')
+def api_voacap():
+    """Prédiction de propagation HF par zone et heure UTC."""
+    import math
+    zone = request.args.get('zone', 'EU').upper()
+    if zone not in VOACAP_ZONES:
+        return jsonify({'error': f'Zone inconnue: {zone}'}), 400
+
+    now = time.time()
+    cache_key = f"{zone}-{int(now // VOACAP_TTL)}"
+    if cache_key in _voacap_cache:
+        return jsonify(_voacap_cache[cache_key])
+
+    # Récupérer SFI et Kp actuels
+    with solar_lock:
+        sol = dict(solar_cache)
+    try:
+        sfi = float(sol.get('sfi', 100))
+    except:
+        sfi = 100.0
+    kp = sol.get('kp')
+
+    # Distance TX→RX
+    rx = VOACAP_ZONES[zone]
+    tx_lat, tx_lon = user_lat, user_lon
+    rx_lat, rx_lon = rx['lat'], rx['lon']
+    dist_km = calculate_distance(tx_lat, tx_lon, rx_lat, rx_lon)
+
+    # Calcul pour chaque heure (0-23) et chaque bande
+    grid = {}  # grid[band_label][hour] = reliability 0-100
+    for i, freq in enumerate(VOACAP_BANDS):
+        band = VOACAP_BAND_LABELS[i]
+        grid[band] = []
+        for h in range(24):
+            muf = _voacap_muf(sfi, dist_km)
+            # Variation diurne de la MUF : +20% en milieu de journée
+            hour_angle = math.pi * (h - 12) / 12
+            muf_h = muf * (1.0 + 0.2 * math.cos(hour_angle))
+            luf = _voacap_luf(dist_km, h)
+            rel = _voacap_reliability(freq, muf_h, luf, h, dist_km, kp)
+            grid[band].append(round(rel * 100))
+
+    # MUF et LUF à l'heure actuelle UTC
+    import datetime
+    utc_hour = datetime.datetime.utcnow().hour
+    muf_now = _voacap_muf(sfi, dist_km) * (1 + 0.2 * math.cos(math.pi * (utc_hour - 12) / 12))
+    luf_now = _voacap_luf(dist_km, utc_hour)
+
+    result = {
+        'zone': zone,
+        'zone_name': rx['name'],
+        'dist_km': round(dist_km),
+        'sfi': sfi,
+        'kp': kp,
+        'muf': round(muf_now, 1),
+        'luf': round(luf_now, 1),
+        'bands': VOACAP_BAND_LABELS,
+        'grid': grid,
+        'generated_utc': datetime.datetime.utcnow().strftime('%H:%M UTC')
+    }
+    _voacap_cache[cache_key] = result
+    return jsonify(result)
 
 if __name__ == "__main__":
     load_cty_dat()
