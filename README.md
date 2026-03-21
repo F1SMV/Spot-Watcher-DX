@@ -1,8 +1,8 @@
-﻿# 📡 Radio Spot Watcher DX — v6.9
+# 📡 Radio Spot Watcher DX — v7.0
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
-Application web locale de surveillance DX et d’analyse radio destinée aux radioamateurs exigeants.  
+Application web locale de surveillance DX et d'analyse radio destinée aux radioamateurs exigeants.  
 Conçue pour **observer**, **comprendre** et **prendre du recul** — pas pour faire du bruit visuel.
 
 ---
@@ -14,10 +14,10 @@ Conçue pour **observer**, **comprendre** et **prendre du recul** — pas pour f
 - se connecte à un ou plusieurs **DX Clusters (Telnet)**
 - affiche les **spots en temps réel** (HF / VHF / UHF)
 - intègre les **indices solaires** (SFI, A, Kp…)
-- conserve une **mémoire exploitable** de l’activité
-- propose **plusieurs niveaux de lecture**, du live à l’analyse stratégique
+- conserve une **mémoire exploitable** de l'activité
+- propose **plusieurs niveaux de lecture**, du live à l'analyse stratégique
 
-> L’objectif n’est pas de voir beaucoup,  
+> L'objectif n'est pas de voir beaucoup,  
 > mais de **voir juste**.
 
 ---
@@ -26,14 +26,14 @@ Conçue pour **observer**, **comprendre** et **prendre du recul** — pas pour f
 
 ### 1️⃣ Page **Index** — Temps réel & suivi opérateur
 
-Page d’observation immédiate.
+Page d'observation immédiate.
 
 Elle affiche :
 - le flux de spots en direct
 - les bandes actives
 - les DX recherchés (*wanted*)
 - les indices solaires
-- les signaux de **surge** d’activité
+- les signaux de **surge** d'activité
 
 👉 **Objectif : savoir ce qui se passe maintenant.**
 
@@ -43,21 +43,21 @@ Elle affiche :
 
 Fonction introduite pour répondre à un besoin simple :
 
-> *« Je n’étais pas devant l’écran : qu’ai-je raté ? »*
+> *« Je n'étais pas devant l'écran : qu'ai-je raté ? »*
 
 - basé sur la watchlist
 - exploite un historique en mémoire
 - affiche les derniers spots par indicatif
 
 Philosophie :
-- ❌ pas un log brut  
-- ❌ pas un dump massif  
-- ✅ un outil de rattrapage  
-- ✅ pensé pour l’opérateur humain  
+- ❌ pas un log brut
+- ❌ pas un dump massif
+- ✅ un outil de rattrapage
+- ✅ pensé pour l'opérateur humain
 
 ---
 
-### 2️⃣ Page **Map** — Carte d’observation (micro-lecture)
+### 2️⃣ Page **Map** — Carte d'observation (micro-lecture)
 
 Carte classique des **spots individuels** :
 
@@ -67,13 +67,13 @@ Carte classique des **spots individuels** :
 
 👉 **Objectif : voir où ça se passe.**
 
-La page **Map** est un **outil d’exécution**.
+La page **Map** est un **outil d'exécution**.
 
 ---
 
 ### 3️⃣ Page **Analyse** — META ANALYSE différée
 
-Outil volontairement **non temps réel**, basé sur l’analyse du log applicatif.
+Outil volontairement **non temps réel**, basé sur l'analyse du log applicatif.
 
 👉 **Outil de recul**, pas un gadget.
 
@@ -95,12 +95,11 @@ La page **World** est **fondamentalement différente** de la page Map.
 
 👉 **World décide, Map exécute.**
 
-### 5️⃣ « Briefing » 
+### 5️⃣ Page **Briefing**
 
-qui se met a jour toutes les 12 heures, reprenant les infos dx essentielles et surtout maintenant 
-la possibilite d'ajouter automatiquement les call (si vous voulez) dans la "watching list" de la page Index. 
-Donc vous ne raterez aucune expedition car des que le call d'une expedition sera spoté il s'affichera en jaune dans le
-pave DX spots  
+Se met à jour toutes les 12 heures, reprenant les infos DX essentielles. Possibilité d'ajouter automatiquement les calls dans la watchlist de la page Index. Vous ne raterez aucune expédition : dès qu'un call est spotté, il s'affiche en jaune dans le pavé DX spots.
+
+---
 
 📸 Aperçu
 
@@ -108,11 +107,11 @@ pave DX spots
 
 ## ⚙️ Architecture technique
 
-- Backend : Python / Flask  
-- Frontend : HTML / CSS / JavaScript  
-- Cluster : Telnet DX Cluster  
-- Analyse : scripts Python dédiés  
-- Stockage : mémoire + JSON locaux  
+- Backend : Python / Flask
+- Frontend : HTML / CSS / JavaScript
+- Cluster : Telnet DX Cluster
+- Analyse : scripts Python dédiés
+- Stockage : mémoire + JSON locaux
 
 Aucune dépendance cloud.
 
@@ -120,86 +119,94 @@ Aucune dépendance cloud.
 
 ### 🗂️ Historique des versions
 
-### V6.9
+### v7.0 — Intégration LoTW & améliorations bandmap
 
-    webapp.py — endpoint /api/voacap?zone=EU qui calcule localement :
+**Intégration LoTW (Logbook of the World)**
 
-    MUF estimée depuis SFI et distance TX→RX (formule W6ELprop)
-    LUF selon distance et heure (absorption couche D)
-    Fiabilité (REL%) pour chaque bande (80m→10m) × chaque heure UTC (0–23)
-    Correction Kp pour les perturbations géomagnétiques
-    Cache 30 min pour ne pas recalculer à chaque refresh
+- Connexion sécurisée depuis l'interface web — identifiants jamais stockés sur le disque
+- Import complet de votre log : tous les QSOs uploadés + QSLs confirmées
+- Résolution DXCC via `cty.dat` (pas de dépendance au champ ADIF optionnel)
+- Statistiques : QSOs totaux, QSLs confirmées, DXCC confirmés par bande (barres visuelles)
+- **Dans les spots HF et VHF** : fond rouge + badge NEW = DXCC jamais travaillé / fond vert + ✓ = DXCC déjà confirmé
+- **Bouton ★ NEW DXCC** dans les pavés HF et VHF pour filtrer uniquement les nouveaux DXCC
+- **Dans la watchlist** : badge NEW DXCC ou ✓ LoTW sur chaque call
+- Spinner de chargement pendant la synchronisation (30–60s pour un gros log)
 
-    index.html — pavé drag & drop :
+**Bandmap**
 
-    Boutons zones : EU / NA / SA / AS / OC / AF
-    Grille colorée bandes × heures style VOACAP : 🟥 rouge (0–20%) → 🟧 orange → 🟨 jaune → 🟩 vert (80–100%)
-    Ligne blanche ▼ indiquant l'heure UTC courante
-    MUF et LUF actuelles affichées en bas
-    Zone préférée sauvegardée en localStorage
+- Zoom porté à 100× pour les bandes chargées (ex. 20m)
+- Couleur des étiquettes par mode : CW (vert), SSB (bleu), FT8 (violet), FT4 (rose), FT2 (mauve), RTTY (orange), PSK31 (jaune), JT65 (cyan)
+- Légende des modes affichée dans les contrôles
+- Axe des fréquences : uniquement les vraies limites de bandes radioamateur (plus d'interpolation linéaire)
+- Pan à la souris (clic + glisser) même à zoom 1×
+- Persistance de tous les réglages (groupe, bande, mode, WL, couleur fond) via localStorage
 
-### v6.8 
+### v6.9
 
-    palette de couleurs pour la bandmap
-    possibilite de zoom jusqu'a 100 sur la bande, pour pouvez avoir la visu de la portion de bande
-    choisie
-    calls avec couleurs differentes en fonction du mode utilisé
+- Pavé VOACAP : prédiction de propagation HF locale (sans dépendance cloud)
+- Endpoint `/api/voacap?zone=EU` — calcul MUF/LUF/REL depuis SFI et Kp
+- Zones : EU / NA / SA / AS / OC / AF
+- Grille colorée bandes × heures UTC style VOACAP
+- Zone préférée sauvegardée en localStorage
+
+### v6.8
+
+- Palette de couleurs pour le fond de la bandmap (8 thèmes, persisté)
+- Zoom jusqu'à 100× sur la bandmap
+- Couleur des pins selon le mode spotté
 
 ### v6.7
 
-    le programme n'interrogera github que toutes les 24:00 afin de verifier les mises a jour au lieu 
-    de toutes les x secondes
-    la bandmap a été corrigé : bouton "wl" pour suivre uniquement les stations de la watchlist 
-    comme ca vous verrez uniquement 
-    les stations dx qui vous interressent.
-    filtre sur la bande map avec les bandes hf/vhf/qo100.
-    correction d'un bug d'affichage sur la page analyse.
+- Vérification des mises à jour GitHub toutes les 24h (anti rate-limiting)
+- Bouton WL pour n'afficher que les stations de la watchlist dans la bandmap
+- Filtres HF / VHF 2m / UHF 70cm / QO-100 dans la bandmap
+- Correction bug affichage page Analyse
 
-### v6.6 
+### v6.6
 
-    bandemap, mise en place de curseurs de zoom et choix spd. cliquez sur le point sous le call dès le zoom 2 et 
-    la bande se recentre sur la portion de bande
+- Bandmap : curseurs zoom et filtre densité SPD
+- Recentrage automatique sur le call sélectionné
 
-### v6.5 
+### v6.5
 
-    suppression de l'utilisation de la librairie telnetlib pat Telnetlib3 sur une suggestion de F5UGQ, 
-    introduction d'une dose d'IA par l'adjonction d'un bouton "bref vocal IA" dans le pavé "solar indices" de la page index.html
-    uniquement si vous souhaitez tester. 
-    Il vous faudra une clef api chez perplexity, cout 0.01 € par appel
+- Remplacement de `telnetlib` par `telnetlib3` (suggestion F5UGQ)
+- Brief vocal IA via bouton dans le pavé Solar Indices (API Perplexity, ~0.01€/appel)
 
-### v6.4 
+### v6.4
 
-    ajout de la bandemap sur la page d'accueil; selection par bande et mode
+- Ajout de la bandmap sur la page d'accueil, sélection par bande et mode
 
-### v6.3 
+### v6.3
 
-    ajout du tri par fréquences dans les pavés DX HF et DX VHF et bandeau update quand une nouvelle version apparait 
+- Tri par fréquences dans les pavés DX HF et VHF
+- Bandeau de notification de mise à jour
 
-### v6.2 
+### v6.2
 
-    ajout sur option des calls dans la watching list du dashboard et rajout du nouveau mode FT2
+- Ajout optionnel des calls dans la watchlist
+- Support du mode FT2
 
-### v6.1 
+### v6.1
 
-    nouvelle page « briefing dxpeditions » et modification des cartes de la page index.html
+- Nouvelle page Briefing DXpéditions
+- Modification des cartes de la page Index
 
 ### v6.0 — Release stable
 
-- Finalisation de la page **World**
+- Finalisation de la page World
 - Séparation claire Map / World
 - Clustering stabilisé
 - Rafraîchissement automatique
 - UX clarifiée
 - Sauvegarde état utilisateur
 
-> Passage de **v5.7 à v6.0**  
-> dû à plusieurs versions d’essai non publiées.
+> Passage de v5.7 à v6.0 dû à plusieurs versions d'essai non publiées.
 
 ### v5.7 — Versions de travail
 
-- prototypes World
-- ajustements de scoring
-- corrections structurelles
+- Prototypes World
+- Ajustements de scoring
+- Corrections structurelles
 
 ### v5.6
 
@@ -215,6 +222,6 @@ Aucune dépendance cloud.
 ## 👤 Auteur
 
 Développé par **F1SMV – Eric**  
-avec l’assistance de ChatGPT 5.2 et Gemini & Claude 
-au service de la communauté radioamateur.
-vous pouvez me contacter via @f1smv sur X
+avec l'assistance de Claude (Anthropic)  
+au service de la communauté radioamateur.  
+Contact : @f1smv sur X

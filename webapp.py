@@ -4,6 +4,7 @@ import threading
 import json
 import os
 import urllib.request
+import urllib.parse
 import feedparser
 import ssl
 import math
@@ -44,7 +45,7 @@ tn_lock = threading.Lock()
 tn_current = None  # socket.socket when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "6.9"
+APP_VERSION = "7.0"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -130,7 +131,7 @@ BRIEFING_SOURCES_FILE = Path("data/briefing_sources.json")
 BRIEFING_CACHE_TTL = 60 * 60 * 12
 BRIEFING_FEED_TIMEOUT = 15
 BRIEFING_ITEM_LIMIT = 8
-BRIEFING_USER_AGENT = "Spot-Watcher-DX/6.0 (+https://github.com/)"
+BRIEFING_USER_AGENT = "Spot-Watcher-DX/7.0 (+https://github.com/)"
 QO100_NEWS_URL = "https://qo100dx.club/news"
 QO100_HEADERS = {
     "User-Agent": "RadioSpotWatcherDX/1.0 (+https://example.local)"
@@ -1133,6 +1134,20 @@ def api_spot():
 def get_user_location():
     return jsonify({'qra': user_qra, 'lat': user_lat, 'lon': user_lon})
 
+def _enrich_spot_lotw(spot):
+    """Ajoute le statut LoTW à un spot si session active."""
+    with lotw_lock:
+        if not lotw_session['logged_in']:
+            return spot
+        call = (spot.get('dx_call') or '').upper()
+        country = get_country_info(call).get('c', '')
+        spot = dict(spot)
+        spot['lotw_call_confirmed'] = call in lotw_data['confirmed_calls']
+        spot['lotw_dxcc_confirmed'] = country in lotw_data['confirmed_dxcc']
+        spot['lotw_dxcc_new']       = bool(country) and country != 'Unknown' and country not in lotw_data['worked_dxcc']
+        spot['lotw_active']         = True
+    return spot
+
 @app.route('/spots.json')
 def get_spots():
     now = time.time()
@@ -1143,7 +1158,8 @@ def get_spots():
         all_spots = [s for s in all_spots if s['band'] == filter_band]
     if filter_mode and filter_mode != "All":
         all_spots = [s for s in all_spots if s['mode'] == filter_mode]
-    return jsonify(list(reversed(all_spots)))
+    all_spots = [_enrich_spot_lotw(s) for s in reversed(all_spots)]
+    return jsonify(all_spots)
 
 @app.route('/surge.json')
 def get_surge_status():
@@ -2773,6 +2789,269 @@ def api_voacap():
     }
     _voacap_cache[cache_key] = result
     return jsonify(result)
+
+# ============================================================
+# INTÉGRATION LoTW (Logbook of the World)
+# Identifiants jamais stockés sur disque — session mémoire uniquement
+# ============================================================
+
+lotw_session = {
+    "login": None,
+    "password": None,
+    "logged_in": False,
+    "last_sync": None,
+    "error": None
+}
+
+# Données importées depuis LoTW (en mémoire uniquement)
+lotw_data = {
+    "confirmed_calls": set(),      # calls déjà confirmés (QSL reçue)
+    "confirmed_dxcc": set(),       # entités DXCC confirmées
+    "worked_dxcc": set(),          # entités DXCC travaillées (pas forcément confirmées)
+    "dxcc_by_band": {},            # {band: set(dxcc)} confirmés par bande
+    "total_qso": 0,
+    "total_confirmed": 0,
+}
+lotw_lock = threading.Lock()
+
+def _parse_adif_lotw(adif_text, all_confirmed=False):
+    """Parse un fichier ADIF LoTW et retourne la liste des QSOs.
+    all_confirmed=True : tous les records sont considérés confirmés (requête qso_qsl=yes).
+    """
+    import re
+    qsos = []
+    upper = adif_text.upper()
+    eoh = upper.find('<EOH>')
+    if eoh == -1:
+        return []
+    # Avancer après le tag complet <eoh> ou <EOH>
+    body = adif_text[eoh + 5:]
+
+    def get_field(record, field):
+        m = re.search(rf'<{re.escape(field)}:\d+(?::\w+)?>([^<]*)', record, re.IGNORECASE)
+        return m.group(1).strip() if m else ''
+
+    for record in re.split(r'<[Ee][Oo][Rr]>', body):
+        record = record.strip()
+        if not record:
+            continue
+        call = get_field(record, 'CALL')
+        if not call:
+            continue
+        band = get_field(record, 'BAND').lower()
+        dxcc = get_field(record, 'DXCC')
+
+        if all_confirmed:
+            confirmed = True
+        else:
+            # Pour requête qso_qsl=no : vérifier si QSL reçue quand même
+            qsl = get_field(record, 'QSL_RCVD')
+            confirmed = qsl.upper() == 'Y'
+
+        qsos.append({
+            'call':      call.upper(),
+            'band':      band,
+            'dxcc':      dxcc,
+            'confirmed': confirmed
+        })
+    return qsos
+
+@app.route('/api/lotw/login', methods=['POST'])
+def lotw_login():
+    """Connexion LoTW : importe TOUS les QSOs (confirmés ou non)."""
+    data = request.get_json(force=True)
+    login    = (data.get('login') or '').strip()
+    password = (data.get('password') or '').strip()
+    if not login or not password:
+        return jsonify({'ok': False, 'error': 'Login et mot de passe requis'}), 400
+
+    # Étape 1 : tous les QSOs uploadés (qso_qsl=no = tous, pas seulement confirmés)
+    url_all = (
+        f"https://lotw.arrl.org/lotwuser/lotwreport.adi"
+        f"?login={urllib.parse.quote(login)}"
+        f"&password={urllib.parse.quote(password)}"
+        f"&qso_query=1"
+        f"&qso_qsl=no"
+        f"&qso_mydetail=yes"
+        f"&qso_qsorxsince=1900-01-01"
+    )
+    # Étape 2 : uniquement les QSLs confirmées (pour marquer confirmed)
+    url_qsl = (
+        f"https://lotw.arrl.org/lotwuser/lotwreport.adi"
+        f"?login={urllib.parse.quote(login)}"
+        f"&password={urllib.parse.quote(password)}"
+        f"&qso_query=1"
+        f"&qso_qsl=yes"
+        f"&qso_mydetail=yes"
+        f"&qso_qsorxsince=1900-01-01"
+        f"&qso_qslsince=1900-01-01"
+    )
+
+    raw_all = raw_qsl = ''
+    try:
+        headers = {'User-Agent': f'Spot-Watcher-DX/{APP_VERSION}'}
+        req = urllib.request.Request(url_all, headers=headers)
+        with urllib.request.urlopen(req, timeout=60) as r:
+            raw_all = r.read().decode('utf-8', errors='replace')
+        req2 = urllib.request.Request(url_qsl, headers=headers)
+        with urllib.request.urlopen(req2, timeout=60) as r:
+            raw_qsl = r.read().decode('utf-8', errors='replace')
+    except Exception as e:
+        return jsonify({'ok': False, 'error': f'Erreur réseau: {e}'}), 502
+
+    # Détecter échec d'auth
+    if '<EOH>' not in raw_all.upper():
+        return jsonify({'ok': False, 'error': 'Login ou mot de passe incorrect — vérifiez vos identifiants LoTW'}), 401
+
+    # Sauvegarder en /tmp pour debug (fichier temporaire)
+    try:
+        with open('/tmp/lotw_debug_all.adi', 'w', encoding='utf-8') as f:
+            f.write(raw_all)
+        with open('/tmp/lotw_debug_qsl.adi', 'w', encoding='utf-8') as f:
+            f.write(raw_qsl)
+        logger.info(f"LoTW debug: fichiers sauvegardés dans /tmp/lotw_debug_*.adi")
+        logger.info(f"LoTW debug: {len(raw_all)} chars (all), {len(raw_qsl)} chars (qsl)")
+    except Exception as e:
+        logger.warning(f"LoTW debug save failed: {e}")
+
+    # Parser les deux fichiers
+    qsos_all = _parse_adif_lotw(raw_all, all_confirmed=False)
+    qsos_qsl = _parse_adif_lotw(raw_qsl, all_confirmed=True)
+
+    logger.info(f"LoTW parsed: {len(qsos_all)} QSOs total, {len(qsos_qsl)} confirmés")
+
+    # Construire les sets
+    # Note: le champ DXCC est souvent absent dans l'ADIF LoTW
+    # → on utilise get_country_info() sur le callsign (via cty.dat)
+    confirmed_calls = set()
+    confirmed_dxcc  = set()
+    worked_dxcc     = set()
+    worked_calls    = set()
+    dxcc_by_band    = {}
+    total_confirmed = len(qsos_qsl)
+
+    # Tous les QSOs = travaillés
+    for q in qsos_all:
+        call = q['call']
+        worked_calls.add(call)
+        dxcc = q['dxcc'] or get_country_info(call).get('c', '')
+        if dxcc and dxcc != 'Unknown':
+            worked_dxcc.add(dxcc)
+
+    # QSLs confirmées
+    for q in qsos_qsl:
+        call = q['call']
+        confirmed_calls.add(call)
+        dxcc = q['dxcc'] or get_country_info(call).get('c', '')
+        if dxcc and dxcc != 'Unknown':
+            confirmed_dxcc.add(dxcc)
+            band = q['band']
+            if band:
+                dxcc_by_band.setdefault(band, set()).add(dxcc)
+
+    with lotw_lock:
+        lotw_session['login']     = login
+        lotw_session['logged_in'] = True
+        lotw_session['last_sync'] = time.strftime('%H:%M UTC')
+        lotw_session['error']     = None
+        lotw_data['confirmed_calls'] = confirmed_calls
+        lotw_data['confirmed_dxcc']  = confirmed_dxcc
+        lotw_data['worked_dxcc']     = worked_dxcc
+        lotw_data['worked_calls']    = worked_calls
+        lotw_data['dxcc_by_band']    = {b: list(v) for b, v in dxcc_by_band.items()}
+        lotw_data['total_qso']        = len(qsos_all)
+        lotw_data['total_confirmed']  = total_confirmed
+
+    logger.info(f"LoTW sync OK: {len(qsos_all)} QSOs, {total_confirmed} confirmés, {len(confirmed_dxcc)} DXCC")
+    return jsonify({
+        'ok': True,
+        'total_qso': len(qsos_all),
+        'total_confirmed': total_confirmed,
+        'total_dxcc': len(confirmed_dxcc),
+        'last_sync': lotw_session['last_sync']
+    })
+
+@app.route('/api/lotw/logout', methods=['POST'])
+def lotw_logout():
+    """Efface toutes les données LoTW de la mémoire."""
+    with lotw_lock:
+        lotw_session.update({'login': None, 'password': None, 'logged_in': False,
+                             'last_sync': None, 'error': None})
+        lotw_data['confirmed_calls'] = set()
+        lotw_data['confirmed_dxcc']  = set()
+        lotw_data['worked_dxcc']     = set()
+        lotw_data['dxcc_by_band']    = {}
+        lotw_data['total_qso']        = 0
+        lotw_data['total_confirmed']  = 0
+    return jsonify({'ok': True})
+
+@app.route('/api/lotw/status')
+def lotw_status():
+    """Retourne l'état LoTW et les stats."""
+    with lotw_lock:
+        if not lotw_session['logged_in']:
+            return jsonify({'logged_in': False})
+        # Stats par bande
+        band_stats = {b: len(v) for b, v in lotw_data['dxcc_by_band'].items()}
+        return jsonify({
+            'logged_in':       True,
+            'login':           lotw_session['login'],
+            'last_sync':       lotw_session['last_sync'],
+            'total_qso':       lotw_data['total_qso'],
+            'total_confirmed': lotw_data['total_confirmed'],
+            'total_dxcc':      len(lotw_data['confirmed_dxcc']),
+            'band_stats':      band_stats,
+        })
+
+@app.route('/api/lotw/check_call')
+def lotw_check_call():
+    """Vérifie si un call/DXCC est déjà confirmé."""
+    call = (request.args.get('call') or '').upper().strip()
+    if not call:
+        return jsonify({'error': 'call requis'}), 400
+    with lotw_lock:
+        if not lotw_session['logged_in']:
+            return jsonify({'logged_in': False})
+        info = get_country_info(call)
+        dxcc = info.get('c', '')
+        return jsonify({
+            'call':            call,
+            'call_confirmed':  call in lotw_data['confirmed_calls'],
+            'dxcc':            dxcc,
+            'dxcc_confirmed':  dxcc in lotw_data['confirmed_dxcc'],
+            'dxcc_new':        dxcc not in lotw_data['worked_dxcc'],
+        })
+
+@app.route('/api/lotw/spots_status')
+def lotw_spots_status():
+    """Enrichit tous les spots courants avec leur statut LoTW."""
+    with lotw_lock:
+        if not lotw_session['logged_in']:
+            return jsonify({'logged_in': False, 'spots': []})
+        confirmed_calls = lotw_data['confirmed_calls']
+        confirmed_dxcc  = lotw_data['confirmed_dxcc']
+        worked_dxcc     = lotw_data['worked_dxcc']
+
+    # Récupérer les spots actifs
+    with spot_lock if 'spot_lock' in dir() else threading.Lock():
+        try:
+            spots_list = list(recent_spots[-200:]) if recent_spots else []
+        except:
+            spots_list = []
+
+    result = []
+    for s in spots_list:
+        call = (s.get('dx_call') or '').upper()
+        info = get_country_info(call)
+        dxcc = info.get('c', '')
+        result.append({
+            'call':           call,
+            'call_confirmed': call in confirmed_calls,
+            'dxcc_confirmed': dxcc in confirmed_dxcc,
+            'dxcc_new':       bool(dxcc) and dxcc not in worked_dxcc,
+        })
+    return jsonify({'logged_in': True, 'spots': result})
+
 
 if __name__ == "__main__":
     load_cty_dat()

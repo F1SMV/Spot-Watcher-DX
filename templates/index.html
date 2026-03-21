@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v6.9</title>
+<title>📡 NEURAL DX v7.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -484,6 +484,52 @@
             flex-wrap: wrap;
             border-bottom: 1px solid rgba(0,243,255,0.15);
         }
+        /* Spinner LoTW */
+        @keyframes lotw-spin {
+            from { transform: rotate(0deg); } to { transform: rotate(360deg); }
+        }
+        .lotw-spinner {
+            display: inline-block;
+            width: 14px; height: 14px;
+            border: 2px solid #333;
+            border-top-color: #00f3ff;
+            border-radius: 50%;
+            animation: lotw-spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        /* LoTW spot row coloring */
+        /* Badges LoTW — alignement vertical propre */
+        td .lotw-badge-new, td .lotw-badge-ok {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 5px;
+            font-size: 0.62em;
+            padding: 1px 5px;
+            border-radius: 3px;
+            vertical-align: middle;
+            line-height: 1.4;
+            font-weight: bold;
+            position: relative;
+            top: -1px;
+        }
+        .lotw-badge-new { background:#c0392b;color:#fff; }
+        .lotw-badge-ok  { background:#1a7a3a;color:#fff; }
+        /* Lignes NEW DXCC : seulement si PAS watchlist (priorité watchlist) */
+        tr.spot-row-lotw-new:not(.spot-row-watchlist) td {
+            background: rgba(180,40,40,0.35);
+        }
+        tr.spot-row-lotw-new:not(.spot-row-watchlist) td a {
+            color: #ff9999;
+            font-weight: bold;
+        }
+        /* Lignes confirmées : seulement si PAS watchlist */
+        tr.spot-row-lotw-confirmed:not(.spot-row-watchlist) td {
+            background: rgba(0,100,40,0.20);
+        }
+        tr.spot-row-lotw-confirmed:not(.spot-row-watchlist) td a {
+            color: #00cc55;
+        }
         .bm-color-swatch {
             width: 16px; height: 16px; border-radius: 3px; cursor: pointer;
             border: 2px solid transparent; transition: border 0.15s, transform 0.15s;
@@ -777,7 +823,7 @@
 </div>
 
 <div id="header">
-<div id="title">📡 NEURAL DX WATCHER V6.9</div>
+<div id="title">📡 NEURAL DX WATCHER V7.0</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -885,7 +931,14 @@
 </div>
 </div>
 <div class="panel" data-panel-id="spots-hf" id="spots-hf-panel">
-<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> DX SPOTS HF</div>
+<div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;">
+  <span><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> DX SPOTS HF</span>
+  <button id="lotw-filter-hf" onclick="toggleLotwFilter('hf')" title="Filtrer nouveaux DXCC LoTW"
+    style="display:none;padding:2px 8px;font-size:0.7em;cursor:pointer;border-radius:4px;
+           background:transparent;border:1px solid #555;color:#888;font-family:monospace;transition:all 0.2s;">
+    ★ NEW DXCC
+  </button>
+</div>
 <div class="filter-controls">
 <select id="hf-band-filter">
 <option value="All">All Bands</option>
@@ -926,7 +979,14 @@
 </div>
 </div>
 <div class="panel" data-panel-id="spots-vhf" id="spots-vhf-panel">
-<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> DX SPOTS VHF/UHF</div>
+<div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;">
+  <span><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> DX SPOTS VHF/UHF</span>
+  <button id="lotw-filter-vhf" onclick="toggleLotwFilter('vhf')" title="Filtrer nouveaux DXCC LoTW"
+    style="display:none;padding:2px 8px;font-size:0.7em;cursor:pointer;border-radius:4px;
+           background:transparent;border:1px solid #555;color:#888;font-family:monospace;transition:all 0.2s;">
+    ★ NEW DXCC
+  </button>
+</div>
 <div class="filter-controls">
 <select id="vhf-band-filter">
 <option value="All">All Bands</option>
@@ -993,6 +1053,67 @@
 <div id="surge-container">No active surges...</div>
 </div>
 
+
+<div class="panel" data-panel-id="lotw" id="lotw-panel">
+<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> 📒 LoTW — LOGBOOK OF THE WORLD</div>
+<div id="lotw-content" style="padding:4px 0;">
+
+  <!-- LOGIN FORM -->
+  <div id="lotw-login-form" style="display:flex;flex-direction:column;gap:8px;">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <input id="lotw-input-login" type="text" placeholder="Login LoTW"
+        style="padding:4px 8px;background:#111;border:1px solid #333;color:#aaa;border-radius:4px;
+               font-family:monospace;font-size:0.8em;width:120px;" autocomplete="off">
+      <input id="lotw-input-pass" type="password" placeholder="Mot de passe"
+        style="padding:4px 8px;background:#111;border:1px solid #333;color:#aaa;border-radius:4px;
+               font-family:monospace;font-size:0.8em;width:140px;" autocomplete="off">
+      <button id="lotw-btn-sync" onclick="lotwLogin()"
+        style="padding:4px 14px;font-size:0.78em;cursor:pointer;border-radius:4px;
+               background:#00f3ff;border:1px solid #00f3ff;color:#000;font-weight:bold;
+               font-family:monospace;transition:all 0.2s;">
+        ↓ SYNC
+      </button>
+      <button id="lotw-btn-logout" onclick="lotwLogout()"
+        style="display:none;padding:4px 10px;font-size:0.78em;cursor:pointer;border-radius:4px;
+               background:transparent;border:1px solid #555;color:#888;font-family:monospace;">
+        ✕ Déco
+      </button>
+    </div>
+    <div id="lotw-status-msg" style="font-size:0.72em;color:#555;font-family:monospace;min-height:14px;"></div>
+  </div>
+
+  <!-- STATS (après sync) -->
+  <div id="lotw-stats" style="display:none;margin-top:8px;">
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
+      <div style="text-align:center;">
+        <div id="lotw-stat-confirmed" style="font-size:1.4em;font-weight:bold;color:#00f3ff;">--</div>
+        <div style="font-size:0.62em;color:#666;text-transform:uppercase;">QSLs confirmées</div>
+      </div>
+      <div style="text-align:center;">
+        <div id="lotw-stat-dxcc" style="font-size:1.4em;font-weight:bold;color:#00f3ff;">--</div>
+        <div style="font-size:0.62em;color:#666;text-transform:uppercase;">DXCC confirmés</div>
+      </div>
+      <div style="text-align:center;">
+        <div id="lotw-stat-qso" style="font-size:1.4em;font-weight:bold;color:#aaa;">--</div>
+        <div style="font-size:0.62em;color:#666;text-transform:uppercase;">QSOs total</div>
+      </div>
+    </div>
+
+    <!-- Stats par bande (barres) -->
+    <div style="font-size:0.7em;color:#666;margin-bottom:4px;font-family:monospace;">DXCC confirmés par bande :</div>
+    <div id="lotw-band-bars" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+
+    <!-- Légende couleurs spots -->
+    <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+      <span style="font-size:0.68em;color:#666;">Dans les spots :</span>
+      <span style="font-size:0.68em;padding:1px 6px;border-radius:3px;background:rgba(0,200,80,0.15);border:1px solid #00c850;color:#00c850;">✓ DXCC confirmé</span>
+      <span style="font-size:0.68em;padding:1px 6px;border-radius:3px;background:rgba(255,50,50,0.15);border:1px solid #ff3232;color:#ff6060;">★ DXCC NOUVEAU</span>
+      <span style="font-size:0.68em;padding:1px 6px;border-radius:3px;background:rgba(80,80,80,0.3);border:1px solid #444;color:#666;">call déjà QSL</span>
+    </div>
+  </div>
+
+</div>
+</div>
 
 <div class="panel" data-panel-id="voacap" id="voacap-panel">
 <div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> 📡 PROPAGATION HF · VOACAP EST.</div>
@@ -1252,10 +1373,19 @@
                
                 const dxBadge = itemData ? '<span class="dx-badge">📡 DX</span>' : '';
                
+                // Badge LoTW watchlist
+                let lotwWlBadge = '';
+                if (lotwActive) {
+                    if (lotwDxccNewCalls.has(call)) {
+                        lotwWlBadge = '<span class="lotw-badge-new" style="margin-left:5px;">NEW DXCC</span>';
+                    } else if (lotwConfirmedCalls.has(call)) {
+                        lotwWlBadge = '<span class="lotw-badge-ok" style="margin-left:5px;">✓ LoTW</span>';
+                    }
+                }
                 row.innerHTML = `
                     <td class="call">
                         <a href="https://qrz.com/db/${call}" target="_blank" style="color: inherit;">${call}</a>
-                        ${dxBadge}
+                        ${dxBadge}${lotwWlBadge}
                     </td>
                     <td>-</td>
                     <td>-</td>
@@ -1660,24 +1790,39 @@
                     }
 
                     spots.forEach(spot => {
+                        // Filtre LoTW "nouveaux DXCC uniquement"
+                        if (lotwFilterActive[type] && spot.lotw_active) {
+                            if (!spot.lotw_dxcc_new) return;
+                        }
+
                         const row = tbody.insertRow();
                         const isWantedCall = isWanted(spot.dx_call);
                         const callsignClass = isWantedCall ? 'spot-call-watchlist' : 'spot-call-white-bold';
-                        const rowClass = isWantedCall ? 'spot-row-watchlist' : '';
 
-                        if (rowClass) row.classList.add(rowClass);
+                        if (isWantedCall) row.classList.add('spot-row-watchlist');
+
+                        // Coloration LoTW
+                        let lotwBadge = '';
+                        if (spot.lotw_active) {
+                            if (spot.lotw_dxcc_new) {
+                                row.classList.add('spot-row-lotw-new');
+                                lotwBadge = '<span class="lotw-badge-new">NEW</span>';
+                            } else if (spot.lotw_dxcc_confirmed) {
+                                row.classList.add('spot-row-lotw-confirmed');
+                                lotwBadge = '<span class="lotw-badge-ok">✓</span>';
+                            }
+                        }
+
                         row.innerHTML = `
                             <td>${spot.time}</td>
                             <td>${spot.freq}</td>
-                            <td><span class="${callsignClass}"><a href="https://qrz.com/db/${spot.dx_call}" target="_blank" title="Look up on QRZ.com">${spot.dx_call}</a></span></td>
+                            <td><span class="${callsignClass}"><a href="https://qrz.com/db/${spot.dx_call}" target="_blank" title="Look up on QRZ.com">${spot.dx_call}</a>${lotwBadge}</span></td>
                             <td><span class="band-tag" style="background-color: ${spot.color};">${spot.band}</span></td>
                             <td>${spot.mode}</td>
                             <td class="${(spot.score >= SPD_THRESHOLD) ? 'high-spd' : ''}">${spot.score}</td>
                             <td>${spot.distance_km.toFixed(0)}</td>`;
                         row.querySelector('td:nth-child(3)').onclick = () => {
-                            if (!isWantedCall) {
-                                 addToWatchlist(spot.dx_call);
-                            }
+                            if (!isWantedCall) addToWatchlist(spot.dx_call);
                         };
                         announceSpot(spot);
                     });
@@ -1922,6 +2067,19 @@
         }
 
         async function initApp() {
+            // Init LoTW — vérifier si session active au démarrage
+            fetch('/api/lotw/status').then(r=>r.json()).then(d => {
+                if (d.logged_in) {
+                    lotwActive = true;
+                    document.getElementById('lotw-btn-logout').style.display = 'inline-block';
+                    document.getElementById('lotw-btn-sync').textContent = '↺ Re-sync';
+                    document.getElementById('lotw-status-msg').textContent =
+                        `✓ Session active · ${d.total_confirmed} QSLs · ${d.total_dxcc} DXCC · ${d.last_sync}`;
+                    document.getElementById('lotw-status-msg').style.color = '#00c850';
+                    lotwRefreshStatus();
+                }
+            });
+
             // Init VOACAP panel
             document.querySelectorAll('.voacap-zone-btn').forEach(btn => {
                 btn.addEventListener('click', () => loadVoacap(btn.dataset.zone));
@@ -2693,6 +2851,195 @@
             bandmapRender();
         });
 
+
+
+        // ===== LoTW INTEGRATION =====
+        let lotwFilterActive = { hf: false, vhf: false };
+        let lotwDxccNewCalls = new Set();  // calls dont le DXCC est nouveau
+
+        function toggleLotwFilter(type) {
+            lotwFilterActive[type] = !lotwFilterActive[type];
+            const btn = document.getElementById(`lotw-filter-${type}`);
+            if (btn) {
+                btn.style.background = lotwFilterActive[type] ? '#ff3232' : 'transparent';
+                btn.style.border     = lotwFilterActive[type] ? '1px solid #ff3232' : '1px solid #555';
+                btn.style.color      = lotwFilterActive[type] ? '#fff' : '#888';
+                btn.style.fontWeight = lotwFilterActive[type] ? 'bold' : 'normal';
+                btn.textContent      = lotwFilterActive[type] ? '★ NEW DXCC ✕' : '★ NEW DXCC';
+            }
+        }
+
+        function lotwShowFilterButtons(show) {
+            ['hf','vhf'].forEach(t => {
+                const btn = document.getElementById(`lotw-filter-${t}`);
+                if (btn) btn.style.display = show ? 'inline-block' : 'none';
+            });
+        }
+
+        let lotwActive = false;
+        let lotwConfirmedCalls = new Set();
+        let lotwConfirmedDXCC  = new Set();
+        let lotwWorkedDXCC     = new Set();
+
+        async function lotwLogin() {
+            const login = document.getElementById('lotw-input-login').value.trim();
+            const pass  = document.getElementById('lotw-input-pass').value.trim();
+            const msg   = document.getElementById('lotw-status-msg');
+            const btn   = document.getElementById('lotw-btn-sync');
+
+            if (!login || !pass) { msg.textContent = '⚠ Login et mot de passe requis'; msg.style.color='#ff8800'; return; }
+
+            btn.disabled = true;
+            btn.textContent = '↓ …';
+            msg.innerHTML = '<span class="lotw-spinner"></span>Connexion à LoTW… (peut prendre 30-60s pour un gros log)';
+            msg.style.color = '#888';
+
+            try {
+                const r = await fetch('/api/lotw/login', {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({login, password: pass})
+                });
+                const d = await r.json();
+
+                if (!d.ok) {
+                    msg.textContent = '✕ ' + (d.error || 'Erreur inconnue');
+                    msg.style.color = '#ff4444';
+                    btn.disabled = false; btn.textContent = '↓ SYNC';
+                    return;
+                }
+
+                // Succès
+                msg.innerHTML = `<span style="color:#00c850;">✓ Synchronisé</span> · <b style="color:#00f3ff;">${d.total_confirmed}</b> QSLs confirmées · <b style="color:#00f3ff;">${d.total_dxcc}</b> DXCC · ${d.total_qso.toLocaleString()} QSOs totaux · ${d.last_sync}`;
+                msg.style.color = '#aaa';
+                document.getElementById('lotw-input-pass').value = '';  // effacer le mdp
+                document.getElementById('lotw-btn-logout').style.display = 'inline-block';
+                btn.textContent = '↺ Re-sync';
+                btn.disabled = false;
+                lotwActive = true;
+
+                await lotwRefreshStatus();
+            } catch(e) {
+                msg.textContent = '✕ Erreur réseau: ' + e;
+                msg.style.color = '#ff4444';
+                btn.disabled = false; btn.textContent = '↓ SYNC';
+            }
+        }
+
+        async function lotwLogout() {
+            await fetch('/api/lotw/logout', {method:'POST'});
+            lotwActive = false;
+            lotwConfirmedCalls.clear();
+            lotwConfirmedDXCC.clear();
+            lotwWorkedDXCC.clear();
+            document.getElementById('lotw-stats').style.display = 'none';
+            document.getElementById('lotw-btn-logout').style.display = 'none';
+            document.getElementById('lotw-btn-sync').textContent = '↓ SYNC';
+            document.getElementById('lotw-status-msg').textContent = '';
+            // Retirer les badges LoTW des spots
+            lotwShowFilterButtons(false);
+            lotwFilterActive = { hf: false, vhf: false };
+            document.querySelectorAll('.lotw-badge, .lotw-badge-new, .lotw-badge-ok').forEach(b => b.remove());
+            document.querySelectorAll('.spot-row-lotw-confirmed,.spot-row-lotw-new').forEach(r => {
+                r.classList.remove('spot-row-lotw-confirmed','spot-row-lotw-new');
+            });
+        }
+
+        async function lotwRefreshStatus() {
+            const msg = document.getElementById('lotw-status-msg');
+            if (msg && !msg.textContent.includes('✓')) {
+                msg.innerHTML = '<span class="lotw-spinner"></span>Chargement des stats…';
+            }
+            const r = await fetch('/api/lotw/status');
+            const d = await r.json();
+            if (!d.logged_in) return;
+
+            document.getElementById('lotw-stats').style.display = 'block';
+            document.getElementById('lotw-stat-confirmed').textContent = d.total_confirmed.toLocaleString();
+            document.getElementById('lotw-stat-dxcc').textContent = d.total_dxcc.toLocaleString();
+            document.getElementById('lotw-stat-qso').textContent = d.total_qso.toLocaleString();
+
+            // Barres par bande
+            const barsEl = document.getElementById('lotw-band-bars');
+            barsEl.innerHTML = '';
+            // Normalisation des bandes LoTW (satellite → QO-100, majuscules → minuscules)
+            const bandNorm = {};
+            Object.entries(d.band_stats).forEach(([b, v]) => {
+                const bl = b.toLowerCase();
+                // 13cm/3cm = satellite QO-100
+                const key = (bl === '13cm' || bl === '3cm' || bl === 'qo-100') ? 'QO-100' : b.toLowerCase();
+                bandNorm[key] = (bandNorm[key] || 0) + v;
+            });
+
+            const bands = ['160m','80m','40m','30m','20m','17m','15m','12m','10m','6m','2m','70cm','QO-100'];
+            const maxVal = Math.max(1, ...bands.map(b => bandNorm[b] || bandNorm[b.toLowerCase()] || 0));
+            bands.forEach(band => {
+                const val = bandNorm[band] || bandNorm[band.toLowerCase()] || 0;
+                if (val === 0 && ['QO-100','70cm','2m'].includes(band)) return; // masquer si vide
+                const pct = Math.round((val / maxVal) * 100);
+                const bar = document.createElement('div');
+                bar.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
+                const color = band === 'QO-100' ? '#ffaa00' : (band === '2m' || band === '70cm') ? '#aa88ff' : '#00f3ff';
+                bar.innerHTML = `
+                    <div style="width:26px;height:50px;background:#111;border-radius:3px;display:flex;align-items:flex-end;overflow:hidden;">
+                        <div style="width:100%;height:${pct}%;background:${color};opacity:0.8;border-radius:2px;transition:height 0.4s;"></div>
+                    </div>
+                    <div style="font-size:0.58em;color:#666;font-family:monospace;white-space:nowrap;">${band}</div>
+                    <div style="font-size:0.58em;color:${color};font-family:monospace;">${val}</div>
+                `;
+                barsEl.appendChild(bar);
+            });
+
+            // Charger les sets de calls/DXCC pour coloration des spots
+            await lotwLoadSets();
+        }
+
+        async function lotwLoadSets() {
+            const r = await fetch('/api/lotw/spots_status');
+            const d = await r.json();
+            if (!d.logged_in) return;
+            lotwConfirmedCalls.clear();
+            lotwConfirmedDXCC.clear();
+            lotwWorkedDXCC.clear();
+            lotwDxccNewCalls.clear();
+            d.spots.forEach(s => {
+                if (s.call_confirmed) lotwConfirmedCalls.add(s.call);
+                if (s.dxcc_confirmed) lotwConfirmedDXCC.add(s.call);
+                if (s.dxcc_new)       lotwDxccNewCalls.add(s.call);
+            });
+            // Afficher les boutons filtre maintenant que LoTW est actif
+            lotwShowFilterButtons(true);
+        }
+
+        function lotwApplyToSpotRows() {
+            if (!lotwActive) return;
+            document.querySelectorAll('tr[data-call]').forEach(row => {
+                const call = (row.dataset.call || '').toUpperCase();
+                row.classList.remove('spot-row-lotw-confirmed','spot-row-lotw-new','spot-row-lotw-worked');
+                // Enlever anciens badges
+                row.querySelectorAll('.lotw-badge').forEach(b => b.remove());
+                if (!call) return;
+
+                const callTd = row.querySelector('td');
+                if (!callTd) return;
+
+                if (lotwConfirmedCalls.has(call)) {
+                    row.classList.add('spot-row-lotw-worked');
+                    const badge = document.createElement('span');
+                    badge.className = 'lotw-badge';
+                    badge.textContent = '✓';
+                    badge.style.cssText = 'margin-left:3px;color:#666;font-size:0.8em;';
+                    callTd.appendChild(badge);
+                } else if (lotwConfirmedDXCC.has(call)) {
+                    row.classList.add('spot-row-lotw-confirmed');
+                    const badge = document.createElement('span');
+                    badge.className = 'lotw-badge';
+                    badge.textContent = '✓';
+                    badge.style.cssText = 'margin-left:3px;color:#00c850;font-size:0.8em;';
+                    callTd.appendChild(badge);
+                }
+            });
+        }
 
         // ===== VOACAP PROPAGATION PANEL =====
         let voacapCurrentZone = localStorage.getItem('voacap_zone') || 'EU';

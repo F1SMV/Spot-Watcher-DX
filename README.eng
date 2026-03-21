@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v6.9
+# 📡 Radio Spot Watcher DX — v7.0
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -50,10 +50,10 @@ A feature introduced to answer a simple need:
 - shows the latest spots per callsign
 
 Philosophy:
-- ❌ not a raw log  
-- ❌ not a massive data dump  
-- ✅ a catch-up tool  
-- ✅ designed for the human operator  
+- ❌ not a raw log
+- ❌ not a massive data dump
+- ✅ a catch-up tool
+- ✅ designed for the human operator
 
 ---
 
@@ -95,8 +95,9 @@ The **World** page is **fundamentally different** from the Map page.
 
 👉 **World decides, Map executes.**
 
-### 5️⃣ **Briefing** — updated every 12 hours, summarizing essential DX information and, most importantly, now offering the ability to automatically add callsigns (if you wish) to the **Watchlist** on the Index page.  
-This way you won't miss any expedition — as soon as an expedition callsign is spotted, it will be highlighted in yellow.
+### 5️⃣ **Briefing**
+
+Updated every 12 hours, summarizing essential DX information. Offers the ability to automatically add callsigns (if you wish) to the **Watchlist** on the Index page. You won't miss any expedition — as soon as an expedition callsign is spotted, it will be highlighted in yellow in the DX spots panel.
 
 ---
 
@@ -106,11 +107,11 @@ This way you won't miss any expedition — as soon as an expedition callsign is 
 
 ## ⚙️ Technical Architecture
 
-- Backend: Python / Flask  
-- Frontend: HTML / CSS / JavaScript  
-- Cluster: Telnet DX Cluster  
-- Analysis: dedicated Python scripts  
-- Storage: memory + local JSON files  
+- Backend: Python / Flask
+- Frontend: HTML / CSS / JavaScript
+- Cluster: Telnet DX Cluster
+- Analysis: dedicated Python scripts
+- Storage: memory + local JSON files
 
 No cloud dependency.
 
@@ -118,71 +119,88 @@ No cloud dependency.
 
 ## 🗂️ Version History
 
+### v7.0 — LoTW Integration & Bandmap Improvements
+
+**LoTW (Logbook of the World) Integration**
+
+- Secure login from the web interface — credentials never stored on disk
+- Full log import: all uploaded QSOs + confirmed QSLs
+- DXCC resolution via `cty.dat` (no dependency on optional ADIF field)
+- Statistics: total QSOs, confirmed QSLs, confirmed DXCC per band (visual bar chart)
+- **In HF and VHF spot tables**: red background + NEW badge = DXCC never worked / green background + ✓ = DXCC already confirmed on LoTW
+- **★ NEW DXCC button** in HF and VHF panels to filter and show only new DXCC spots
+- **In the watchlist**: NEW DXCC or ✓ LoTW badge on each callsign
+- Loading spinner during synchronization (30–60s for a large log)
+
+**Bandmap**
+
+- Zoom increased to 100× for busy bands (e.g. 20m)
+- Pin label color by mode: CW (green), SSB (blue), FT8 (purple), FT4 (pink), FT2 (mauve), RTTY (orange), PSK31 (yellow), JT65 (cyan)
+- Mode legend displayed in the controls bar
+- Frequency axis: only real amateur radio band edges shown (no more linear interpolation)
+- Mouse pan (click + drag) available even at zoom 1×
+- All settings persisted via localStorage (group, band, mode, WL filter, background color)
+
 ### v6.9
-    webapp.py — endpoint /api/voacap?zone=EU which calculates locally:
 
-    Estimated MUF from SFI and TX→RX distance (W6ELprop formula)
-    LUF based on distance and time (D layer absorption)
-    Reliability (REL%) for each band (80m→10m) × each UTC hour (0–23)
-    Kp correction for geomagnetic disturbances
-    30-minute cache to avoid recalculating on refresh
-
-    index.html — drag & drop interface: 
-
-    Zone buttons: EU / NA / SA / AS / OC / AF
-    Colored grid of bands × hours, VOACAP style: 🟥 red (0–20%) → 🟧 orange → 🟨 yellow → 🟩 green (80–100%)
-    White line ▼ indicating the current UTC time
-    Current MUF and LUF displayed at the bottom
-    Saved favorite zone localStorage
+- VOACAP panel: local HF propagation prediction (no cloud dependency)
+- Endpoint `/api/voacap?zone=EU` — MUF/LUF/REL calculation from SFI and Kp
+- Zones: EU / NA / SA / AS / OC / AF
+- Colored grid of bands × UTC hours, VOACAP style
+- Preferred zone saved in localStorage
 
 ### v6.8
-    Color palette for the bandmap
-    Zoom up to 100x on the band to view the selected portion
-    Calls with different colors depending on the mode used
 
-### v6.7 
-    The program will now query GitHub only every 24 hours to check for updates instead of every x seconds.
-    The bandmap has been improved: a "WL" button has been added to follow only stations from the watchlist, so you will see only the DX stations that interest you.
-    A band filter has been added to the bandmap for HF / VHF / QO-100.
-    Fixed a display bug on the analysis page.
+- Color palette for the bandmap background (8 themes, persisted)
+- Zoom up to 100× on the bandmap
+- Pin colors based on spotted mode
 
-### v6.6 
+### v6.7
 
-    bandmap, setting up zoom sliders and SPD selection. 
-    Click on the point below the call sign at zoom level 2 and the band will recenter on the band portion.
+- GitHub update check reduced to once every 24 hours (anti rate-limiting)
+- WL button to show only watchlist stations in the bandmap
+- HF / VHF 2m / UHF 70cm / QO-100 group filters in the bandmap
+- Fixed display bug on the Analysis page
+
+### v6.6
+
+- Bandmap: zoom and SPD density sliders
+- Auto-recentering on the selected callsign
 
 ### v6.5
-   Removal of the `telnetlib` library, replaced by `Telnetlib3` following a suggestion from F5UGQ.  
-   Introduction of AI with the addition of a **"AI Vocal Brief"** button in the "Solar Indices" panel on index.html — optional, only if you wish to try it.  
-   Requires a Perplexity API key. Cost: ~€0.01 per call.
+
+- Replaced `telnetlib` with `Telnetlib3` (suggestion by F5UGQ)
+- Optional AI Vocal Brief button in the Solar Indices panel (Perplexity API, ~€0.01/call)
 
 ### v6.4
 
-Addition of the bandmap on the home page; filtering by band and mode.
+- Bandmap added to the home page with band and mode filtering
 
 ### v6.3
 
-Added frequency-based sorting in the HF and VHF DX panels, and an update banner when a new version is available.
+- Frequency-based sorting in HF and VHF DX panels
+- Update notification banner
 
 ### v6.2
 
-Optional addition of callsigns to the watchlist from the dashboard, and support for the new FT2 mode.
+- Optional callsign addition to the watchlist from the dashboard
+- FT2 mode support
 
 ### v6.1
 
-New "DXpedition Briefing" page and updates to the index.html maps.
+- New DXpedition Briefing page
+- Updated maps on the Index page
 
 ### v6.0 — Stable Release
 
-- Finalization of the **World** page
+- Finalization of the World page
 - Clear separation between Map and World
 - Stabilized clustering
 - Automatic refresh
 - Clarified UX
 - User state persistence
 
-> Jump from **v5.7 to v6.0**  
-> due to several unpublished trial versions.
+> Jump from v5.7 to v6.0 due to several unpublished trial versions.
 
 ### v5.7 — Work-in-progress versions
 
@@ -204,6 +222,6 @@ New "DXpedition Briefing" page and updates to the index.html maps.
 ## 👤 Author
 
 Developed by **F1SMV – Eric**  
-with the assistance of ChatGPT 5.2, Gemini & Claude  
+with the assistance of Claude (Anthropic)  
 for the amateur radio community.  
 Contact: @f1smv on X
