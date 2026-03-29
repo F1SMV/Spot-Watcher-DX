@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v7.0
+# 📡 Radio Spot Watcher DX — v7.1
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -119,6 +119,28 @@ Aucune dépendance cloud.
 
 ### 🗂️ Historique des versions
 
+### v7.1
+
+**LoTW — Opportunités DXCC**
+
+- Croisement automatique du log LoTW avec les expéditions DX à venir (horizon 21 jours)
+- Section **🎯 OPPORTUNITÉS DXCC — 21 JOURS** dans le pavé LoTW, classée par priorité :
+  - 🔴 NOUVEAU DXCC — pays jamais travaillé
+  - 🟡 NON CONFIRMÉ — travaillé mais pas de QSL LoTW
+  - 🔵 BANDE MANQUANTE — confirmé mais des bandes restent à faire
+- Compte à rebours J-X avant la fin de chaque expédition
+- Résolution automatique des dates depuis le texte du briefing
+
+**Page Briefing entièrement refaite**
+
+- Un seul rendu unifié pour toutes les sources (fini les trois sections redondantes)
+- Pavés **drag & drop** : réorganisables librement, ordre mémorisé en localStorage
+- Parser NG3K réécrit pour le format texte structuré — filtre automatique des expéditions terminées
+- Titre structuré : `Callsign · DXCC · → date de fin`
+- Callsigns surlignés en cyan dans tous les résumés
+- Horodatage relatif (il y a 2h, il y a 3j…)
+- Correction du warning `datetime.utcnow()` Python 3.12
+
 ### v7.0 — Intégration LoTW & améliorations bandmap
 
 **Intégration LoTW (Logbook of the World)**
@@ -137,9 +159,9 @@ Aucune dépendance cloud.
 - Zoom porté à 100× pour les bandes chargées (ex. 20m)
 - Couleur des étiquettes par mode : CW (vert), SSB (bleu), FT8 (violet), FT4 (rose), FT2 (mauve), RTTY (orange), PSK31 (jaune), JT65 (cyan)
 - Légende des modes affichée dans les contrôles
-- Axe des fréquences : uniquement les vraies limites de bandes radioamateur (plus d'interpolation linéaire)
+- Axe des fréquences : uniquement les vraies limites de bandes radioamateur
 - Pan à la souris (clic + glisser) même à zoom 1×
-- Persistance de tous les réglages (groupe, bande, mode, WL, couleur fond) via localStorage
+- Persistance de tous les réglages via localStorage
 
 ### v6.9
 

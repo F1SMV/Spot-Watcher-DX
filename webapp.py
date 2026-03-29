@@ -45,7 +45,7 @@ tn_lock = threading.Lock()
 tn_current = None  # socket.socket when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "7.0"
+APP_VERSION = "7.1"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -131,10 +131,10 @@ BRIEFING_SOURCES_FILE = Path("data/briefing_sources.json")
 BRIEFING_CACHE_TTL = 60 * 60 * 12
 BRIEFING_FEED_TIMEOUT = 15
 BRIEFING_ITEM_LIMIT = 8
-BRIEFING_USER_AGENT = "Spot-Watcher-DX/7.0 (+https://github.com/)"
+BRIEFING_USER_AGENT = "Spot-Watcher-DX/6.0 (+https://github.com/)"
 QO100_NEWS_URL = "https://qo100dx.club/news"
 QO100_HEADERS = {
-    "User-Agent": "RadioSpotWatcherDX/1.0 (+https://example.local)"
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 }
 BRIEFING_DEFAULT_SOURCES = [
     {
@@ -154,22 +154,8 @@ BRIEFING_DEFAULT_SOURCES = [
     {
         "id": "ng3k",
         "name": "NG3K ADXO",
-        "url": "https://www.ng3k.com/misc/adxo.html",
+        "url": "https://www.ng3k.com/Misc/adxoplain.html",
         "site": "https://www.ng3k.com/misc/adxo.html",
-        "type": "html",
-    },
-    {
-        "id": "dxmaps",
-        "name": "DXMaps DX Calendar",
-        "url": "https://www.dxmaps.com/dxcalendar.html",
-        "site": "https://www.dxmaps.com/dxcalendar.html",
-        "type": "html",
-    },
-    {
-        "id": "qo100dx",
-        "name": "QO-100 DX Club",
-        "url": "https://qo100dx.club",
-        "site": "https://qo100dx.club",
         "type": "html",
     },
 ]
@@ -1733,7 +1719,7 @@ def get_solar_json():
 # --- DX BRIEFING (Data-to-Text, deterministic, cached) ---
 dx_briefing_lock = threading.Lock()
 dx_briefing_cache = {
-    "ts": 0.0,
+    "ts": 0.0,  # ts=0 force refresh au premier appel
     "fr": None,
     "en": None,
 }
@@ -2287,55 +2273,70 @@ def _fetch_html(url: str):
 
 def fetch_qo100_news(timeout: int = 10):
     """
-    Récupère les titres, dates et liens des articles QO-100 DX.
+    Récupère les news QO-100 DX Club.
+    Tente /news puis / avec plusieurs sélecteurs CSS.
     """
-    try:
-        response = requests.get(QO100_NEWS_URL, headers=QO100_HEADERS, timeout=timeout)
-        response.raise_for_status()
-    except Exception:
-        return []
-
-    soup = BeautifulSoup(response.text, "html.parser")
-    articles = soup.select("article")
+    ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    hdrs = {"User-Agent": ua, "Accept": "text/html,application/xhtml+xml,*/*", "Accept-Language": "en-US,en;q=0.9"}
     results = []
 
-    for article in articles:
-        h2 = article.find("h2")
-        if not h2:
-            continue
+    for url in [QO100_NEWS_URL, "https://qo100dx.club/"]:
+        try:
+            response = requests.get(url, headers=hdrs, timeout=timeout)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
 
-        link_tag = h2.find("a")
-        if not link_tag or not link_tag.get("href"):
-            continue
+            # Essayer plusieurs sélecteurs
+            candidates = (
+                soup.select("article") or
+                soup.select(".post, .news-item, .entry") or
+                soup.select("div.item, li.item") or
+                []
+            )
 
-        title = link_tag.get_text(strip=True)
-        link = link_tag["href"]
-        if link.startswith("/"):
-            link = "https://qo100dx.club" + link
+            for article in candidates:
+                # Titre
+                h_tag = article.find(["h1","h2","h3","h4"])
+                if not h_tag:
+                    continue
+                link_tag = h_tag.find("a") or article.find("a")
+                if not link_tag:
+                    continue
+                title = link_tag.get_text(strip=True)
+                link  = link_tag.get("href","")
+                if link.startswith("/"):
+                    link = "https://qo100dx.club" + link
 
-        date_obj = None
-        date_str = ""
-
-        time_tag = article.find("time")
-        if time_tag:
-            date_str = time_tag.get_text(strip=True)
-            try:
-                date_obj = datetime.fromisoformat(time_tag.get("datetime"))
-            except Exception:
+                # Date
                 date_obj = None
+                time_tag = article.find("time")
+                if time_tag:
+                    try:
+                        date_obj = datetime.fromisoformat(time_tag.get("datetime",""))
+                    except Exception:
+                        pass
 
-        results.append({
-            "title": title,
-            "date": date_obj,
-            "date_str": date_str,
-            "link": link,
-        })
+                # Résumé
+                p_tag = article.find("p")
+                summary = _strip_html(p_tag.get_text(strip=True))[:200] if p_tag else ""
 
-    results.sort(
-        key=lambda x: x["date"] if x["date"] else datetime.min,
-        reverse=True
-    )
+                if title:
+                    results.append({
+                        "title":    title,
+                        "date":     date_obj,
+                        "date_str": time_tag.get_text(strip=True) if time_tag else "",
+                        "link":     link,
+                        "summary":  summary,
+                    })
 
+            if results:
+                break  # On a trouvé quelque chose, pas besoin d'essayer l'autre URL
+
+        except Exception as e:
+            logger.warning(f"QO100 fetch error ({url}): {e}")
+            continue
+
+    results.sort(key=lambda x: x["date"] if x["date"] else datetime.min, reverse=True)
     return results
 
 def _extract_html_items(source_id: str, html_text: str, limit: int):
@@ -2343,18 +2344,30 @@ def _extract_html_items(source_id: str, html_text: str, limit: int):
     items = []
 
     if source_id == "dxnews":
-        for article in soup.select("article"):
-            title_link = article.select_one("h1 a, h2 a, h3 a")
+        for article in soup.select("article, .post, .entry, div.item"):
+            # Titre + lien
+            title_link = article.select_one("h1 a, h2 a, h3 a, h4 a, .entry-title a, .post-title a")
             if not title_link:
                 continue
             title = _strip_html(title_link.get_text(strip=True))
-            link = title_link.get("href")
-            summary_tag = article.select_one("p")
-            summary = _strip_html(summary_tag.get_text(strip=True)) if summary_tag else ""
-            time_tag = article.select_one("time")
+            link  = title_link.get("href") or ""
+            # Résumé — essayer plusieurs conteneurs
+            summary = ""
+            for sel in [".entry-content p", ".entry-summary p", ".post-content p",
+                        ".excerpt p", "p.summary", "p"]:
+                tag = article.select_one(sel)
+                if tag:
+                    txt = _strip_html(tag.get_text(strip=True))
+                    if txt and len(txt) > 20:
+                        summary = txt[:300]
+                        break
+            # Date
+            time_tag  = article.select_one("time")
             published = time_tag.get("datetime") if time_tag else None
+            if not title:
+                continue
             items.append({
-                "title": title or "Sans titre",
+                "title": title,
                 "link": link,
                 "published_utc": published,
                 "summary": summary,
@@ -2363,24 +2376,111 @@ def _extract_html_items(source_id: str, html_text: str, limit: int):
                 break
 
     elif source_id == "ng3k":
-        for row in soup.select("table tr"):
-            cols = row.find_all(["td", "th"])
-            if len(cols) < 2:
-                continue
-            title = _strip_html(cols[0].get_text(" ", strip=True))
-            detail = _strip_html(cols[1].get_text(" ", strip=True))
-            link_tag = cols[0].find("a") or cols[1].find("a")
-            href = link_tag.get("href") if link_tag else None
-            if not title:
-                continue
-            items.append({
-                "title": title,
-                "link": href,
-                "published_utc": None,
-                "summary": detail,
-            })
-            if len(items) >= limit:
-                break
+        import re, datetime
+        # Format multi-lignes NG3K :
+        # "Jan 22-Mar 31, 2026"
+        # "DXCC: Curacao"
+        # "Callsign: PJ2"
+        # "QSL: LoTW"
+        # "Source: OPDX (Sep 8, 2025)"
+        # "Info: By W2APF..."
+        text = soup.get_text("\n")
+        now_dt = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+        months_re = r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'
+        date_line_re = re.compile(
+            rf'^({months_re}\s+\d{{1,2}}(?:-(?:{months_re}\s+)?\d{{1,2}})?(?:,\s*\d{{4}})?)\s*$',
+            re.IGNORECASE
+        )
+
+        def parse_end_date(date_str):
+            """Extrait la date de fin depuis 'Mar 8-Apr 4, 2026' ou 'Mar 18-31, 2026'."""
+            months_map = {'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,
+                          'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12}
+            yr_m = re.search(r'(\d{4})', date_str)
+            yr = int(yr_m.group(1)) if yr_m else now_dt.year
+            # Séparer début et fin sur le '-'
+            parts = re.split(r'-', date_str.replace(yr_m.group(0),'').strip().rstrip(',') if yr_m else date_str)
+            end_raw = parts[-1].strip()
+            # Si end_raw est juste un numéro, prendre le mois du début
+            if re.match(r'^\d+$', end_raw):
+                mon_m = re.search(months_re, parts[0], re.IGNORECASE)
+                if mon_m:
+                    end_raw = mon_m.group(0) + ' ' + end_raw
+            try:
+                return datetime.datetime.strptime(f"{end_raw} {yr}", "%b %d %Y")
+            except:
+                return None
+
+        lines = [l.strip() for l in text.split('\n')]
+        i = 0
+        while i < len(lines) and len(items) < limit:
+            line = lines[i]
+            dm = date_line_re.match(line)
+            if dm:
+                date_str = dm.group(1)
+                end_dt = parse_end_date(date_str)
+                # Ignorer les expéditions terminées
+                if end_dt and end_dt < now_dt - datetime.timedelta(days=1):
+                    i += 1
+                    continue
+                # Lire les lignes suivantes
+                dxcc = callsign = qsl = source = info = ''
+                j = i + 1
+                while j < len(lines) and j < i + 10:
+                    l = lines[j]
+                    if re.match(r'^DXCC:\s*', l, re.I):
+                        val = re.sub(r'^DXCC:\s*', '', l, flags=re.I).strip()
+                        # Valeur peut être sur la ligne suivante si vide
+                        if not val and j+1 < len(lines):
+                            val = lines[j+1].strip()
+                        dxcc = val
+                    elif re.match(r'^Callsign:\s*', l, re.I):
+                        val = re.sub(r'^Callsign:\s*', '', l, flags=re.I).strip()
+                        if not val and j+1 < len(lines):
+                            val = lines[j+1].strip()
+                        callsign = val
+                    elif re.match(r'^QSL:\s*', l, re.I):
+                        val = re.sub(r'^QSL:\s*', '', l, flags=re.I).strip()
+                        if not val and j+1 < len(lines):
+                            val = lines[j+1].strip()
+                        qsl = val
+                    elif re.match(r'^Source:\s*', l, re.I):
+                        # Source: valeur parfois sur la ligne suivante
+                        val = re.sub(r'^Source:\s*', '', l, flags=re.I).strip()
+                        if not val and j+1 < len(lines):
+                            src_name = lines[j+1].strip()
+                            src_date = lines[j+2].strip() if j+2 < len(lines) else ''
+                            val = f"{src_name} {src_date}".strip()
+                        source = val
+                    elif re.match(r'^Info:\s*', l, re.I):
+                        info = re.sub(r'^Info:\s*', '', l, flags=re.I).strip()
+                    elif date_line_re.match(l):
+                        break  # prochaine entrée
+                    j += 1
+
+                if not callsign:
+                    i += 1
+                    continue
+
+                # Construire date lisible
+                end_label = end_dt.strftime("→ %d %b %Y") if end_dt else date_str
+                title = f"{callsign} · {dxcc} · {end_label}"
+                summary_parts = []
+                if info:    summary_parts.append(info[:150])
+                if qsl:     summary_parts.append(f"QSL: {qsl}")
+                if source:  summary_parts.append(f"Source: {source}")
+
+                items.append({
+                    "title": title,
+                    "link": "https://www.ng3k.com/misc/adxo.html",
+                    "published_utc": end_dt.strftime("%Y-%m-%dT00:00:00Z") if end_dt else None,
+                    "summary": " · ".join(summary_parts),
+                })
+                i = j
+            else:
+                i += 1
+
 
     elif source_id == "dxmaps":
         for row in soup.select("table tr"):
@@ -2405,10 +2505,10 @@ def _extract_html_items(source_id: str, html_text: str, limit: int):
     elif source_id == "qo100dx":
         for entry in fetch_qo100_news(timeout=BRIEFING_FEED_TIMEOUT):
             items.append({
-                "title": entry.get("title") or "Sans titre",
-                "link": entry.get("link"),
+                "title":         entry.get("title") or "Sans titre",
+                "link":          entry.get("link"),
                 "published_utc": entry.get("date_str") or None,
-                "summary": "",
+                "summary":       entry.get("summary") or "",
             })
             if len(items) >= limit:
                 break
@@ -2518,6 +2618,62 @@ def briefing_refresh_worker():
         except Exception as exc:
             logger.warning(f"Briefing refresh failed: {exc}")
         time.sleep(BRIEFING_CACHE_TTL)
+
+
+@app.route('/api/briefing/debug')
+def briefing_debug():
+    """Debug: montre le raw HTML + items parsés d'une source briefing."""
+    source_id = request.args.get('source', 'ng3k')
+    sources = _load_briefing_sources()
+    src = next((s for s in sources if s['id'] == source_id), None)
+    if not src:
+        return jsonify({'error': f'source {source_id} introuvable'})
+    try:
+        if source_id == 'qo100dx':
+            entries = fetch_qo100_news(timeout=15)
+            return jsonify({
+                'source': source_id,
+                'entries_count': len(entries),
+                'entries_sample': entries[:3],
+            })
+        html = _fetch_html(src['url'])
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html, 'html.parser')
+        # Montrer les tags article trouvés
+        articles = soup.select('article, .post, .entry, div.item')
+        article_info = []
+        for a in articles[:3]:
+            h = a.select_one('h1 a, h2 a, h3 a, h4 a')
+            p = a.select_one('p')
+            article_info.append({
+                'tag': a.name,
+                'classes': a.get('class', []),
+                'title': h.get_text(strip=True) if h else None,
+                'first_p': p.get_text(strip=True)[:200] if p else None,
+                'html_snippet': str(a)[:400],
+            })
+        # Items parsés
+        items = _extract_html_items(source_id, html, 5)
+        return jsonify({
+            'source': source_id,
+            'url': src['url'],
+            'html_len': len(html),
+            'articles_found': len(articles),
+            'article_samples': article_info,
+            'parsed_items': items[:3],
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()})
+
+@app.route("/api/briefing/refresh", methods=["POST"])
+def briefing_force_refresh():
+    """Force le rechargement du cache briefing."""
+    with briefing_lock:
+        briefing_cache["ts"] = 0.0
+        briefing_cache["payload"] = None
+    logger.info("Briefing cache cleared — will refresh on next request")
+    return jsonify({"ok": True, "message": "Cache vidé, rechargement au prochain accès"})
 
 @app.route("/briefing")
 @app.route("/briefing.html")
@@ -2771,7 +2927,7 @@ def api_voacap():
 
     # MUF et LUF à l'heure actuelle UTC
     import datetime
-    utc_hour = datetime.datetime.utcnow().hour
+    utc_hour = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).hour
     muf_now = _voacap_muf(sfi, dist_km) * (1 + 0.2 * math.cos(math.pi * (utc_hour - 12) / 12))
     luf_now = _voacap_luf(dist_km, utc_hour)
 
@@ -2785,7 +2941,7 @@ def api_voacap():
         'luf': round(luf_now, 1),
         'bands': VOACAP_BAND_LABELS,
         'grid': grid,
-        'generated_utc': datetime.datetime.utcnow().strftime('%H:%M UTC')
+        'generated_utc': datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None).strftime('%H:%M UTC')
     }
     _voacap_cache[cache_key] = result
     return jsonify(result)
@@ -3052,6 +3208,151 @@ def lotw_spots_status():
         })
     return jsonify({'logged_in': True, 'spots': result})
 
+
+# ============================================================
+# LoTW × BRIEFING : opportunités DXCC dans les 15 prochains jours
+# ============================================================
+
+def _extract_callsign_from_text(text):
+    """Extrait le premier callsign radio-amateur d'un texte."""
+    import re
+    # Pattern callsign RA : préfixe + chiffre + suffixe (ex: VP8PJ, 3B8FA, T30UN)
+    m = re.search(r'([A-Z0-9]{1,3}\d[A-Z]{1,4}(?:/[A-Z0-9]+)?)', text)
+    return m.group(1) if m else None
+
+def _extract_end_date_from_text(text):
+    """Tente d'extraire une date de fin depuis le texte (ex: 'until April 5', 'until 05/04')."""
+    import re, datetime
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+
+    # Format "until DD Month YYYY" ou "until Month DD"
+    months = {'jan':1,'feb':2,'mar':3,'apr':4,'may':5,'jun':6,
+              'jul':7,'aug':8,'sep':9,'oct':10,'nov':11,'dec':12,
+              'january':1,'february':2,'march':3,'april':4,'june':6,
+              'july':7,'august':8,'september':9,'october':10,'november':11,'december':12}
+
+    patterns = [
+        r'until\s+(\d{1,2})\s+([a-zA-Z]+)\s*(\d{4})?',
+        r'until\s+([a-zA-Z]+)\s+(\d{1,2})\s*,?\s*(\d{4})?',
+        r'(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})',
+    ]
+    for pat in patterns:
+        m = re.search(pat, text, re.IGNORECASE)
+        if m:
+            try:
+                g = m.groups()
+                if pat == patterns[0]:
+                    day, mon_str, yr = int(g[0]), g[1][:3].lower(), int(g[2]) if g[2] else now.year
+                    mon = months.get(mon_str)
+                    if mon:
+                        return datetime.datetime(yr, mon, day)
+                elif pat == patterns[1]:
+                    mon_str, day, yr = g[0][:3].lower(), int(g[1]), int(g[2]) if g[2] else now.year
+                    mon = months.get(mon_str)
+                    if mon:
+                        return datetime.datetime(yr, mon, day)
+            except:
+                pass
+    return None
+
+@app.route('/api/lotw/opportunities')
+def lotw_opportunities():
+    """Croise le briefing DX avec le log LoTW pour identifier les opportunités DXCC."""
+    import datetime, re
+
+    with lotw_lock:
+        if not lotw_session['logged_in']:
+            return jsonify({'logged_in': False, 'opportunities': []})
+        confirmed_dxcc = set(lotw_data['confirmed_dxcc'])
+        worked_dxcc    = set(lotw_data['worked_dxcc'])
+        dxcc_by_band   = dict(lotw_data.get('dxcc_by_band', {}))
+
+    # Récupérer les items du briefing
+    with briefing_lock:
+        bp = briefing_cache.get('payload')
+    if not bp:
+        return jsonify({'logged_in': True, 'opportunities': [], 'error': 'Briefing non chargé'})
+
+    items = bp.get('items', [])
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    horizon = now + datetime.timedelta(days=21)
+    opportunities = []
+
+    for item in items:
+        title   = item.get('title', '')
+        summary = item.get('summary', '')
+        full    = f"{title} {summary}"
+
+        # Extraire callsign
+        call = _extract_callsign_from_text(title) or _extract_callsign_from_text(full)
+        if not call:
+            continue
+
+        # Résoudre le DXCC via cty.dat
+        country_info = get_country_info(call)
+        dxcc = country_info.get('c', '')
+        if not dxcc or dxcc == 'Unknown':
+            continue
+
+        # Date de fin
+        end_date = _extract_end_date_from_text(full)
+        days_left = None
+        if end_date:
+            if end_date < now:
+                continue  # expédition terminée
+            days_left = (end_date - now).days
+
+        # Classer l'opportunité
+        if dxcc not in worked_dxcc:
+            status = 'new'           # jamais travaillé
+            priority = 1
+        elif dxcc not in confirmed_dxcc:
+            status = 'worked_unconfirmed'  # travaillé mais pas confirmé
+            priority = 2
+        else:
+            # Vérifier les bandes manquantes
+            HF_BANDS = ['160m','80m','40m','30m','20m','17m','15m','12m','10m']
+            confirmed_bands = set(dxcc_by_band.get(b, []) for b in HF_BANDS
+                                  if dxcc in dxcc_by_band.get(b, []))
+            # Reconstruire correctement
+            confirmed_bands_for_dxcc = set()
+            for band, dxcc_list in dxcc_by_band.items():
+                if dxcc in dxcc_list:
+                    confirmed_bands_for_dxcc.add(band)
+            missing = [b for b in HF_BANDS if b not in confirmed_bands_for_dxcc]
+            if missing:
+                status = 'band_missing'
+                priority = 3
+            else:
+                continue  # tout bon, pas d'opportunité
+
+        # Éviter les doublons (même DXCC)
+        if any(o['dxcc'] == dxcc for o in opportunities):
+            existing = next(o for o in opportunities if o['dxcc'] == dxcc)
+            if priority < existing['_priority']:
+                opportunities.remove(existing)
+            else:
+                continue
+
+        opp = {
+            'call':      call,
+            'dxcc':      dxcc,
+            'title':     title[:80],
+            'status':    status,
+            'days_left': days_left,
+            'link':      item.get('link'),
+            '_priority': priority,
+        }
+        if status == 'band_missing':
+            opp['missing_bands'] = missing[:5]
+        opportunities.append(opp)
+
+    # Trier : priorité puis jours restants
+    opportunities.sort(key=lambda o: (o['_priority'], o.get('days_left') or 999))
+    for o in opportunities:
+        o.pop('_priority', None)
+
+    return jsonify({'logged_in': True, 'opportunities': opportunities[:20]})
 
 if __name__ == "__main__":
     load_cty_dat()

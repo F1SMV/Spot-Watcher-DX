@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v7.0
+# 📡 Radio Spot Watcher DX — v7.1
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -97,7 +97,7 @@ The **World** page is **fundamentally different** from the Map page.
 
 ### 5️⃣ **Briefing**
 
-Updated every 12 hours, summarizing essential DX information. Offers the ability to automatically add callsigns (if you wish) to the **Watchlist** on the Index page. You won't miss any expedition — as soon as an expedition callsign is spotted, it will be highlighted in yellow in the DX spots panel.
+Updated every 12 hours, summarizing essential DX information. Offers the ability to automatically add callsigns to the **Watchlist** on the Index page. You won't miss any expedition — as soon as a callsign is spotted, it will be highlighted in yellow in the DX spots panel.
 
 ---
 
@@ -119,6 +119,28 @@ No cloud dependency.
 
 ## 🗂️ Version History
 
+### v7.1
+
+**LoTW — DXCC Opportunities**
+
+- Automatic cross-reference of the LoTW log with upcoming DX expeditions (21-day horizon)
+- **🎯 DXCC OPPORTUNITIES — 21 DAYS** section in the LoTW panel, sorted by priority:
+  - 🔴 NEW DXCC — country never worked
+  - 🟡 UNCONFIRMED — worked but no LoTW QSL yet
+  - 🔵 MISSING BAND — confirmed but some bands still to complete
+- J-X countdown before each expedition ends
+- Automatic date extraction from briefing text
+
+**Briefing page fully rebuilt**
+
+- Single unified layout for all sources (no more three redundant sections)
+- **Drag & drop panels**: freely reorganizable, order saved in localStorage
+- NG3K parser rewritten for structured plain-text format — expired expeditions filtered automatically
+- Structured title: `Callsign · DXCC · → end date`
+- Callsigns highlighted in cyan throughout summaries
+- Relative timestamps (2 hours ago, 3 days ago…)
+- Fixed `datetime.utcnow()` deprecation warning (Python 3.12)
+
 ### v7.0 — LoTW Integration & Bandmap Improvements
 
 **LoTW (Logbook of the World) Integration**
@@ -127,8 +149,8 @@ No cloud dependency.
 - Full log import: all uploaded QSOs + confirmed QSLs
 - DXCC resolution via `cty.dat` (no dependency on optional ADIF field)
 - Statistics: total QSOs, confirmed QSLs, confirmed DXCC per band (visual bar chart)
-- **In HF and VHF spot tables**: red background + NEW badge = DXCC never worked / green background + ✓ = DXCC already confirmed on LoTW
-- **★ NEW DXCC button** in HF and VHF panels to filter and show only new DXCC spots
+- **In HF and VHF spot tables**: red background + NEW badge = DXCC never worked / green + ✓ = already confirmed
+- **★ NEW DXCC button** in HF and VHF panels to filter new DXCC only
 - **In the watchlist**: NEW DXCC or ✓ LoTW badge on each callsign
 - Loading spinner during synchronization (30–60s for a large log)
 
@@ -137,9 +159,9 @@ No cloud dependency.
 - Zoom increased to 100× for busy bands (e.g. 20m)
 - Pin label color by mode: CW (green), SSB (blue), FT8 (purple), FT4 (pink), FT2 (mauve), RTTY (orange), PSK31 (yellow), JT65 (cyan)
 - Mode legend displayed in the controls bar
-- Frequency axis: only real amateur radio band edges shown (no more linear interpolation)
+- Frequency axis: only real amateur radio band edges shown
 - Mouse pan (click + drag) available even at zoom 1×
-- All settings persisted via localStorage (group, band, mode, WL filter, background color)
+- All settings persisted via localStorage
 
 ### v6.9
 

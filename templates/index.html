@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v7.0</title>
+<title>📡 NEURAL DX v7.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -410,7 +410,7 @@
         .solar-value-color-exc{  color:#00eaff !important; }
         .solar-updated{
             margin-top:6px;
-            font-size:0.85em;
+            font-size:0.95em;
             opacity:0.9;
             color: var(--accent);
         }
@@ -423,7 +423,7 @@
         .solar-explain b{ color: #ddd; }
         .hf-pred{
             margin-top:6px;
-            font-size:0.85em;
+            font-size:0.95em;
             opacity:0.9;
         }
         .hf-pred span{
@@ -823,7 +823,7 @@
 </div>
 
 <div id="header">
-<div id="title">📡 NEURAL DX WATCHER V7.0</div>
+<div id="title">📡 NEURAL DX WATCHER V7.1</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -1063,52 +1063,65 @@
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <input id="lotw-input-login" type="text" placeholder="Login LoTW"
         style="padding:4px 8px;background:#111;border:1px solid #333;color:#aaa;border-radius:4px;
-               font-family:monospace;font-size:0.8em;width:120px;" autocomplete="off">
+               font-family:monospace;font-size:0.92em;width:120px;" autocomplete="off">
       <input id="lotw-input-pass" type="password" placeholder="Mot de passe"
         style="padding:4px 8px;background:#111;border:1px solid #333;color:#aaa;border-radius:4px;
-               font-family:monospace;font-size:0.8em;width:140px;" autocomplete="off">
+               font-family:monospace;font-size:0.92em;width:140px;" autocomplete="off">
       <button id="lotw-btn-sync" onclick="lotwLogin()"
-        style="padding:4px 14px;font-size:0.78em;cursor:pointer;border-radius:4px;
+        style="padding:4px 14px;font-size:0.90em;cursor:pointer;border-radius:4px;
                background:#00f3ff;border:1px solid #00f3ff;color:#000;font-weight:bold;
                font-family:monospace;transition:all 0.2s;">
         ↓ SYNC
       </button>
       <button id="lotw-btn-logout" onclick="lotwLogout()"
-        style="display:none;padding:4px 10px;font-size:0.78em;cursor:pointer;border-radius:4px;
+        style="display:none;padding:4px 10px;font-size:0.90em;cursor:pointer;border-radius:4px;
                background:transparent;border:1px solid #555;color:#888;font-family:monospace;">
         ✕ Déco
       </button>
     </div>
-    <div id="lotw-status-msg" style="font-size:0.72em;color:#555;font-family:monospace;min-height:14px;"></div>
+    <div id="lotw-status-msg" style="font-size:0.95em;color:#555;font-family:monospace;min-height:14px;"></div>
   </div>
 
   <!-- STATS (après sync) -->
   <div id="lotw-stats" style="display:none;margin-top:8px;">
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;">
       <div style="text-align:center;">
-        <div id="lotw-stat-confirmed" style="font-size:1.4em;font-weight:bold;color:#00f3ff;">--</div>
-        <div style="font-size:0.62em;color:#666;text-transform:uppercase;">QSLs confirmées</div>
+        <div id="lotw-stat-confirmed" style="font-size:1.5em;font-weight:bold;color:#00f3ff;">--</div>
+        <div style="font-size:0.88em;color:#666;text-transform:uppercase;">QSLs confirmées</div>
       </div>
       <div style="text-align:center;">
-        <div id="lotw-stat-dxcc" style="font-size:1.4em;font-weight:bold;color:#00f3ff;">--</div>
-        <div style="font-size:0.62em;color:#666;text-transform:uppercase;">DXCC confirmés</div>
+        <div id="lotw-stat-dxcc" style="font-size:1.5em;font-weight:bold;color:#00f3ff;">--</div>
+        <div style="font-size:0.88em;color:#666;text-transform:uppercase;">DXCC confirmés</div>
       </div>
       <div style="text-align:center;">
-        <div id="lotw-stat-qso" style="font-size:1.4em;font-weight:bold;color:#aaa;">--</div>
-        <div style="font-size:0.62em;color:#666;text-transform:uppercase;">QSOs total</div>
+        <div id="lotw-stat-qso" style="font-size:1.5em;font-weight:bold;color:#aaa;">--</div>
+        <div style="font-size:0.88em;color:#666;text-transform:uppercase;">QSOs total</div>
       </div>
     </div>
 
     <!-- Stats par bande (barres) -->
-    <div style="font-size:0.7em;color:#666;margin-bottom:4px;font-family:monospace;">DXCC confirmés par bande :</div>
+    <div style="font-size:0.82em;color:#666;margin-bottom:4px;font-family:monospace;">DXCC confirmés par bande :</div>
     <div id="lotw-band-bars" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
 
     <!-- Légende couleurs spots -->
     <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap;">
-      <span style="font-size:0.68em;color:#666;">Dans les spots :</span>
-      <span style="font-size:0.68em;padding:1px 6px;border-radius:3px;background:rgba(0,200,80,0.15);border:1px solid #00c850;color:#00c850;">✓ DXCC confirmé</span>
-      <span style="font-size:0.68em;padding:1px 6px;border-radius:3px;background:rgba(255,50,50,0.15);border:1px solid #ff3232;color:#ff6060;">★ DXCC NOUVEAU</span>
-      <span style="font-size:0.68em;padding:1px 6px;border-radius:3px;background:rgba(80,80,80,0.3);border:1px solid #444;color:#666;">call déjà QSL</span>
+      <span style="font-size:0.80em;color:#666;">Dans les spots :</span>
+      <span style="font-size:0.80em;padding:1px 6px;border-radius:3px;background:rgba(0,200,80,0.15);border:1px solid #00c850;color:#00c850;">✓ DXCC confirmé</span>
+      <span style="font-size:0.80em;padding:1px 6px;border-radius:3px;background:rgba(255,50,50,0.15);border:1px solid #ff3232;color:#ff6060;">★ DXCC NOUVEAU</span>
+      <span style="font-size:0.80em;padding:1px 6px;border-radius:3px;background:rgba(80,80,80,0.3);border:1px solid #444;color:#666;">call déjà QSL</span>
+    </div>
+
+    <!-- OPPORTUNITÉS DX × LoTW -->
+    <div id="lotw-opps-section" style="display:none;margin-top:12px;border-top:1px solid #222;padding-top:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:0.88em;color:#00f3ff;font-family:monospace;font-weight:bold;">🎯 OPPORTUNITÉS DXCC — 21 JOURS</span>
+        <button onclick="loadLotwOpportunities()" title="Actualiser"
+          style="font-size:0.80em;padding:1px 8px;background:transparent;border:1px solid #333;
+                 color:#666;border-radius:3px;cursor:pointer;font-family:monospace;">↺</button>
+      </div>
+      <div id="lotw-opps-list">
+        <div style="font-size:0.95em;color:#444;font-style:italic;">Synchronisez LoTW pour voir vos opportunités.</div>
+      </div>
     </div>
   </div>
 
@@ -1166,7 +1179,7 @@
 <b>FR</b> : <b>SFI</b> élevé = plus de chances d'ouverture HF (10–12–15m). <b>A</b> et <b>K</b> mesurent l'agitation géomagnétique : plus c'est haut, plus la propagation peut devenir instable.<br/>
 <b>EN</b> : Higher <b>SFI</b> often helps HF openings (10–12–15m). <b>A</b> and <b>K</b> indicate geomagnetic disturbance: higher values can mean less stable propagation.
 </div>
-<div id="solar-error" style="margin-top:6px; font-size:0.85em; color: var(--alert); display:none;"></div>
+<div id="solar-error" style="margin-top:6px; font-size:0.95em; color: var(--alert); display:none;"></div>
 </div>
 </div>
 
@@ -2077,6 +2090,8 @@
                         `✓ Session active · ${d.total_confirmed} QSLs · ${d.total_dxcc} DXCC · ${d.last_sync}`;
                     document.getElementById('lotw-status-msg').style.color = '#00c850';
                     lotwRefreshStatus();
+                    document.getElementById('lotw-opps-section').style.display = 'block';
+                    loadLotwOpportunities();
                 }
             });
 
@@ -2919,6 +2934,8 @@
                 lotwActive = true;
 
                 await lotwRefreshStatus();
+                document.getElementById('lotw-opps-section').style.display = 'block';
+                loadLotwOpportunities();
             } catch(e) {
                 msg.textContent = '✕ Erreur réseau: ' + e;
                 msg.style.color = '#ff4444';
@@ -2938,6 +2955,8 @@
             document.getElementById('lotw-status-msg').textContent = '';
             // Retirer les badges LoTW des spots
             lotwShowFilterButtons(false);
+            const oppsSection = document.getElementById('lotw-opps-section');
+            if (oppsSection) oppsSection.style.display = 'none';
             lotwFilterActive = { hf: false, vhf: false };
             document.querySelectorAll('.lotw-badge, .lotw-badge-new, .lotw-badge-ok').forEach(b => b.remove());
             document.querySelectorAll('.spot-row-lotw-confirmed,.spot-row-lotw-new').forEach(r => {
@@ -3039,6 +3058,65 @@
                     callTd.appendChild(badge);
                 }
             });
+        }
+
+
+        async function loadLotwOpportunities() {
+            const section = document.getElementById('lotw-opps-section');
+            const list    = document.getElementById('lotw-opps-list');
+            if (!section || !list) return;
+
+            list.innerHTML = '<div style="font-size:0.95em;color:#666;"><span class="lotw-spinner"></span> Analyse en cours…</div>';
+
+            try {
+                const r = await fetch('/api/lotw/opportunities');
+                const d = await r.json();
+
+                if (!d.logged_in) {
+                    list.innerHTML = '<div style="font-size:0.95em;color:#444;font-style:italic;">Synchronisez LoTW pour voir vos opportunités.</div>';
+                    return;
+                }
+
+                const opps = d.opportunities || [];
+                if (opps.length === 0) {
+                    list.innerHTML = '<div style="font-size:0.95em;color:#666;">Aucune opportunité détectée dans les 15 prochains jours.</div>';
+                    return;
+                }
+
+                const statusLabels = {
+                    'new':                { label: 'NOUVEAU DXCC', color: '#ff4444', bg: 'rgba(180,30,30,0.25)' },
+                    'worked_unconfirmed': { label: 'NON CONFIRMÉ', color: '#ffaa00', bg: 'rgba(150,90,0,0.25)' },
+                    'band_missing':       { label: 'BANDE MANQ.', color: '#00aaff', bg: 'rgba(0,80,160,0.20)' },
+                };
+
+                list.innerHTML = opps.map(o => {
+                    const st  = statusLabels[o.status] || { label: o.status, color: '#888', bg: 'transparent' };
+                    const days = o.days_left != null
+                        ? `<span style="color:#aaa;font-size:1.0em;">J-${o.days_left}</span>`
+                        : '';
+                    const bands = o.missing_bands
+                        ? `<span style="color:#00aaff;font-size:0.95em;"> · manque: ${o.missing_bands.join(', ')}</span>`
+                        : '';
+                    const link = o.link
+                        ? `href="${o.link}" target="_blank"`
+                        : '';
+                    return `
+                    <div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:4px;
+                                background:${st.bg};border-left:3px solid ${st.color};font-family:monospace;">
+                      <span style="font-size:0.92em;font-weight:bold;color:#fff;">
+                        <a ${link} style="color:#fff;text-decoration:none;">${o.call}</a>
+                      </span>
+                      <span style="font-size:0.82em;color:#aaa;">${o.dxcc}</span>
+                      <span style="font-size:0.78em;padding:1px 5px;border-radius:3px;
+                                   background:${st.color};color:#000;font-weight:bold;">${st.label}</span>
+                      ${bands}
+                      <span style="margin-left:auto;">${days}</span>
+                    </div>`;
+                }).join('');
+
+            } catch(e) {
+                list.innerHTML = `<div style="font-size:0.72em;color:#ff4444;">Erreur: ${e}</div>`;
+            }
         }
 
         // ===== VOACAP PROPAGATION PANEL =====
@@ -3234,7 +3312,7 @@ async function loadWatchlistTracking(){
 
   if (!filter) {
     body.innerHTML = `
-      <div style="opacity:.7; font-size:0.85em;">
+      <div style="opacity:.7; font-size:0.95em;">
         Tapez un filtre pour suivre un indicatif (ex: 9, VK, /P)
       </div>
     `;

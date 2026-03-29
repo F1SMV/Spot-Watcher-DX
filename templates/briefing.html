@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DX Briefing v6.2</title>
+    <title>🛰️ DX Briefing v7.1</title>
     <link rel="stylesheet" href="/static/base.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         :root {
             --bg-color: #050505;
@@ -17,700 +18,418 @@
             --success: #00ff80;
         }
         body[data-theme='dark'] {
-            --bg-color: #1a1a1a;
-            --panel-bg: #2a2a2a;
-            --text-main: #f0f0f0;
-            --accent: #00ff80;
-            --alert: #ff6347;
+            --bg-color: #1a1a1a; --panel-bg: #2a2a2a;
+            --text-main: #f0f0f0; --accent: #00ff80; --alert: #ff6347;
         }
         body[data-theme='matrix'] {
-            --bg-color: #000000;
-            --panel-bg: #031503;
-            --text-main: #00ff41;
-            --accent: #00ff41;
-            --alert: #ff004c;
+            --bg-color: #000; --panel-bg: #031503;
+            --text-main: #00ff41; --accent: #00ff41; --alert: #ff004c;
         }
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Share Tech Mono', monospace;
-        }
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            transition: background-color 0.3s, color 0.3s;
-            padding: 0;
-            min-height: 100vh;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Share Tech Mono', monospace; }
+        body { background: var(--bg-color); color: var(--text-main); min-height: 100vh; }
+
+        /* HEADER */
         #header {
-            background-color: var(--panel-bg);
-            padding: 15px 20px;
+            background: var(--panel-bg);
+            padding: 12px 20px;
             border-bottom: var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            flex-wrap: wrap; gap: 8px;
         }
         #title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.8em;
-            color: var(--accent);
+            font-size: 1.4em; color: var(--accent);
             text-shadow: 0 0 5px var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
-        .controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
+        .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .btn {
-            padding: 8px 16px;
-            background-color: var(--accent);
-            color: var(--panel-bg);
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: 'Orbitron', sans-serif;
-            font-weight: bold;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 0.9em;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 243, 255, 0.3);
-        }
-        .btn-nav {
-            background: rgba(0, 243, 255, 0.2);
+            padding: 6px 14px;
+            background: rgba(0,243,255,0.15);
+            color: var(--accent);
             border: 1px solid var(--accent);
+            border-radius: 5px; cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.78em; font-weight: bold;
+            text-decoration: none; display: inline-block;
+            transition: all 0.2s;
         }
+        .btn:hover { background: var(--accent); color: #000; }
+        .btn-primary { background: var(--accent); color: #000; }
+
+        /* META BAR */
         #meta {
-            background-color: var(--panel-bg);
-            padding: 15px 20px;
+            background: var(--panel-bg);
+            padding: 8px 20px;
             border-bottom: var(--border);
-            font-size: 0.9em;
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            align-items: center;
+            font-size: 0.78em;
+            display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
         }
         #meta span {
             color: var(--accent);
-            padding: 5px 10px;
-            background: rgba(0, 243, 255, 0.1);
+            padding: 3px 8px;
+            background: rgba(0,243,255,0.08);
             border-radius: 4px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
         }
-        .container {
-            padding: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
+
+        /* DX MODE TOGGLE */
+        .dx-mode-toggle {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 12px;
+            background: rgba(0,243,255,0.08);
+            border: 1px solid var(--accent);
+            border-radius: 5px; cursor: pointer;
+            transition: all 0.2s; font-size: 0.82em;
         }
-        #items {
+        .dx-mode-toggle.active { background: rgba(0,243,255,0.22); box-shadow: 0 0 8px rgba(0,243,255,0.3); }
+        .dx-mode-toggle input { width: 16px; height: 16px; cursor: pointer; }
+
+        /* LAYOUT PRINCIPAL */
+        .container { padding: 16px 20px; max-width: 1400px; margin: 0 auto; }
+
+        /* GRILLE SOURCES DRAG & DROP */
+        #sources-grid {
             display: grid;
-            gap: 15px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 16px;
+            margin-top: 4px;
         }
-        .item {
-            background-color: var(--panel-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+
+        /* PAVÉ SOURCE */
+        .source-panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            transition: box-shadow 0.2s;
+            display: flex; flex-direction: column;
+        }
+        .source-panel:hover { box-shadow: 0 4px 24px rgba(0,243,255,0.12); }
+        .source-panel.sortable-ghost { opacity: 0.3; }
+        .source-panel.sortable-chosen { box-shadow: 0 0 20px rgba(0,243,255,0.4); }
+
+        .source-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px;
+            background: rgba(0,243,255,0.06);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            cursor: grab;
+            user-select: none;
+        }
+        .source-header:active { cursor: grabbing; }
+        .source-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.82em; color: var(--accent); font-weight: bold;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .source-count {
+            font-size: 0.72em; color: #666;
+            padding: 2px 7px; background: rgba(255,255,255,0.05);
             border-radius: 10px;
-            padding: 15px;
-            transition: all 0.3s;
         }
-        .item:hover {
-            border-color: var(--accent);
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+        .source-status-ok  { color: #00cc44; font-size: 0.9em; }
+        .source-status-err { color: var(--alert); font-size: 0.9em; }
+
+        .source-items { padding: 8px; flex: 1; }
+
+        /* ITEM UNIFIÉ */
+        .item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 6px;
+            transition: border-color 0.2s, background 0.2s;
+            background: rgba(255,255,255,0.02);
         }
-        .item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            gap: 10px;
-        }
+        .item:last-child { margin-bottom: 0; }
+        .item:hover { border-color: rgba(0,243,255,0.3); background: rgba(0,243,255,0.04); }
+
         .item-title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.1em;
-            color: var(--accent);
-            flex: 1;
+            font-size: 0.88em; color: var(--accent);
+            margin-bottom: 6px; line-height: 1.3;
         }
-        .item-time {
-            font-size: 0.85em;
-            opacity: 0.7;
-            white-space: nowrap;
+        .item-body {
+            font-size: 0.82em; line-height: 1.55;
+            color: var(--text-main);
+            margin-bottom: 6px;
         }
-        .item-content {
-            line-height: 1.6;
-            margin-bottom: 10px;
+        .item-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.72em; color: #555;
+            border-top: 1px dotted #222; padding-top: 5px; margin-top: 4px;
         }
-        .item-source {
-            font-size: 0.85em;
-            opacity: 0.6;
-            border-top: 1px dotted #333;
-            padding-top: 8px;
-        }
-        .item-source a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-        .item-source a:hover {
-            text-decoration: underline;
-        }
+        .item-footer a { color: var(--accent); text-decoration: none; }
+        .item-footer a:hover { text-decoration: underline; }
+        .item-time { opacity: 0.7; }
+
+        /* Callsigns mis en valeur */
         .callsign {
-            background: rgba(0, 243, 255, 0.15);
-            padding: 2px 6px;
-            border-radius: 3px;
-            color: var(--accent);
-            font-weight: bold;
+            background: rgba(0,243,255,0.15);
+            padding: 1px 5px; border-radius: 3px;
+            color: var(--accent); font-weight: bold;
         }
-        .sources-summary {
-            background-color: var(--panel-bg);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+
+        /* Item vide / erreur */
+        .item-empty {
+            padding: 20px; text-align: center;
+            opacity: 0.4; font-style: italic; font-size: 0.82em;
         }
-        .sources-summary h3 {
-            color: var(--accent);
-            margin-bottom: 10px;
-            font-family: 'Orbitron', sans-serif;
-        }
-        .sources-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .source-badge {
-            padding: 8px 12px;
-            background: rgba(0, 243, 255, 0.1);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .source-badge.error {
-            background: rgba(255, 0, 60, 0.1);
-            border-color: var(--alert);
-        }
-        .source-badge .status {
-            font-size: 1.2em;
-        }
-        .source-badge .name {
-            font-weight: bold;
-            flex: 1;
-        }
-        .source-badge .count {
-            color: var(--accent);
-            font-weight: bold;
-        }
-        .source-badge .error-msg {
-            font-size: 0.85em;
-            color: var(--alert);
-            margin-top: 4px;
-            width: 100%;
-        }
-        .source-panels {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .source-panel {
-            background-color: var(--panel-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 15px;
-        }
-        .source-panel h4 {
-            color: var(--accent);
-            margin-bottom: 10px;
-            font-family: 'Orbitron', sans-serif;
-        }
-        .source-item {
-            padding: 8px 0;
-            border-bottom: 1px dotted #333;
-        }
-        .source-item:last-child {
-            border-bottom: none;
-        }
-        .source-item-title {
-            font-weight: bold;
-            color: var(--accent);
-            margin-bottom: 4px;
-        }
-        .source-item-time {
-            font-size: 0.85em;
-            opacity: 0.7;
-        }
+
+        /* Notification */
         .notification {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            z-index: 1000;
-            animation: slideIn 0.3s ease-out;
-            max-width: 400px;
+            position: fixed; top: 70px; right: 20px;
+            padding: 12px 18px; border-radius: 8px;
+            font-weight: bold; z-index: 1000;
+            animation: slideIn 0.3s ease-out; max-width: 380px;
+            font-size: 0.88em;
         }
-        .notification.success {
-            background: var(--success);
-            color: #000;
-        }
-        .notification.error {
-            background: var(--alert);
-            color: #fff;
-        }
-        .notification.warning {
-            background: #ff6600;
-            color: #fff;
-        }
+        .notification.success { background: var(--success); color: #000; }
+        .notification.error   { background: var(--alert); color: #fff; }
+        .notification.warning { background: #ff6600; color: #fff; }
         @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(400px); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
         }
-        .dx-mode-toggle {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: rgba(0, 243, 255, 0.1);
-            border: 1px solid var(--accent);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .dx-mode-toggle:hover {
-            background: rgba(0, 243, 255, 0.2);
-        }
-        .dx-mode-toggle input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        .dx-mode-toggle.active {
-            background: rgba(0, 243, 255, 0.25);
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
-        }
+
         @media (max-width: 768px) {
-            #header {
-                flex-direction: column;
-                gap: 10px;
-            }
-            #title {
-                font-size: 1.4em;
-            }
-            .controls {
-                width: 100%;
-                justify-content: center;
-            }
-            #meta {
-                flex-direction: column;
-                align-items: flex-start;
-            }
+            #header { flex-direction: column; }
+            #sources-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div id="header">
-        <div id="title">
-            🛰️ DX BRIEFING v6.2
-        </div>
-        <div class="controls">
-            <label class="dx-mode-toggle" id="dx-mode-container">
-                <input type="checkbox" id="dx-mode-checkbox">
-                <span>📡 Mode DXpedition</span>
-            </label>
-            <button class="btn" onclick="loadBriefing(true)">🔄 Actualiser</button>
-            <a class="btn btn-nav" href="/">← Dashboard</a>
-            <a class="btn btn-nav" href="/map">🗺 Map</a>
-            <a class="btn btn-nav" href="/world">🌍 World</a>
-            <a class="btn btn-nav" href="/analysis.html">📊 Analyse</a>
-            <button class="btn" onclick="toggleTheme()">🔆</button>
-        </div>
+<div id="header">
+    <div id="title">🛰️ DX BRIEFING</div>
+    <div class="controls">
+        <label class="dx-mode-toggle" id="dx-mode-container">
+            <input type="checkbox" id="dx-mode-checkbox">
+            <span>📡 Mode DXpedition</span>
+        </label>
+        <button class="btn btn-primary" onclick="loadBriefing(true)">🔄 Actualiser</button>
+        <a class="btn" href="/">← Dashboard</a>
+        <a class="btn" href="/map">🗺 Map</a>
+        <a class="btn" href="/world">🌍 World</a>
+        <a class="btn" href="/analysis.html">📊 Analyse</a>
+        <button class="btn" onclick="toggleTheme()">🔆</button>
     </div>
+</div>
 
-    <div id="meta">
-        <span>⏳ Chargement...</span>
-    </div>
+<div id="meta"><span>⏳ Chargement…</span></div>
 
-    <div class="container">
-        <div class="sources-summary" id="sources-summary"></div>
+<div class="container">
+    <div id="sources-grid"></div>
+</div>
 
-        <div id="items"></div>
+<script>
+const metaEl   = document.getElementById('meta');
+const gridEl   = document.getElementById('sources-grid');
+const dxCb     = document.getElementById('dx-mode-checkbox');
+const dxCont   = document.getElementById('dx-mode-container');
 
-        <div class="source-panels" id="source-panels"></div>
-    </div>
+// ── THEME ──────────────────────────────────────────────
+function toggleTheme() {
+    const themes = ['softtech','dark','matrix'];
+    const cur = document.body.getAttribute('data-theme') || 'softtech';
+    const next = themes[(themes.indexOf(cur) + 1) % themes.length];
+    document.body.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+}
 
-    <script>
-        const metaEl = document.getElementById('meta');
-        const itemsEl = document.getElementById('items');
-        const dxModeCheckbox = document.getElementById('dx-mode-checkbox');
-        const dxModeContainer = document.getElementById('dx-mode-container');
+// ── DX MODE ────────────────────────────────────────────
+function saveDxMode(v) { localStorage.setItem('dxModeEnabled', v ? 'true' : 'false'); }
+function loadDxMode() {
+    const v = localStorage.getItem('dxModeEnabled') === 'true';
+    dxCb.checked = v;
+    dxCont.classList.toggle('active', v);
+    return v;
+}
+dxCb.addEventListener('change', function() {
+    saveDxMode(this.checked);
+    dxCont.classList.toggle('active', this.checked);
+    showNotification(this.checked ? 'Mode DXpedition activé' : 'Mode DXpedition désactivé',
+                     this.checked ? 'success' : 'warning');
+});
 
-        // ==================== GESTION DU MODE DX ====================
-        function saveDxMode(enabled) {
-            localStorage.setItem('dxModeEnabled', enabled ? 'true' : 'false');
-            console.log('Mode DX sauvegardé:', enabled);
-        }
+// ── CALLSIGNS ──────────────────────────────────────────
+function extractCallsigns(items) {
+    const pat = /\b([A-Z0-9]{1,3}[0-9][A-Z0-9]{0,3}[A-Z])\b/g;
+    const out = new Set();
+    items.forEach(it => {
+        const t = `${it.title||''} ${it.summary||''}`;
+        (t.match(pat)||[]).forEach(c => { if(c.length>=3 && c.length<=8) out.add(c); });
+    });
+    return [...out];
+}
 
-        function loadDxMode() {
-            const saved = localStorage.getItem('dxModeEnabled');
-            const enabled = saved === 'true';
-            dxModeCheckbox.checked = enabled;
-            if (enabled) {
-                dxModeContainer.classList.add('active');
-            } else {
-                dxModeContainer.classList.remove('active');
-            }
-            console.log('Mode DX chargé:', enabled);
-            return enabled;
-        }
+function addToWatchingList(calls) {
+    let wl = [];
+    try { wl = JSON.parse(localStorage.getItem('watchingList')||'[]'); } catch{}
+    const existing = new Set(wl.map(i=>(i.call||i.callsign||'').toUpperCase()));
+    let added = 0;
+    calls.forEach(c => {
+        c = c.trim().toUpperCase();
+        if (!c || existing.has(c)) return;
+        wl.push({ call:c, callsign:c, autoadded:true, addedAt:new Date().toISOString() });
+        existing.add(c); added++;
+        fetch('/watchlist.json',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({call:c}) }).catch(()=>{});
+    });
+    try { localStorage.setItem('watchingList', JSON.stringify(wl)); } catch{}
+    return added;
+}
 
-        dxModeCheckbox.addEventListener('change', function() {
-            const enabled = this.checked;
-            saveDxMode(enabled);
-           
-            if (enabled) {
-                dxModeContainer.classList.add('active');
-                showNotification('Mode DXpedition activé - Les calls seront ajoutés automatiquement', 'success');
-            } else {
-                dxModeContainer.classList.remove('active');
-                showNotification('Mode DXpedition désactivé', 'warning');
-            }
+// ── HIGHLIGHT ──────────────────────────────────────────
+function esc(t) { const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function highlight(text) {
+    return esc(text).replace(/\b([A-Z0-9]{1,3}[0-9][A-Z0-9]{0,3}[A-Z])\b/g,
+        '<span class="callsign">$1</span>');
+}
+
+// ── FORMAT TEMPS ───────────────────────────────────────
+function fmtTime(s) {
+    if (!s) return '';
+    try {
+        const d = new Date(s), now = new Date();
+        const dm = Math.floor((now-d)/60000);
+        const dh = Math.floor(dm/60), dd = Math.floor(dh/24);
+        if (dm < 1)  return 'À l\'instant';
+        if (dm < 60) return `il y a ${dm}min`;
+        if (dh < 24) return `il y a ${dh}h`;
+        if (dd < 7)  return `il y a ${dd}j`;
+        return d.toLocaleDateString('fr-FR');
+    } catch { return s; }
+}
+
+// ── RENDU GRILLE ───────────────────────────────────────
+function renderGrid(sources) {
+    // Restaurer l'ordre sauvegardé
+    const savedOrder = JSON.parse(localStorage.getItem('briefing-order') || 'null');
+    if (savedOrder) {
+        sources.sort((a,b) => {
+            const ia = savedOrder.indexOf(a.id), ib = savedOrder.indexOf(b.id);
+            return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
         });
+    }
 
-        // ==================== EXTRACTION DES CALLSIGNS ====================
-        function extractCallsigns(items) {
-            const callsignPattern = /\b([A-Z0-9]{1,3}[0-9][A-Z0-9]{0,3}[A-Z])\b/g;
-            const callsigns = new Set();
+    gridEl.innerHTML = '';
+    sources.forEach(src => {
+        const items = src.items || [];
+        const hasErr = !!src.error;
+        const panel = document.createElement('div');
+        panel.className = 'source-panel';
+        panel.dataset.id = src.id;
 
-            items.forEach(item => {
-                const text = `${item.title || ''} ${item.summary || ''}`;
-                const matches = text.match(callsignPattern);
-               
-                if (matches) {
-                    matches.forEach(call => {
-                        if (call.length >= 3 && call.length <= 8) {
-                            callsigns.add(call.toUpperCase());
-                        }
-                    });
-                }
-            });
+        const statusIcon = hasErr
+            ? `<span class="source-status-err" title="${esc(src.error||'')}">✕</span>`
+            : `<span class="source-status-ok">✓</span>`;
 
-            return Array.from(callsigns);
-        }
-
-        // ==================== AJOUT À LA WATCHING LIST ====================
-        function addToWatchingList(callsigns) {
-            if (!Array.isArray(callsigns) || callsigns.length === 0) {
-                console.log('Aucun callsign à ajouter');
-                return 0;
-            }
-
-            let watchingList = [];
-            try {
-                watchingList = JSON.parse(localStorage.getItem('watchingList') || '[]');
-            } catch(e) {
-                console.error('Erreur lecture localStorage:', e);
-            }
-
-            const existingCalls = new Set(
-                watchingList.map(item => (item.call || item.callsign || '').toUpperCase())
-            );
-
-            let addedCount = 0;
-
-            callsigns.forEach(call => {
-                const cleanCall = call.trim().toUpperCase();
-               
-                if (!cleanCall || existingCalls.has(cleanCall)) {
-                    console.log(`⏭️ ${cleanCall} déjà présent, ignoré`);
-                    return;
-                }
-
-                watchingList.push({
-                    call: cleanCall,
-                    callsign: cleanCall,
-                    autoadded: true,
-                    addedAt: new Date().toISOString()
-                });
-
-                existingCalls.add(cleanCall);
-                addedCount++;
-               
-                console.log(`✅ ${cleanCall} ajouté à la Watching List`);
-
-                fetch('/watchlist.json', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ call: cleanCall })
-                }).catch(err => console.error('Erreur API watchlist:', err));
-            });
-
-            try {
-                localStorage.setItem('watchingList', JSON.stringify(watchingList));
-                console.log(`💾 ${addedCount} nouveau(x) call(s) sauvegardé(s)`);
-            } catch(e) {
-                console.error('Erreur sauvegarde localStorage:', e);
-            }
-
-            return addedCount;
-        }
-
-        // ==================== CHARGEMENT DU BRIEFING ====================
-        async function loadBriefing(force = false) {
-            console.log('🔄 Chargement du briefing...', force ? '(force)' : '');
-            metaEl.innerHTML = '<span>⏳ Chargement des flux…</span>';
-           
-            const url = new URL('/api/briefing.json', window.location.origin);
-            url.searchParams.set('limit', '20');
-            if (force) {
-                url.searchParams.set('force', '1');
-            }
-           
-            try {
-                console.log('📡 Fetch:', url.toString());
-                const response = await fetch(url);
-               
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-               
-                const data = await response.json();
-                console.log('📦 Données reçues:', data);
-               
-                const cache = data.cache || {};
-               
-                metaEl.innerHTML = `
-                    <span>📅 Généré: ${data.generated_utc || '—'}</span>
-                    <span>⏱ Âge du cache: ${formatAge(cache.age_seconds)}</span>
-                    <span>🔄 Prochaine MAJ: ${cache.next_refresh_utc || '—'}</span>
-                    <span>📡 Sources actives: ${data.total_sources || 0}</span>
-                `;
-               
-                renderItems(itemsEl, data.items || []);
-                renderSourcesSummary(data.sources || []);
-                renderSourcePanels(data.sources || []);
-
-                const isDxModeActive = loadDxMode();
-               
-                if (isDxModeActive && data.items && data.items.length > 0) {
-                    console.log('📡 Mode DX actif - Extraction des callsigns...');
-                    const callsigns = extractCallsigns(data.items);
-                    console.log('🔍 Callsigns extraits:', callsigns);
-                   
-                    const addedCount = addToWatchingList(callsigns);
-                   
-                    if (addedCount > 0) {
-                        showNotification(
-                            `✅ ${addedCount} nouveau${addedCount > 1 ? 'x' : ''} call${addedCount > 1 ? 's' : ''} ajouté${addedCount > 1 ? 's' : ''} à la Watching List`,
-                            'success'
-                        );
-                       
-                        window.dispatchEvent(new Event('watchingListUpdated'));
-                    }
-                }
-               
-            } catch(error) {
-                console.error('❌ Erreur lors du chargement du briefing:', error);
-                metaEl.innerHTML = '<span style="color:var(--alert);">❌ Erreur de chargement</span>';
-                showNotification('Erreur lors du chargement du briefing: ' + error.message, 'error');
-            }
-        }
-
-        // ==================== RENDU DES ITEMS ====================
-        function renderItems(container, items) {
-            console.log('🎨 Rendu de', items.length, 'items');
-            container.innerHTML = '';
-           
-            if (!items || items.length === 0) {
-                container.innerHTML = '<p style="text-align:center; opacity:0.6; padding:40px;">Aucun item disponible</p>';
-                return;
-            }
-
-            items.forEach((item, index) => {
-                console.log(`  Item ${index + 1}:`, item.title);
-                const div = document.createElement('div');
-                div.className = 'item';
-               
-                const content = highlightCallsigns(item.summary || '');
-               
-                div.innerHTML = `
-                    <div class="item-header">
-                        <div class="item-title">${escapeHtml(item.title || 'Sans titre')}</div>
-                        <div class="item-time">${formatTime(item.published)}</div>
+        let itemsHtml = '';
+        if (items.length === 0) {
+            itemsHtml = `<div class="item-empty">${hasErr ? '⚠ Erreur de chargement' : 'Aucun article disponible'}</div>`;
+        } else {
+            itemsHtml = items.slice(0, 8).map(it => {
+                const body = it.summary ? highlight(it.summary) : '';
+                const time = fmtTime(it.published_utc);
+                return `
+                <div class="item">
+                    <div class="item-title">${esc(it.title||'Sans titre')}</div>
+                    ${body ? `<div class="item-body">${body}</div>` : ''}
+                    <div class="item-footer">
+                        <span class="item-time">${time}</span>
+                        ${it.link ? `<a href="${esc(it.link)}" target="_blank" rel="noopener">Lien →</a>` : ''}
                     </div>
-                    <div class="item-content">${content}</div>
-                    <div class="item-source">
-                        📡 Source: ${escapeHtml(item.source || 'Inconnue')}
-                        ${item.link ? `| <a href="${escapeHtml(item.link)}" target="_blank">Lien →</a>` : ''}
-                    </div>
-                `;
-               
-                container.appendChild(div);
-            });
+                </div>`;
+            }).join('');
         }
 
-        function highlightCallsigns(text) {
-            const callsignPattern = /\b([A-Z0-9]{1,3}[0-9][A-Z0-9]{0,3}[A-Z])\b/g;
-            return escapeHtml(text).replace(callsignPattern, '<span class="callsign">$1</span>');
+        panel.innerHTML = `
+            <div class="source-header">
+                <div class="source-name">
+                    <span>⠿</span>
+                    ${esc(src.name||src.id)}
+                    <span class="source-count">${items.length} article${items.length>1?'s':''}</span>
+                </div>
+                ${statusIcon}
+            </div>
+            <div class="source-items">${itemsHtml}</div>`;
+
+        gridEl.appendChild(panel);
+    });
+
+    // Drag & drop
+    Sortable.create(gridEl, {
+        animation: 150,
+        handle: '.source-header',
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onEnd: () => {
+            const order = [...gridEl.children].map(p => p.dataset.id);
+            localStorage.setItem('briefing-order', JSON.stringify(order));
         }
+    });
+}
 
-        function renderSourcesSummary(sources) {
-            console.log('📊 Rendu du résumé des sources:', sources.length);
-            const container = document.getElementById('sources-summary');
-           
-            if (!sources || sources.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
+// ── CHARGEMENT ─────────────────────────────────────────
+async function loadBriefing(force = false) {
+    metaEl.innerHTML = '<span>⏳ Chargement des flux…</span>';
+    const url = new URL('/api/briefing.json', location.origin);
+    url.searchParams.set('limit', '20');
+    if (force) url.searchParams.set('force','1');
 
-            let html = '<h3>📡 Sources RSS actives</h3><div class="sources-grid">';
-           
-            sources.forEach(src => {
-                const hasError = !!src.error;
-                const status = hasError ? '❌' : '✅';
-                const count = src.count || 0;
-                const errorClass = hasError ? 'error' : '';
-               
-                html += `
-                    <div class="source-badge ${errorClass}">
-                        <span class="status">${status}</span>
-                        <span class="name">${escapeHtml(src.name || 'Sans nom')}</span>
-                        <span class="count">${count} item${count > 1 ? 's' : ''}</span>
-                        ${hasError ? `<div class="error-msg">${escapeHtml(src.error)}</div>` : ''}
-                    </div>
-                `;
-            });
-           
-            html += '</div>';
-            container.innerHTML = html;
-        }
+    try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        const cache = data.cache || {};
 
-        function renderSourcePanels(sources) {
-            console.log('📋 Rendu des panneaux de sources');
-            const container = document.getElementById('source-panels');
-            container.innerHTML = '';
-           
-            sources.forEach(src => {
-                if (!src.items || src.items.length === 0) return;
+        const fmtAge = s => {
+            if (!s) return '—';
+            const m = Math.floor(s/60), h = Math.floor(m/60);
+            if (m<1) return '<1min';
+            if (m<60) return `${m}min`;
+            return `${h}h${m%60>0?` ${m%60}min`:''}`;
+        };
 
-                const panel = document.createElement('div');
-                panel.className = 'source-panel';
-               
-                let itemsHtml = '';
-                src.items.slice(0, 5).forEach(item => {
-                    itemsHtml += `
-                        <div class="source-item">
-                            <div class="source-item-title">${escapeHtml(item.title || '')}</div>
-                            <div class="source-item-time">${formatTime(item.published)}</div>
-                        </div>
-                    `;
-                });
+        metaEl.innerHTML = `
+            <span>📅 ${data.generated_utc||'—'}</span>
+            <span>⏱ Cache: ${fmtAge(cache.age_seconds)}</span>
+            <span>🔄 MAJ: ${cache.next_refresh_utc||'—'}</span>
+            <span>📡 Sources: ${data.total_sources||0}</span>`;
 
-                panel.innerHTML = `
-                    <h4>📡 ${escapeHtml(src.name || 'Source')}</h4>
-                    ${itemsHtml}
-                `;
-               
-                container.appendChild(panel);
-            });
-        }
+        renderGrid(data.sources || []);
 
-        // ==================== UTILITAIRES ====================
-        function formatTime(dateStr) {
-            if (!dateStr) return '—';
-            try {
-                const date = new Date(dateStr);
-                const now = new Date();
-                const diffMs = now - date;
-                const diffMins = Math.floor(diffMs / 60000);
-                const diffHours = Math.floor(diffMins / 60);
-                const diffDays = Math.floor(diffHours / 24);
-               
-                if (diffMins < 1) return 'À l\'instant';
-                if (diffMins < 60) return `il y a ${diffMins}min`;
-                if (diffHours < 24) return `il y a ${diffHours}h`;
-                if (diffDays < 7) return `il y a ${diffDays}j`;
-                return date.toLocaleDateString('fr-FR');
-            } catch {
-                return dateStr;
+        if (loadDxMode() && data.items?.length) {
+            const n = addToWatchingList(extractCallsigns(data.items));
+            if (n > 0) {
+                showNotification(`✅ ${n} call${n>1?'s':''} ajouté${n>1?'s':''} à la Watching List`, 'success');
+                window.dispatchEvent(new Event('watchingListUpdated'));
             }
         }
+    } catch(e) {
+        metaEl.innerHTML = `<span style="color:var(--alert)">❌ Erreur: ${e.message}</span>`;
+    }
+}
 
-        function formatAge(seconds) {
-            if (!seconds) return '—';
-            const mins = Math.floor(seconds / 60);
-            const hours = Math.floor(mins / 60);
-            const days = Math.floor(hours / 24);
-           
-            if (mins < 1) return '< 1min';
-            if (mins < 60) return `${mins}min`;
-            if (hours < 24) return `${hours}h ${mins % 60}min`;
-            return `${days}j ${hours % 24}h`;
-        }
+// ── NOTIFICATION ───────────────────────────────────────
+function showNotification(msg, type='success') {
+    const n = document.createElement('div');
+    n.className = `notification ${type}`;
+    n.textContent = msg;
+    document.body.appendChild(n);
+    setTimeout(() => { n.style.animation = 'slideIn 0.3s ease-out reverse'; setTimeout(()=>n.remove(),300); }, 4000);
+}
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function showNotification(message, type = 'success') {
-            const notif = document.createElement('div');
-            notif.className = `notification ${type}`;
-            notif.textContent = message;
-            document.body.appendChild(notif);
-           
-            setTimeout(() => {
-                notif.style.animation = 'slideIn 0.3s ease-out reverse';
-                setTimeout(() => notif.remove(), 300);
-            }, 4000);
-        }
-
-        function toggleTheme() {
-            const themes = ['softtech', 'dark', 'matrix'];
-            const currentTheme = document.body.getAttribute('data-theme') || 'softtech';
-            const currentIndex = themes.indexOf(currentTheme);
-            const nextIndex = (currentIndex + 1) % themes.length;
-            const newTheme = themes[nextIndex];
-           
-            document.body.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-        }
-
-        // ==================== INITIALISATION ====================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initialisation de la page');
-           
-            const savedTheme = localStorage.getItem('theme') || 'softtech';
-            document.body.setAttribute('data-theme', savedTheme);
-           
-            loadDxMode();
-            loadBriefing();
-           
-            // Actualisation automatique toutes les 12h
-            setInterval(() => loadBriefing(false), 12 * 60 * 60 * 1000);
-        });
-    </script>
+// ── INIT ───────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.setAttribute('data-theme', localStorage.getItem('theme')||'softtech');
+    loadDxMode();
+    loadBriefing();
+    setInterval(() => loadBriefing(false), 12*60*60*1000);
+});
+</script>
 </body>
 </html>
