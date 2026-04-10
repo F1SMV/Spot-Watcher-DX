@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛰️ Satellite Tracker — {{ my_call }}</title>
+    <link rel="stylesheet" href="/static/base.css">
+    <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#050505;--panel:#0e0e0e;--text:#a0a0a0;--accent:#00f3ff;--alert:#ff003c;--border:1px solid #333;}
+        body[data-theme='dark']  {--bg:#1a1a1a;--panel:#2a2a2a;--text:#f0f0f0;--accent:#00ff80;}
+        body[data-theme='matrix']{--bg:#000;--panel:#031503;--text:#00ff41;--accent:#00ff41;}
+        *{box-sizing:border-box;margin:0;padding:0;font-family:'Share Tech Mono',monospace;}
+        body{background:var(--bg);color:var(--text);min-height:100vh;}
+
+        #header{background:var(--panel);padding:10px 20px;border-bottom:var(--border);
+            display:flex;justify-content:space-between;align-items:center;
+            position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.5);flex-wrap:wrap;gap:8px;}
+        #title{font-family:'Orbitron',sans-serif;font-size:1.3em;color:var(--accent);text-shadow:0 0 5px var(--accent);}
+        .nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+        .btn{padding:5px 12px;background:rgba(0,243,255,.1);color:var(--accent);border:1px solid var(--accent);
+            border-radius:5px;cursor:pointer;font-family:'Orbitron',sans-serif;font-size:0.72em;font-weight:bold;
+            text-decoration:none;display:inline-block;transition:all .2s;}
+        .btn:hover{background:var(--accent);color:#000;}
+        .btn-warn{border-color:#ff6600;color:#ff6600;background:rgba(255,100,0,.1);}
+        .btn-warn:hover{background:#ff6600;color:#000;}
+
+        #meta{background:var(--panel);padding:6px 20px;border-bottom:var(--border);
+            font-size:.75em;display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+        #meta span{color:var(--accent);padding:2px 8px;background:rgba(0,243,255,.06);border-radius:4px;}
+        #meta .kep-age{color:#aaa;}
+        #meta .kep-old{color:#ff6600;}
+        #meta .kep-very-old{color:#ff3232;}
+
+        #sgp4-warning{display:none;background:rgba(255,100,0,.15);border:1px solid #ff6600;
+            color:#ff9944;padding:10px 20px;font-size:.82em;text-align:center;}
+
+        .container{padding:14px 20px;max-width:1600px;margin:0 auto;}
+        .grid-top{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;}
+        @media(max-width:900px){.grid-top{grid-template-columns:1fr;}}
+
+        .panel{background:var(--panel);border:var(--border);border-radius:12px;overflow:hidden;}
+        .panel-hdr{font-family:'Orbitron',sans-serif;font-size:.78em;color:var(--accent);
+            padding:8px 14px;background:rgba(0,243,255,.04);border-bottom:1px solid rgba(255,255,255,.07);
+            display:flex;justify-content:space-between;align-items:center;}
+
+        /* CARTE LEAFLET */
+        #sat-map{width:100%;height:520px;}
+        .sat-marker-icon{font-size:18px;line-height:1;}
+        .leaflet-container{background:#020810!important;}
+        .sat-popup{font-family:'Share Tech Mono',monospace;font-size:0.82em;color:#eee;background:#0e0e0e;border:1px solid #00f3ff;border-radius:6px;padding:8px;}
+        .sat-popup b{color:#00f3ff;}
+
+        /* TABLEAU */
+        .sat-table{width:100%;border-collapse:collapse;font-size:.78em;}
+        .sat-table th{padding:6px 10px;text-align:left;color:var(--accent);
+            border-bottom:1px solid #222;font-size:.72em;text-transform:uppercase;}
+        .sat-table td{padding:5px 10px;border-bottom:1px solid #111;vertical-align:middle;}
+        .sat-table tr:hover td{background:rgba(0,243,255,.04);}
+        .sat-name{font-weight:bold;}
+        .el-vis{color:#00ff80;font-weight:bold;}
+        .el-inv{color:#444;}
+        .badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:.7em;font-weight:bold;}
+        .b-station{background:rgba(0,243,255,.15);color:#00f3ff;border:1px solid #00f3ff;}
+        .b-weather{background:rgba(68,136,255,.15);color:#88aaff;border:1px solid #4488ff;}
+        .b-amateur{background:rgba(0,255,128,.12);color:#00cc66;border:1px solid #00cc66;}
+
+        /* PASSES */
+        #passes-wrap{margin-top:14px;}
+        .passes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;padding:12px;}
+        .pass-card{background:rgba(0,243,255,.03);border:1px solid #222;border-radius:8px;
+            padding:10px 13px;transition:border .2s;}
+        .pass-card:hover{border-color:rgba(0,243,255,.25);}
+        .pass-sat{font-family:'Orbitron',sans-serif;font-size:.78em;color:var(--accent);margin-bottom:7px;}
+        .pass-row{display:flex;justify-content:space-between;font-size:.74em;margin-bottom:3px;}
+        .pl{color:#555;} .pv{color:var(--text);}
+        .el-h{color:#00ff80;font-weight:bold;}
+        .el-m{color:#ffcc00;font-weight:bold;}
+        .el-l{color:#ff6600;font-weight:bold;}
+        .pass-sep{border:none;border-top:1px solid #1a1a1a;margin:5px 0;}
+        .pass-empty{padding:20px;text-align:center;color:#444;font-style:italic;font-size:.82em;}
+
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .spinner{display:inline-block;width:11px;height:11px;border:2px solid #333;
+            border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;
+            vertical-align:middle;margin-right:4px;}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .refreshing{animation:pulse .6s ease-in-out infinite;}
+    </style>
+</head>
+<body>
+<div id="header">
+    <div id="title">🛰️ SATELLITE TRACKER</div>
+    <div class="nav">
+        <a class="btn" href="/">🏠 Dashboard</a>
+        <a class="btn" href="/map">🗺 Map</a>
+        <a class="btn" href="/world">🌍 World</a>
+        <a class="btn" href="/briefing">📰 Briefing</a>
+        <a class="btn" href="/analysis.html">📊 Analyse</a>
+        <button class="btn" onclick="toggleTheme()">🔆</button>
+        <button class="btn btn-warn" id="btn-kep" onclick="refreshKeps()" title="Mettre à jour les éléments orbitaux depuis CelesTrak">↺ MAJ Keps</button>
+    </div>
+</div>
+
+<div id="meta">
+    <span>📍 {{ my_call }} — {{ "%.3f"|format(user_lat) }}°N / {{ "%.3f"|format(user_lon) }}°E</span>
+    <span id="meta-ts">⏳ Chargement…</span>
+    <span id="meta-vis"></span>
+    <span id="meta-kep" class="kep-age">Keps: —</span>
+</div>
+
+<div id="sgp4-warning">
+    ⚠ <b>sgp4</b> non installé — <code>pip install sgp4 --break-system-packages</code> puis redémarre l'appli.
+</div>
+
+<div class="container">
+    <div class="grid-top">
+        <!-- CARTE -->
+        <div class="panel">
+            <div class="panel-hdr">
+                <span>🌍 POSITIONS TEMPS RÉEL</span>
+                <span id="map-ts" style="font-size:.85em;color:#555;"></span>
+            </div>
+            <!-- Boutons sélection satellite -->
+            <div id="sat-selector" style="display:flex;flex-wrap:wrap;gap:5px;padding:8px 10px;border-bottom:1px solid #111;background:rgba(0,0,0,0.3);"></div>
+            <div id="sat-map"></div>
+        </div>
+
+        <!-- TABLEAU -->
+        <div class="panel">
+            <div class="panel-hdr">📡 ÉLÉVATION &amp; AZIMUT</div>
+            <div style="overflow-x:auto;">
+                <table class="sat-table">
+                    <thead>
+                        <tr>
+                            <th>Satellite</th><th>Type</th>
+                            <th>Az°</th><th>El°</th>
+                            <th>Alt km</th><th>Lat</th><th>Lon</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sat-tbody">
+                        <tr><td colspan="7" style="text-align:center;padding:18px;">
+                            <span class="spinner"></span>Calcul…
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- PASSES -->
+    <div class="panel" id="passes-wrap" style="margin-top:14px;">
+        <div class="panel-hdr" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center;">
+            <span>⏱ PROCHAINS PASSAGES AU-DESSUS DE {{ my_call }} (24h UTC)</span>
+            <span style="font-size:.75em;color:#555;">🟢 ≥45° · 🟡 ≥20° · 🟠 &lt;20°</span>
+        </div>
+        <!-- Sélecteur satellites pour les passages -->
+        <div id="passes-sat-selector" style="display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px;border-bottom:1px solid #111;background:rgba(0,0,0,0.2);align-items:center;">
+            <span style="font-size:0.72em;color:#555;">Satellites :</span>
+        </div>
+        <div class="passes-grid" id="passes-grid">
+            <div class="pass-empty"><span class="spinner"></span>Calcul des passages…</div>
+        </div>
+    </div>
+</div>
+
+<!-- SÉLECTION SATELLITES -->
+<div class="panel" style="margin-top:14px;">
+    <div class="panel-hdr">⚙️ GESTION DES SATELLITES SUIVIS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+
+        <!-- Colonne gauche : satellites actifs -->
+        <div style="padding:12px;border-right:1px solid #1a1a1a;">
+            <div style="font-size:0.72em;color:var(--accent);text-transform:uppercase;margin-bottom:8px;font-family:'Orbitron',sans-serif;">
+                Satellites suivis
+            </div>
+            <div id="sat-active-list" style="display:flex;flex-direction:column;gap:5px;min-height:60px;">
+                <div style="color:#444;font-size:0.78em;font-style:italic;">Chargement…</div>
+            </div>
+        </div>
+
+        <!-- Colonne droite : catalogue complet -->
+        <div style="padding:12px;">
+            <div style="font-size:0.72em;color:var(--accent);text-transform:uppercase;margin-bottom:8px;font-family:'Orbitron',sans-serif;">
+                Catalogue AMSAT (<span id="catalog-count">…</span> satellites)
+            </div>
+            <input id="sat-search" type="text" placeholder="🔍 Rechercher un satellite…"
+                oninput="filterCatalog()"
+                style="width:100%;padding:5px 8px;margin-bottom:8px;background:#111;border:1px solid #333;
+                       color:#ccc;border-radius:4px;font-family:monospace;font-size:0.78em;">
+            <div id="sat-catalog-list" style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;">
+                <div style="color:#444;font-size:0.78em;font-style:italic;">Chargement du catalogue…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const OBS_LAT = {{ user_lat }};
+const OBS_LON = {{ user_lon }};
+let positions = [];
+
+// ── THEME ─────────────────────────────────────
+function toggleTheme() {
+    const t = ['softtech','dark','matrix'];
+    const c = document.body.getAttribute('data-theme')||'softtech';
+    const n = t[(t.indexOf(c)+1)%t.length];
+    document.body.setAttribute('data-theme', n);
+    localStorage.setItem('theme', n);
+}
+document.body.setAttribute('data-theme', localStorage.getItem('theme')||'softtech');
+
+// ── CARTE LEAFLET ─────────────────────────────
+const satMap = L.map('sat-map', {zoomControl:true, attributionControl:true}).setView([20, 0], 2);
+
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri', maxZoom: 8
+}).addTo(satMap);
+
+// Marqueur QTH
+const qthIcon = L.divIcon({html:'📍', className:'sat-marker-icon', iconSize:[24,24], iconAnchor:[12,12]});
+L.marker([OBS_LAT, OBS_LON], {icon: qthIcon})
+    .bindPopup(`<div class="sat-popup"><b>QTH {{ my_call }}</b><br>{{ "%.3f"|format(user_lat) }}°N / {{ "%.3f"|format(user_lon) }}°E</div>`)
+    .addTo(satMap);
+
+let selectedNorad  = null;   // satellite actuellement sélectionné sur la carte
+let satMarker      = null;   // un seul marqueur à la fois
+let footprintLayer = null;   // cercle footprint
+
+function selectSatellite(norad) {
+    selectedNorad = norad;
+    // Mettre à jour les boutons
+    document.querySelectorAll('.sat-sel-btn').forEach(b => {
+        const active = parseInt(b.dataset.norad) === norad;
+        b.style.background    = active ? b.dataset.color : 'rgba(255,255,255,0.05)';
+        b.style.borderColor   = active ? b.dataset.color : '#333';
+        b.style.color         = active ? '#000' : '#aaa';
+        b.style.fontWeight    = active ? 'bold' : 'normal';
+    });
+    updateMap();
+    loadFootprint(norad);
+}
+
+async function loadFootprint(norad) {
+    // Supprimer l'ancien footprint
+    if(footprintLayer) { satMap.removeLayer(footprintLayer); footprintLayer = null; }
+    try {
+        const r = await fetch(`/api/satellites/footprint/${norad}`);
+        const d = await r.json();
+        if(d.error || !d.footprint_points) return;
+        const sat = positions.find(p => p.norad === norad);
+        const col = sat ? sat.color : '#00f3ff';
+        footprintLayer = L.polygon(d.footprint_points, {
+            color: col, weight: 1.5, opacity: 0.7,
+            fillColor: col, fillOpacity: 0.08,
+        }).addTo(satMap);
+    } catch(e) {}
+}
+
+function updateMap() {
+    if(!selectedNorad) return;
+    const s = positions.find(p => p.norad === selectedNorad);
+    if(!s || s.error || s.lat === undefined) return;
+
+    const col = s.color || '#00f3ff';
+    const glow = s.visible ? `drop-shadow(0 0 6px ${col})` : 'none';
+    const icon = L.divIcon({
+        html: `<span style="font-size:20px;filter:${glow}">${s.icon||'🛰️'}</span>`,
+        className:'sat-marker-icon', iconSize:[24,24], iconAnchor:[12,12]
+    });
+    const popup = `<div class="sat-popup">
+        <b>${s.name}</b><br>
+        Az: ${s.az}° · El: ${s.el}° (UTC)<br>
+        Alt: ${s.alt_km} km<br>
+        Lat: ${s.lat}° · Lon: ${s.lon}°<br>
+        ${s.visible
+            ? `<span style="color:#00ff80">▲ VISIBLE — El ${s.el}°</span>`
+            : `<span style="color:#555">▽ Sous horizon</span>`}
+    </div>`;
+
+    if(satMarker) {
+        satMarker.setLatLng([s.lat, s.lon]);
+        satMarker.setIcon(icon);
+        satMarker.setPopupContent(popup);
+    } else {
+        satMarker = L.marker([s.lat, s.lon], {icon})
+            .bindPopup(popup).addTo(satMap);
+    }
+    // Recentrer si le satellite est loin du centre visible
+    const mapBounds = satMap.getBounds();
+    if(!mapBounds.contains([s.lat, s.lon])) {
+        satMap.panTo([s.lat, s.lon], {animate: true, duration: 1});
+    }
+}
+
+function renderSatButtons() {
+    const sel = document.getElementById('sat-selector');
+    const avail = positions.filter(p => !p.error && p.lat !== undefined);
+    if(!avail.length) { sel.innerHTML = '<span style="color:#444;font-size:.75em;">Aucun satellite disponible</span>'; return; }
+    sel.innerHTML = avail.map(s => `
+        <button class="sat-sel-btn"
+            data-norad="${s.norad}" data-color="${s.color}"
+            onclick="selectSatellite(${s.norad})"
+            style="padding:3px 10px;font-size:0.72em;cursor:pointer;border-radius:4px;
+                   background:rgba(255,255,255,0.05);border:1px solid #333;color:#aaa;
+                   font-family:monospace;transition:all .2s;white-space:nowrap;">
+            ${s.icon||'🛰️'} ${s.name.split(' ')[0]}
+        </button>`).join('');
+    // Auto-sélectionner le premier si rien sélectionné
+    if(!selectedNorad && avail.length) selectSatellite(avail[0].norad);
+}
+
+// ── TABLEAU ───────────────────────────────────
+const badgeCls = {station:'b-station',weather:'b-weather',amateur:'b-amateur'};
+
+function renderTable(sats) {
+    const tb = document.getElementById('sat-tbody');
+    if(!sats.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:15px;color:#444;">Aucune donnée</td></tr>';return;}
+    tb.innerHTML = sats.map(s=>{
+        if(s.error) return `<tr><td colspan="7" style="color:#555;font-size:.74em;padding:5px 10px;">${s.icon||'⚠'} ${s.name} — ${s.error}</td></tr>`;
+        const elHtml = s.visible
+            ? `<b class="el-vis">${s.el}°</b>`
+            : `<span class="el-inv">${s.el}°</span>`;
+        return `<tr>
+            <td><span class="sat-name">${s.icon||''} ${s.name}</span></td>
+            <td><span class="badge ${badgeCls[s.type]||''}">${s.type}</span></td>
+            <td>${s.az}°</td><td>${elHtml}</td>
+            <td>${s.alt_km}</td><td>${s.lat}°</td><td>${s.lon}°</td>
+        </tr>`;
+    }).join('');
+}
+
+// ── POSITIONS ─────────────────────────────────
+async function loadPositions() {
+    try {
+        const r = await fetch('/api/satellites/positions');
+        const d = await r.json();
+
+        // Détecter erreur sgp4 et afficher le message réel
+        const sgp4err = d.positions?.find(p=>p.error);
+        if(sgp4err) {
+            const warn = document.getElementById('sgp4-warning');
+            warn.style.display='block';
+            warn.innerHTML = `⚠ Erreur satellite: <code>${sgp4err.error}</code>`;
+        }
+
+        positions = d.positions||[];
+        renderTable(positions);
+        renderSatButtons();
+        renderPassesSatSelector();
+        updateMap();
+
+        const ts = new Date(d.ts*1000).toLocaleTimeString('fr-FR');
+        document.getElementById('meta-ts').textContent = `🕐 ${ts}`;
+        document.getElementById('map-ts').textContent  = ts;
+        const vis = positions.filter(p=>p.visible&&!p.error).length;
+        document.getElementById('meta-vis').textContent = `👁 Visibles: ${vis}/${positions.filter(p=>!p.error).length}`;
+    } catch(e) { console.error(e); }
+}
+
+// ── PASSAGES ──────────────────────────────────
+let passesSelectedIds = new Set();
+
+function renderPassesSatSelector() {
+    const bar = document.getElementById('passes-sat-selector');
+    if(!bar) return;
+    const avail = positions.filter(p => !p.error && p.lat !== undefined);
+    if(!avail.length) { bar.innerHTML = '<span style="font-size:0.72em;color:#444;">Chargement…</span>'; return; }
+    // Aucun satellite sélectionné par défaut
+    bar.innerHTML = '<span style="font-size:0.72em;color:#555;white-space:nowrap;margin-right:4px;">Afficher :</span>' +
+        avail.map(s => {
+            const on = passesSelectedIds.has(s.norad);
+            return `<button onclick="togglePassSat(${s.norad})"
+                style="padding:2px 10px;font-size:0.7em;cursor:pointer;border-radius:4px;
+                background:${on?s.color:'rgba(255,255,255,0.04)'};
+                border:1px solid ${on?s.color:'#333'};
+                color:${on?'#000':'#666'};font-weight:${on?'bold':'normal'};transition:all .2s;">
+                ${s.icon||'🛰️'} ${s.name.split(' ')[0]}
+            </button>`;
+        }).join('') +
+        `<button onclick="document.querySelector('#sat-active-list')?.closest('.panel')?.scrollIntoView({behavior:'smooth'})"
+            title="Gérer les satellites" style="padding:2px 9px;font-size:0.7em;cursor:pointer;
+            border-radius:4px;background:rgba(0,243,255,0.06);border:1px solid #333;color:#555;">⚙</button>`;
+}
+
+
+function togglePassSat(norad) {
+    if(passesSelectedIds.has(norad)) passesSelectedIds.delete(norad);
+    else passesSelectedIds.add(norad);
+    renderPassesSatSelector();
+    loadPasses();
+}
+
+async function loadPasses() {
+    const grid = document.getElementById('passes-grid');
+    if(!grid) return;
+    const ids = passesSelectedIds.size > 0
+        ? [...passesSelectedIds]
+        : positions.filter(p=>!p.error).map(p=>p.norad);
+    if(!ids.length) { grid.innerHTML='<div class="pass-empty">Sélectionnez un satellite ci-dessus.</div>'; return; }
+    grid.innerHTML = '<div class="pass-empty"><span class="spinner"></span>Calcul…</div>';
+
+    const results = await Promise.allSettled(
+        ids.map(id => fetch(`/api/satellites/passes/${id}`).then(r=>r.json()))
+    );
+    grid.innerHTML = '';
+    let any = false;
+    results.forEach(res => {
+        if(res.status !== 'fulfilled') return;
+        const d = res.value;
+        if(!d.passes?.length || d.passes[0]?.error) return;
+        any = true;
+        const sat = positions.find(p => p.norad === d.norad) || {};
+        const col = sat.color || '#00f3ff';
+        const card = document.createElement('div');
+        card.className = 'pass-card';
+        card.style.borderColor = col + '55';
+        const rows = d.passes.slice(0,4).map(p => {
+            const ec = p.max_el>=45?'el-h':p.max_el>=20?'el-m':'el-l';
+            return `<div class="pass-row"><span class="pl">AOS</span><span class="pv">${p.aos}</span></div>
+            <div class="pass-row"><span class="pl">TCA→LOS</span><span class="pv">${p.tca}→${p.los} (${p.duration}min)</span></div>
+            <div class="pass-row"><span class="pl">El max</span><span class="pv ${ec}">${p.max_el}°</span></div>
+            <hr class="pass-sep">`;
+        }).join('');
+        card.innerHTML = `<div class="pass-sat" style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:${col}">${sat.icon||'🛰️'} ${d.name}</span>
+            <button onclick="togglePassSat(${d.norad})" title="Retirer des passages"
+                style="font-size:0.65em;padding:1px 5px;cursor:pointer;border-radius:3px;
+                background:rgba(255,50,50,0.1);border:1px solid #ff3333;color:#ff6666;">✕</button>
+        </div>${rows}`;
+        grid.appendChild(card);
+    });
+    if(!any) grid.innerHTML = '<div class="pass-empty">Aucun passage prévu dans les 24h.</div>';
+}
+
+// ── MAJ KEPS ──────────────────────────────────
+async function refreshKeps() {
+    const btn = document.getElementById('btn-kep');
+    const meta = document.getElementById('meta-kep');
+    btn.disabled = true;
+    btn.textContent = '↺ Téléchargement…';
+    btn.classList.add('refreshing');
+    meta.textContent = 'Keps: mise à jour…';
+    meta.className = 'kep-age';
+
+    try {
+        const r = await fetch('/api/satellites/refresh_tle', {method:'POST'});
+        const d = await r.json();
+        if(d.ok) {
+            meta.textContent = `Keps: ${d.total_tles} TLE chargés ✓`;
+            meta.className = 'kep-age';
+            // Recharger positions et passages
+            await loadPositions();
+            loadPasses();
+        } else {
+            meta.textContent = 'Keps: erreur mise à jour';
+        }
+    } catch(e) {
+        meta.textContent = 'Keps: erreur réseau';
+    }
+    btn.disabled = false;
+    btn.textContent = '↺ MAJ Keps';
+    btn.classList.remove('refreshing');
+}
+
+// Afficher l'âge du cache TLE
+async function loadKepStatus() {
+    try {
+        const r = await fetch('/api/satellites/tle_status');
+        const d = await r.json();
+        const ageH = Math.floor(d.cache_age_s / 3600);
+        const el   = document.getElementById('meta-kep');
+        el.textContent = `Keps: ${d.total_tles} TLE · âge ${ageH}h`;
+        el.className = ageH > 24 ? 'kep-very-old' : ageH > 12 ? 'kep-old' : 'kep-age';
+    } catch(e) {}
+}
+
+// ── GESTION SATELLITES ────────────────────────
+let catalog      = [];   // tous les satellites du fichier TLE
+let activeSats   = [];   // satellites actuellement suivis
+
+async function loadSatConfig() {
+    try {
+        const r = await fetch('/api/satellites/catalog');
+        const d = await r.json();
+        catalog    = d.catalog || [];
+        activeSats = catalog.filter(s => s.active);
+        document.getElementById('catalog-count').textContent = d.total;
+        renderActiveList();
+        renderCatalog(catalog);
+    } catch(e) { console.error('loadSatConfig:', e); }
+}
+
+// Icône par type
+function satIcon(type) {
+    return {station:'🛸', amateur:'📻', weather:'🌤', unknown:'🛰️'}[type] || '🛰️';
+}
+
+function renderActiveList() {
+    const el = document.getElementById('sat-active-list');
+    if(!el) return;
+    if(!activeSats.length) {
+        el.innerHTML = '<div style="color:#444;font-size:0.78em;font-style:italic;">Aucun satellite sélectionné</div>';
+        return;
+    }
+    el.innerHTML = activeSats.map(s => `
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 8px;
+            background:rgba(0,243,255,0.05);border:1px solid #222;border-radius:5px;">
+            <span style="font-size:0.8em;">${s.icon||satIcon(s.type)} ${s.name}</span>
+            <span style="font-size:0.65em;color:#555;margin-left:auto;">NORAD ${s.norad}</span>
+            <button onclick="removeSat(${s.norad})"
+                style="padding:1px 6px;font-size:0.7em;cursor:pointer;border-radius:3px;
+                       background:rgba(255,50,50,0.15);border:1px solid #ff3333;color:#ff6666;">✕</button>
+        </div>`).join('');
+}
+
+let catalogFiltered = [];
+
+function renderCatalog(list) {
+    catalogFiltered = list;
+    const el = document.getElementById('sat-catalog-list');
+    if(!el) return;
+    const activeIds = new Set(activeSats.map(s => s.norad));
+    el.innerHTML = list.slice(0, 150).map(s => {
+        const isActive = activeIds.has(s.norad);
+        return `<div style="display:flex;align-items:center;gap:6px;padding:3px 6px;
+            border-radius:4px;background:${isActive?'rgba(0,243,255,0.06)':'transparent'};">
+            <span style="font-size:0.75em;color:${isActive?'var(--accent)':'#888'};">
+                ${satIcon(s.type)} ${s.name}
+            </span>
+            <span style="font-size:0.62em;color:#444;margin-left:auto;">NORAD ${s.norad}</span>
+            ${isActive
+                ? `<span style="font-size:0.65em;color:var(--accent);">✓</span>`
+                : `<button onclick="addSat(${s.norad})"
+                    style="padding:1px 7px;font-size:0.68em;cursor:pointer;border-radius:3px;
+                           background:rgba(0,243,255,0.1);border:1px solid var(--accent);
+                           color:var(--accent);">+</button>`
+            }
+        </div>`;
+    }).join('');
+    if(list.length > 150)
+        el.innerHTML += `<div style="color:#555;font-size:0.72em;padding:4px;">… ${list.length-150} autres (affinez la recherche)</div>`;
+}
+
+function filterCatalog() {
+    const q = document.getElementById('sat-search').value.toLowerCase();
+    const filtered = q ? catalog.filter(s => s.name.toLowerCase().includes(q) || String(s.norad).includes(q)) : catalog;
+    renderCatalog(filtered);
+}
+
+async function addSat(norad) {
+    const sat = catalog.find(s => s.norad === norad);
+    if(!sat || activeSats.find(s => s.norad === norad)) return;
+    activeSats.push({...sat, active: true});
+    await saveActiveSats();
+}
+
+async function removeSat(norad) {
+    activeSats = activeSats.filter(s => s.norad !== norad);
+    await saveActiveSats();
+}
+
+async function saveActiveSats() {
+    try {
+        const r = await fetch('/api/satellites/config', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({satellites: activeSats.map(s => ({...s, active: true}))})
+        });
+        const d = await r.json();
+        if(d.ok) {
+            renderActiveList();
+            renderCatalog(catalogFiltered.length ? catalogFiltered : catalog);
+            // Rafraîchir positions et passages
+            await loadPositions();
+            loadPasses();
+            renderSatButtons();
+        }
+    } catch(e) { console.error('saveActiveSats:', e); }
+}
+
+// ── INIT ──────────────────────────────────────
+// Leaflet gère le resize automatiquement
+loadPositions();
+loadPasses();
+loadKepStatus();
+loadSatConfig();
+setInterval(loadPositions, 10000);
+setInterval(loadPasses, 5*60000);
+setInterval(loadKepStatus, 60000);
+</script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v7.1
+# 📡 Radio Spot Watcher DX — v7.2
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -118,6 +118,17 @@ Aucune dépendance cloud.
 ---
 
 ### 🗂️ Historique des versions
+
+### v7.2 — Satellite Tracker
+
+- Nouvelle page **Satellite Tracker** : suivi temps réel de satellites amateur (AO-73, AO-91, ISS, RS-44, SO-50, FO-29, PO-101…)
+- Positions calculées localement via **sgp4** depuis les TLE AMSAT
+- Carte **Leaflet** avec footprint de couverture par satellite
+- Tableau élévation / azimut / altitude en temps réel
+- Pavé **Prochains passages** (24h UTC) : AOS, TCA, LOS, durée, élévation max
+- Sélection multi-satellite indépendante pour les passages
+- Mise à jour manuelle des keps depuis CelesTrak
+- Gestion du catalogue AMSAT : ajout/suppression de satellites suivis
 
 ### v7.1
 

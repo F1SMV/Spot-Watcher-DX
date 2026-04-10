@@ -1,4 +1,13 @@
 import time
+
+# sgp4 — import au niveau module pour éviter les problèmes de PATH Python
+try:
+    from sgp4.api import Satrec as _Satrec
+    SGP4_AVAILABLE = True
+except ImportError:
+    _Satrec = None
+    SGP4_AVAILABLE = False
+
 import socket
 import threading
 import json
@@ -45,7 +54,7 @@ tn_lock = threading.Lock()
 tn_current = None  # socket.socket when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "7.1"
+APP_VERSION = "7.2"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -724,6 +733,10 @@ def load_cty_dat(force_download: bool = False):
                     lat, lon = float(p[4]), float(p[5]) * -1
                 except Exception:
                     lat, lon = 0.0, 0.0
+                try:
+                    dxcc_num = int(p[2].strip())
+                except Exception:
+                    dxcc_num = 0
 
                 prefixes = p[7].strip().split(",")
                 if len(p) > 8:
@@ -732,7 +745,7 @@ def load_cty_dat(force_download: bool = False):
                 for px in prefixes:
                     clean = px.split("(")[0].split("[")[0].strip().lstrip("=")
                     if clean:
-                        prefix_db[clean] = {"c": country, "lat": lat, "lon": lon}
+                        prefix_db[clean] = {"c": country, "lat": lat, "lon": lon, "dxcc_num": dxcc_num}
 
         if not prefix_db:
             # si parsing vide, on retente un download "propre"
@@ -747,11 +760,12 @@ def load_cty_dat(force_download: bool = False):
 
 def get_country_info(call):
     call = call.upper()
-    best = {'c': 'Unknown', 'lat': 0.0, 'lon': 0.0}
+    best = {'c': 'Unknown', 'lat': 0.0, 'lon': 0.0, 'dxcc_num': 0}
     longest = 0
     candidates = [call]
     if '/' in call:
         candidates.append(call.split('/')[-1])
+        candidates.append(call.split('/')[0])
     for c in candidates:
         for i in range(len(c), 0, -1):
             sub = c[:i]
@@ -3094,16 +3108,19 @@ def lotw_login():
         if dxcc and dxcc != 'Unknown':
             worked_dxcc.add(dxcc)
 
-    # QSLs confirmées
+    # QSLs confirmées — déduplication par nom de pays (simple et fiable)
+    confirmed_dxcc_nums = set()
     for q in qsos_qsl:
         call = q['call']
         confirmed_calls.add(call)
-        dxcc = q['dxcc'] or get_country_info(call).get('c', '')
-        if dxcc and dxcc != 'Unknown':
-            confirmed_dxcc.add(dxcc)
-            band = q['band']
-            if band:
-                dxcc_by_band.setdefault(band, set()).add(dxcc)
+        info = get_country_info(call)
+        dxcc = q['dxcc'] or info.get('c', '')
+        if not dxcc or dxcc == 'Unknown':
+            continue
+        confirmed_dxcc.add(dxcc)
+        band = q['band']
+        if band:
+            dxcc_by_band.setdefault(band, set()).add(dxcc)
 
     with lotw_lock:
         lotw_session['login']     = login
@@ -3111,20 +3128,52 @@ def lotw_login():
         lotw_session['last_sync'] = time.strftime('%H:%M UTC')
         lotw_session['error']     = None
         lotw_data['confirmed_calls'] = confirmed_calls
-        lotw_data['confirmed_dxcc']  = confirmed_dxcc
-        lotw_data['worked_dxcc']     = worked_dxcc
+        lotw_data['confirmed_dxcc']      = confirmed_dxcc
+        lotw_data['confirmed_dxcc_nums'] = confirmed_dxcc_nums
+        lotw_data['worked_dxcc']         = worked_dxcc
         lotw_data['worked_calls']    = worked_calls
         lotw_data['dxcc_by_band']    = {b: list(v) for b, v in dxcc_by_band.items()}
         lotw_data['total_qso']        = len(qsos_all)
         lotw_data['total_confirmed']  = total_confirmed
 
-    logger.info(f"LoTW sync OK: {len(qsos_all)} QSOs, {total_confirmed} confirmés, {len(confirmed_dxcc)} DXCC")
+    dxcc_count = len(confirmed_dxcc)
+    logger.info(f"LoTW sync OK: {len(qsos_all)} QSOs, {total_confirmed} confirmés, {dxcc_count} DXCC")
     return jsonify({
         'ok': True,
         'total_qso': len(qsos_all),
         'total_confirmed': total_confirmed,
-        'total_dxcc': len(confirmed_dxcc),
+        'total_dxcc': dxcc_count,
         'last_sync': lotw_session['last_sync']
+    })
+
+@app.route('/api/lotw/diag')
+def lotw_diag():
+    """Diagnostic : montre les premiers QSOs parsés et la résolution DXCC."""
+    with lotw_lock:
+        if not lotw_session['logged_in']:
+            return jsonify({'error': 'Non connecté'})
+        confirmed = list(lotw_data['confirmed_dxcc'])[:20]
+        nums = list(lotw_data.get('confirmed_dxcc_nums', set()))[:20]
+        total_dxcc = len(lotw_data.get('confirmed_dxcc_nums') or lotw_data['confirmed_dxcc'])
+        confirmed_calls_sample = list(lotw_data['confirmed_calls'])[:10]
+
+    # Re-parser quelques lignes du fichier debug pour voir ce qui sort
+    sample_resolutions = []
+    for call in confirmed_calls_sample:
+        info = get_country_info(call)
+        sample_resolutions.append({
+            'call': call,
+            'country': info.get('c'),
+            'dxcc_num': info.get('dxcc_num', 0)
+        })
+
+    return jsonify({
+        'total_dxcc_shown': total_dxcc,
+        'confirmed_dxcc_count': len(confirmed),
+        'confirmed_dxcc_nums_count': len(nums),
+        'confirmed_dxcc_sample': confirmed,
+        'confirmed_dxcc_nums_sample': sorted(nums)[:20],
+        'call_resolutions': sample_resolutions,
     })
 
 @app.route('/api/lotw/logout', methods=['POST'])
@@ -3353,6 +3402,515 @@ def lotw_opportunities():
         o.pop('_priority', None)
 
     return jsonify({'logged_in': True, 'opportunities': opportunities[:20]})
+
+# ============================================================
+# PAGE SATELLITES — Tracking orbital temps réel
+# ============================================================
+
+import urllib.request as _ureq
+
+# TLE sources CelesTrak (groupes)
+SAT_TLE_URLS = {
+    'amateur':  'https://celestrak.org/SOCRATES/query.php?CATNR=40901&FORMAT=TLE',
+    'weather':  'https://celestrak.org/TLE/query.php?GROUP=weather&FORMAT=TLE',
+    'amateur2': 'https://celestrak.org/TLE/query.php?GROUP=amateur&FORMAT=TLE',
+    'stations': 'https://celestrak.org/TLE/query.php?GROUP=stations&FORMAT=TLE',
+}
+
+# Satellites d'intérêt avec leur NORAD ID
+# Satellites par défaut (modifiables depuis l'interface)
+SATELLITES_DEFAULT = {
+    25544: {'name': 'ISS (ZARYA)',          'type': 'station','color': '#00f3ff', 'icon': '🛸'},
+    43017: {'name': 'AO-91 (RadFxSat)',    'type': 'amateur','color': '#00ff80', 'icon': '📻'},
+    43137: {'name': 'AO-92 (Fox-1D)',      'type': 'amateur','color': '#00ff80', 'icon': '📻'},
+    27607: {'name': 'SO-50 (SaudiSat 1C)', 'type': 'amateur','color': '#00cc66', 'icon': '📻'},
+    39444: {'name': 'LilacSat-2',          'type': 'amateur','color': '#00cc66', 'icon': '📻'},
+    44109: {'name': 'AO-109 (RadFxSat-2)', 'type': 'amateur','color': '#00ff80', 'icon': '📻'},
+}
+# Alias utilisé dans le code
+SATELLITES_OF_INTEREST = SATELLITES_DEFAULT
+
+# Cache TLE
+_tle_cache = {}
+_tle_cache_ts = 0
+TLE_CACHE_TTL = 6 * 3600  # 6h
+
+# URL source TLE AMSAT (fichier complet, toujours à jour)
+# Sources TLE par ordre de priorité
+TLE_SOURCES = [
+    ('AMSAT', 'https://www.amsat.org/amsat/ftp/keps/current/nasa.all'),
+]
+
+def _fetch_url(url):
+    """Télécharge une URL et retourne le texte décodé."""
+    try:
+        req = _ureq.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (compatible; Spot-Watcher-DX)',
+            'Accept': '*/*',
+        })
+        with _ureq.urlopen(req, timeout=20) as r:
+            raw = r.read()
+            text = raw.decode('latin-1', errors='replace').strip()
+            if text and len(text) > 50:
+                return text
+    except Exception as e:
+        logger.debug(f"TLE fetch {url}: {e}")
+    return ''
+
+def _fetch_all_tles():
+    """Télécharge les TLE depuis les sources disponibles."""
+    combined = ''
+    for name, url in TLE_SOURCES:
+        text = _fetch_url(url)
+        if text:
+            logger.info(f"TLE: {name} → {len(text)} chars, {text.count(chr(10))} lignes")
+            combined += text + '\n'
+    if not combined:
+        logger.error("TLE: toutes les sources ont échoué")
+    return combined
+
+def _parse_tle_text(text):
+    """Parse TLE → dict {norad_id: (name, tle1, tle2)}.
+    Robuste au format AMSAT nasa.all (header texte + noms libres).
+    Stratégie : scanner toutes les lignes, détecter les paires "1 NNNNN / 2 NNNNN".
+    """
+    import re
+    TLE1 = re.compile(r'^1 (\d{5})')
+    TLE2 = re.compile(r'^2 (\d{5})')
+    SKIP = re.compile(r'QST|@amsat|\.AMSAT|Orbital|2Line|SB KEPS|New England|From Orb|\$ORB')
+
+    lines = [l.rstrip() for l in text.replace('\r','').split('\n')]
+    result = {}
+    i = 0
+    while i < len(lines) - 1:
+        m1 = TLE1.match(lines[i].strip())
+        if m1:
+            # Ligne TLE1 trouvée — chercher TLE2 juste après
+            j = i + 1
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            m2 = TLE2.match(lines[j].strip()) if j < len(lines) else None
+            if m2 and m1.group(1) == m2.group(1):
+                norad = int(m1.group(1))
+                tle1  = lines[i].strip()
+                tle2  = lines[j].strip()
+                # Chercher le nom : ligne(s) avant TLE1 qui ne sont pas TLE ni header
+                name = str(norad)
+                for k in range(i-1, max(i-3, -1), -1):
+                    candidate = lines[k].strip()
+                    if not candidate:
+                        continue
+                    if TLE1.match(candidate) or TLE2.match(candidate):
+                        break
+                    if not SKIP.search(candidate):
+                        name = candidate
+                        break
+                if norad not in result:
+                    result[norad] = (name, tle1, tle2)
+                i = j + 1
+                continue
+        i += 1
+    return result
+
+def _load_tle_cache():
+    """Charge ou rafraîchit le cache TLE — un appel par satellite via gp.php."""
+    global _tle_cache, _tle_cache_ts
+    now = time.time()
+    if _tle_cache and (now - _tle_cache_ts) < TLE_CACHE_TTL:
+        return _tle_cache
+
+    # Télécharger le fichier TLE complet AMSAT
+    text = _fetch_all_tles()
+    all_tles = {}
+    if text:
+        all_tles = _parse_tle_text(text)
+        logger.info(f"AMSAT TLE: {len(all_tles)} satellites parsés")
+
+    if all_tles:
+        _tle_cache = all_tles
+        _tle_cache_ts = now
+        active_ids = _get_active_sat_ids()
+        found = sum(1 for nid in active_ids if nid in all_tles)
+        logger.info(f"TLE cache: {found}/{len(active_ids)} satellites d'intérêt trouvés")
+    else:
+        logger.error("Impossible de charger les TLE depuis AMSAT")
+    return _tle_cache
+
+# Fichier de config satellites actifs
+SAT_CONFIG_FILE = Path("data/satellites_config.json")
+
+def _get_active_sat_ids():
+    """Retourne la liste des NORAD IDs actifs (fichier config ou défaut)."""
+    if SAT_CONFIG_FILE.exists():
+        try:
+            cfg = json.loads(SAT_CONFIG_FILE.read_text(encoding='utf-8'))
+            ids = [int(s['norad']) for s in cfg if s.get('active', True)]
+            if ids:
+                return ids
+        except Exception as e:
+            logger.warning(f"satellites_config.json illisible: {e}")
+    return list(SATELLITES_OF_INTEREST.keys())
+
+def _get_sat_meta(norad_id):
+    """Retourne les métadonnées d'un satellite (config ou défaut)."""
+    if SAT_CONFIG_FILE.exists():
+        try:
+            cfg = json.loads(SAT_CONFIG_FILE.read_text(encoding='utf-8'))
+            for s in cfg:
+                if int(s['norad']) == norad_id:
+                    return s
+        except: pass
+    return SATELLITES_OF_INTEREST.get(norad_id, {
+        'name': str(norad_id), 'type': 'unknown',
+        'color': '#aaaaaa', 'icon': '🛰️'
+    })
+
+def _save_sat_config(satellites):
+    """Sauvegarde la configuration des satellites."""
+    SAT_CONFIG_FILE.parent.mkdir(exist_ok=True)
+    SAT_CONFIG_FILE.write_text(json.dumps(satellites, ensure_ascii=False, indent=2), encoding='utf-8')
+
+def _dt_to_jd(dt_utc):
+    """Convertit un datetime UTC en Julian Date (jd entier, fraction)."""
+    import datetime as dt
+    J2000 = dt.datetime(2000, 1, 1, 12, tzinfo=dt.timezone.utc)
+    delta = (dt_utc - J2000).total_seconds() / 86400.0
+    jd_full = 2451545.0 + delta
+    jd_int  = int(jd_full)
+    jd_frac = jd_full - jd_int
+    return jd_int, jd_frac
+
+def _compute_satellite_position(tle1, tle2, lat_obs, lon_obs, alt_obs=0.0):
+    """Calcule position + az/el via sgp4."""
+    if not SGP4_AVAILABLE:
+        return {'error': 'sgp4 non installé pour cet interpréteur Python — lance: python3 -m pip install sgp4 --break-system-packages'}
+    try:
+        import math, datetime as dt
+
+        sat = _Satrec.twoline2rv(tle1, tle2)
+        now_utc = dt.datetime.now(dt.timezone.utc)
+        jd, fr = _dt_to_jd(now_utc)
+        e, r, v = sat.sgp4(jd, fr)
+        if e != 0:
+            return {'error': f'sgp4 erreur code {e}'}
+
+        # ECI → géodésique
+        import math
+        gmst = _gmst(now_utc)
+        lon_sat = math.degrees(math.atan2(r[1], r[0])) - math.degrees(gmst)
+        lon_sat = ((lon_sat + 180) % 360) - 180
+        rxy = math.sqrt(r[0]**2 + r[1]**2)
+        lat_sat = math.degrees(math.atan2(r[2], rxy))
+        alt_sat = math.sqrt(r[0]**2 + r[1]**2 + r[2]**2) - 6371.0
+
+        az, el = _azel(r, lat_obs, lon_obs, alt_obs, now_utc)
+
+        return {
+            'lat':     round(lat_sat, 2),
+            'lon':     round(lon_sat, 2),
+            'alt_km':  round(alt_sat, 1),
+            'az':      round(az, 1),
+            'el':      round(el, 1),
+            'visible': el > 0,
+            'utc':     now_utc.strftime('%H:%M:%S UTC'),
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+def _gmst(dt_utc):
+    """Greenwich Mean Sidereal Time en radians."""
+    import math, datetime as dt
+    J2000 = dt.datetime(2000, 1, 1, 12, tzinfo=dt.timezone.utc)
+    d = (dt_utc - J2000).total_seconds() / 86400.0
+    return math.radians((280.46061837 + 360.98564736629 * d) % 360)
+
+def _azel(r_eci, lat, lon, alt_km, dt_utc):
+    """Azimut et élévation depuis un observateur (degrés)."""
+    import math
+    gmst = _gmst(dt_utc)
+    lon_rad = math.radians(lon)
+    lat_rad = math.radians(lat)
+    lst = gmst + lon_rad
+
+    # Vecteur observateur en ECI
+    R_earth = 6371.0 + alt_km
+    ox = R_earth * math.cos(lat_rad) * math.cos(lst)
+    oy = R_earth * math.cos(lat_rad) * math.sin(lst)
+    oz = R_earth * math.sin(lat_rad)
+
+    # Vecteur range
+    rx, ry, rz = r_eci[0]-ox, r_eci[1]-oy, r_eci[2]-oz
+    rng = math.sqrt(rx**2 + ry**2 + rz**2)
+
+    # SEZ coordinates
+    s = (math.sin(lat_rad)*math.cos(lst)*rx +
+         math.sin(lat_rad)*math.sin(lst)*ry -
+         math.cos(lat_rad)*rz)
+    e = -math.sin(lst)*rx + math.cos(lst)*ry
+    z = (math.cos(lat_rad)*math.cos(lst)*rx +
+         math.cos(lat_rad)*math.sin(lst)*ry +
+         math.sin(lat_rad)*rz)
+
+    el = math.degrees(math.asin(z / rng))
+    az = math.degrees(math.atan2(-e, s)) % 360
+    return az, el
+
+def _next_passes(tle1, tle2, lat_obs, lon_obs, n_passes=5):
+    """Calcule les n prochains passages AOS/TCA/LOS."""
+    try:
+        import math, datetime as dt
+        if not SGP4_AVAILABLE:
+            return [{'error': 'sgp4 non disponible'}]
+        sat = _Satrec.twoline2rv(tle1, tle2)
+        now_utc = dt.datetime.now(dt.timezone.utc)
+        passes = []
+        step = dt.timedelta(seconds=30)
+        t = now_utc
+        in_pass = False
+        aos = tca = None
+        tca_el = -90
+        limit = now_utc + dt.timedelta(hours=24)
+
+        while t < limit and len(passes) < n_passes:
+            jd_i, jd_f = _dt_to_jd(t)
+            e, r, v = sat.sgp4(jd_i, jd_f)
+            if e == 0:
+                az, el = _azel(r, lat_obs, lon_obs, 0, t)
+                if el > 0 and not in_pass:
+                    in_pass = True
+                    aos = t
+                    tca_el = el
+                    tca = t
+                elif el > 0 and in_pass:
+                    if el > tca_el:
+                        tca_el = el
+                        tca = t
+                elif el <= 0 and in_pass:
+                    in_pass = False
+                    if tca_el > 5:
+                        passes.append({
+                            'aos': aos.strftime('%d/%m %H:%MZ'),
+                            'tca': tca.strftime('%H:%MZ'),
+                            'los': t.strftime('%H:%MZ'),
+                            'max_el': round(tca_el, 1),
+                            'duration': int((t - aos).total_seconds() / 60),
+                        })
+            t += step
+
+        return passes
+    except Exception as e:
+        return [{'error': str(e)}]
+
+@app.route('/satellites')
+@app.route('/satellites.html')
+def satellites_page():
+    return render_template('satellites.html', my_call=MY_CALL,
+                           user_lat=user_lat, user_lon=user_lon)
+
+@app.route('/api/satellites/positions')
+def api_satellite_positions():
+    """Retourne les positions actuelles de tous les satellites actifs."""
+    tles = _load_tle_cache()
+    active_ids = _get_active_sat_ids()
+    result = []
+    for norad_id in active_ids:
+        meta = _get_sat_meta(norad_id)
+        if norad_id not in tles:
+            result.append({'norad': norad_id, 'name': meta.get('name', str(norad_id)),
+                           'type': meta.get('type','unknown'),
+                           'color': meta.get('color','#aaa'),
+                           'icon': meta.get('icon','🛰️'),
+                           'error': 'TLE non disponible'})
+            continue
+        tle_name, tle1, tle2 = tles[norad_id]
+        pos = _compute_satellite_position(tle1, tle2, user_lat, user_lon)
+        if pos:
+            # Nom : config > TLE > NORAD
+            sat_name = meta.get('name') or tle_name or str(norad_id)
+            if sat_name == str(norad_id) and tle_name and tle_name != str(norad_id):
+                sat_name = tle_name
+            pos.update({'norad': norad_id,
+                        'name':  sat_name,
+                        'type':  meta.get('type','unknown'),
+                        'color': meta.get('color','#aaa'),
+                        'icon':  meta.get('icon','🛰️')})
+            result.append(pos)
+    return jsonify({'positions': result,
+                    'observer': {'lat': user_lat, 'lon': user_lon, 'call': MY_CALL},
+                    'ts': time.time()})
+
+@app.route('/api/satellites/passes/<int:norad_id>')
+def api_satellite_passes(norad_id):
+    """Retourne les prochains passages d'un satellite."""
+    tles = _load_tle_cache()
+    if norad_id not in tles:
+        return jsonify({'error': f'TLE non disponible pour NORAD {norad_id}'}), 404
+    tle_name, tle1, tle2 = tles[norad_id]
+    # Priorité : config utilisateur > SATELLITES_OF_INTEREST > nom TLE > NORAD
+    meta = _get_sat_meta(norad_id)
+    name = meta.get('name') or tle_name or str(norad_id)
+    # Si le nom est juste le NORAD en string, utiliser le nom TLE
+    if name == str(norad_id) and tle_name and tle_name != str(norad_id):
+        name = tle_name
+    passes = _next_passes(tle1, tle2, user_lat, user_lon)
+    return jsonify({'norad': norad_id, 'name': name, 'passes': passes})
+
+@app.route('/api/satellites/footprint/<int:norad_id>')
+def api_satellite_footprint(norad_id):
+    """Retourne le footprint (cercle de visibilité) d'un satellite."""
+    import math
+    tles = _load_tle_cache()
+    if norad_id not in tles:
+        return jsonify({'error': 'TLE non disponible'}), 404
+    _, tle1, tle2 = tles[norad_id]
+    pos = _compute_satellite_position(tle1, tle2, user_lat, user_lon)
+    if not pos or 'error' in pos:
+        return jsonify({'error': pos.get('error', 'Erreur calcul')}), 500
+
+    alt_km = pos['alt_km']
+    lat_sat = pos['lat']
+    lon_sat = pos['lon']
+
+    # Rayon du footprint (demi-angle de visibilité)
+    R_earth = 6371.0
+    rho = math.acos(R_earth / (R_earth + alt_km))  # en radians
+    rho_deg = math.degrees(rho)
+
+    # Générer le cercle (72 points)
+    points = []
+    lat_r = math.radians(lat_sat)
+    lon_r = math.radians(lon_sat)
+    rho_r = rho  # déjà en radians
+
+    for i in range(73):
+        az = math.radians(i * 5)
+        lat_p = math.asin(
+            math.sin(lat_r) * math.cos(rho_r) +
+            math.cos(lat_r) * math.sin(rho_r) * math.cos(az)
+        )
+        lon_p = lon_r + math.atan2(
+            math.sin(az) * math.sin(rho_r) * math.cos(lat_r),
+            math.cos(rho_r) - math.sin(lat_r) * math.sin(lat_p)
+        )
+        points.append([math.degrees(lat_p), math.degrees(lon_p)])
+
+    return jsonify({
+        'norad': norad_id,
+        'lat': lat_sat,
+        'lon': lon_sat,
+        'alt_km': alt_km,
+        'footprint_radius_deg': round(rho_deg, 2),
+        'footprint_points': points,
+    })
+
+@app.route('/api/satellites/catalog')
+def api_satellites_catalog():
+    """Retourne tous les satellites disponibles dans le cache TLE."""
+    tles = _load_tle_cache()
+    active_ids = set(_get_active_sat_ids())
+    catalog = []
+    for norad_id, (name, tle1, tle2) in sorted(tles.items(), key=lambda x: x[1][0]):
+        meta = _get_sat_meta(norad_id)
+        catalog.append({
+            'norad':  norad_id,
+            'name':   name,
+            'active': norad_id in active_ids,
+            'type':   meta.get('type', 'unknown'),
+            'color':  meta.get('color', '#aaaaaa'),
+            'icon':   meta.get('icon', '🛰️'),
+        })
+    return jsonify({'catalog': catalog, 'total': len(catalog)})
+
+@app.route('/api/satellites/list')
+def api_satellites_list():
+    """Liste tous les satellites disponibles avec leur statut actif/inactif."""
+    active_ids = set(_get_active_sat_ids())
+    tles = _tle_cache  # ne pas forcer reload ici
+    result = []
+    for norad_id, meta in SATELLITES_OF_INTEREST.items():
+        result.append({
+            'norad':   norad_id,
+            'name':    meta['name'],
+            'type':    meta['type'],
+            'icon':    meta['icon'],
+            'color':   meta['color'],
+            'active':  norad_id in active_ids,
+            'has_tle': norad_id in tles,
+        })
+    return jsonify({'satellites': result})
+
+@app.route('/api/satellites/config', methods=['POST'])
+def api_satellites_config():
+    """Met à jour la liste des satellites actifs."""
+    data = request.get_json(force=True)
+    satellites = data.get('satellites', [])
+    if not satellites:
+        return jsonify({'ok': False, 'error': 'Liste vide'}), 400
+    valid = []
+    for s in satellites:
+        if 'norad' not in s or 'name' not in s:
+            continue
+        valid.append({
+            'norad':  int(s['norad']),
+            'name':   s['name'],
+            'type':   s.get('type', 'unknown'),
+            'color':  s.get('color', '#aaaaaa'),
+            'icon':   s.get('icon', '🛰️'),
+            'active': bool(s.get('active', True)),
+        })
+    _save_sat_config(valid)
+    # Invalider le cache positions (pas TLE — les keps restent valides)
+    return jsonify({'ok': True, 'saved': len([s for s in valid if s['active']])})
+
+@app.route('/api/satellites/refresh_tle', methods=['POST'])
+def api_tle_refresh():
+    """Force le rechargement des TLE depuis CelesTrak."""
+    global _tle_cache, _tle_cache_ts
+    _tle_cache = {}
+    _tle_cache_ts = 0
+    tles = _load_tle_cache()
+    found = {str(nid): nid in tles for nid in SATELLITES_OF_INTEREST}
+    return jsonify({
+        'ok': True,
+        'total_tles': len(tles),
+        'satellites_found': found,
+        'message': f'{len(tles)} TLE rechargés depuis CelesTrak'
+    })
+
+@app.route('/api/satellites/tle_debug')
+def api_tle_debug():
+    """Debug: teste chaque source TLE et montre les 5 premières lignes."""
+    results = []
+    for name, url in TLE_SOURCES:
+        text = _fetch_url(url)
+        lines = [l for l in text.split('\n') if l.strip()][:6] if text else []
+        results.append({
+            'source': name,
+            'url': url,
+            'chars': len(text),
+            'lines_total': text.count('\n') if text else 0,
+            'first_lines': lines,
+            'ok': bool(text),
+        })
+    # Aussi montrer les NORAD trouvés
+    tles = _tle_cache
+    found = {str(nid): nid in tles for nid in SATELLITES_OF_INTEREST}
+    return jsonify({'sources': results, 'cache_sats': len(tles), 'found': found})
+
+@app.route('/api/satellites/tle_status')
+def api_tle_status():
+    """Statut du cache TLE."""
+    tles = _load_tle_cache()
+    found = {nid: nid in tles for nid in SATELLITES_OF_INTEREST}
+    return jsonify({'total_tles': len(tles), 'satellites': found,
+                    'cache_age_s': int(time.time() - _tle_cache_ts)})
+
+
+# Log statut sgp4
+if SGP4_AVAILABLE:
+    logger.info("sgp4 disponible et fonctionnel")
+else:
+    logger.warning("sgp4 NON DISPONIBLE — lance: python3 -m pip install sgp4 --break-system-packages")
 
 if __name__ == "__main__":
     load_cty_dat()

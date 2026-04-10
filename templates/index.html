@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v7.1</title>
+<title>📡 NEURAL DX v7.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -823,7 +823,7 @@
 </div>
 
 <div id="header">
-<div id="title">📡 NEURAL DX WATCHER V7.1</div>
+<div id="title">📡 NEURAL DX WATCHER V7.2</div>
 <div id="controls">
 <span id="indicators">
 <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
@@ -834,6 +834,7 @@
 <a class="icon-button" href="/briefing" title="Briefing DX">🛰️ BRIEFING</a>
 <a class="icon-button" href="/map" title="DX Activity Map"> 🗺 MAP</a>
 <a class="icon-button" href="/world" title="World"> 🗺 World</a>
+<a class="icon-button" href="/satellites" title="Satellite Tracker">🛰️ SATELLITES</a>
 </span>
 <select id="voice-distance-filter" title="Filtrer les annonces vocales par distance">
 <option value="ALL">Voice Dist: ALL</option>
@@ -1092,6 +1093,7 @@
       <div style="text-align:center;">
         <div id="lotw-stat-dxcc" style="font-size:1.5em;font-weight:bold;color:#00f3ff;">--</div>
         <div style="font-size:0.88em;color:#666;text-transform:uppercase;">DXCC confirmés</div>
+        <div style="font-size:0.72em;color:#444;margin-top:2px;font-style:italic;" title="Le total LoTW peut inclure des entités DXCC supprimées (deleted) non comptées par l'ARRL dans le score officiel.">⚠ dont entités deleted</div>
       </div>
       <div style="text-align:center;">
         <div id="lotw-stat-qso" style="font-size:1.5em;font-weight:bold;color:#aaa;">--</div>
