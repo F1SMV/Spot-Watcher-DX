@@ -8,3 +8,4 @@ beautifulsoup4>=4.12
 feedparser>=6.0
 telnetlib3>=1.0
 sgp4>=2.22
+pandas==3.0.2
