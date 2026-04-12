@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v7.2
+# 📡 Radio Spot Watcher DX — v7.3
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -118,6 +118,8 @@ Aucune dépendance cloud.
 ---
 
 ### 🗂️ Historique des versions
+
+### v7.3 - correction bug page analysis.html
 
 ### v7.2 — Satellite Tracker
 
