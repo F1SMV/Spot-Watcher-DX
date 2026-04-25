@@ -69,18 +69,28 @@
 
         /* PASSES */
         #passes-wrap{margin-top:14px;}
-        .passes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px;padding:12px;}
-        .pass-card{background:rgba(0,243,255,.03);border:1px solid #222;border-radius:8px;
-            padding:10px 13px;transition:border .2s;}
-        .pass-card:hover{border-color:rgba(0,243,255,.25);}
-        .pass-sat{font-family:'Orbitron',sans-serif;font-size:.78em;color:var(--accent);margin-bottom:7px;}
-        .pass-row{display:flex;justify-content:space-between;font-size:.74em;margin-bottom:3px;}
-        .pl{color:#555;} .pv{color:var(--text);}
+        .pass-empty{padding:20px;text-align:center;color:#444;font-style:italic;font-size:.82em;}
         .el-h{color:#00ff80;font-weight:bold;}
         .el-m{color:#ffcc00;font-weight:bold;}
         .el-l{color:#ff6600;font-weight:bold;}
-        .pass-sep{border:none;border-top:1px solid #1a1a1a;margin:5px 0;}
-        .pass-empty{padding:20px;text-align:center;color:#444;font-style:italic;font-size:.82em;}
+
+        /* Timeline */
+        #passes-timeline{position:relative;background:#050505;border-bottom:1px solid #1a1a1a;
+            overflow:hidden;user-select:none;}
+        #passes-canvas{display:block;width:100%;}
+
+        /* Tableau passes */
+        #passes-table-wrap{overflow-x:auto;padding:0;}
+        .ptable{width:100%;border-collapse:collapse;font-size:.76em;}
+        .ptable th{padding:6px 12px;text-align:left;color:var(--accent);border-bottom:1px solid #1a1a1a;
+            font-size:.68em;text-transform:uppercase;background:rgba(0,243,255,.03);white-space:nowrap;}
+        .ptable td{padding:5px 12px;border-bottom:1px solid #111;white-space:nowrap;}
+        .ptable tr:hover td{background:rgba(0,243,255,.04);}
+        .ptable .sat-col{font-weight:bold;}
+        .ptable .now-badge{display:inline-block;background:#ff3b3b;color:#fff;
+            font-size:.65em;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;}
+        .progress-bar{height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;min-width:60px;}
+        .progress-fill{height:100%;border-radius:3px;transition:width .5s;}
 
         @keyframes spin{to{transform:rotate(360deg)}}
         .spinner{display:inline-block;width:11px;height:11px;border:2px solid #333;
@@ -153,14 +163,25 @@
     <!-- PASSES -->
     <div class="panel" id="passes-wrap" style="margin-top:14px;">
         <div class="panel-hdr" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center;">
-            <span>⏱ PROCHAINS PASSAGES AU-DESSUS DE {{ my_call }} (24h UTC)</span>
-            <span style="font-size:.75em;color:#555;">🟢 ≥45° · 🟡 ≥20° · 🟠 &lt;20°</span>
+            <span>⏱ PASSAGES AU-DESSUS DE {{ my_call }}</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <span style="font-size:.72em;color:#555;">Fenêtre :</span>
+                <button onclick="setPassWindow(4)"  id="pw-4"  class="btn" style="font-size:.65em;padding:3px 9px;">4h</button>
+                <button onclick="setPassWindow(12)" id="pw-12" class="btn" style="font-size:.65em;padding:3px 9px;">12h</button>
+                <button onclick="setPassWindow(24)" id="pw-24" class="btn" style="font-size:.65em;padding:3px 9px;">24h</button>
+                <span style="font-size:.72em;color:#555;">🟢 ≥45° · 🟡 ≥20° · 🟠 &lt;20°</span>
+            </div>
         </div>
-        <!-- Sélecteur satellites pour les passages -->
+        <!-- Sélecteur satellites -->
         <div id="passes-sat-selector" style="display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px;border-bottom:1px solid #111;background:rgba(0,0,0,0.2);align-items:center;">
             <span style="font-size:0.72em;color:#555;">Satellites :</span>
         </div>
-        <div class="passes-grid" id="passes-grid">
+        <!-- Timeline canvas -->
+        <div id="passes-timeline">
+            <canvas id="passes-canvas" height="120"></canvas>
+        </div>
+        <!-- Tableau -->
+        <div id="passes-table-wrap">
             <div class="pass-empty"><span class="spinner"></span>Calcul des passages…</div>
         </div>
     </div>
@@ -362,13 +383,24 @@ async function loadPositions() {
 
 // ── PASSAGES ──────────────────────────────────
 let passesSelectedIds = new Set();
+let passesWindowH = parseInt(localStorage.getItem('passesWindow') || '24');
+let passesData = []; // [{norad, name, color, passes:[]}]
+
+function setPassWindow(h) {
+    passesWindowH = h;
+    localStorage.setItem('passesWindow', h);
+    ['4','12','24'].forEach(v => {
+        const b = document.getElementById('pw-'+v);
+        if(b) b.style.opacity = (parseInt(v)===h) ? '1' : '0.4';
+    });
+    loadPasses();
+}
 
 function renderPassesSatSelector() {
     const bar = document.getElementById('passes-sat-selector');
     if(!bar) return;
     const avail = positions.filter(p => !p.error && p.lat !== undefined);
     if(!avail.length) { bar.innerHTML = '<span style="font-size:0.72em;color:#444;">Chargement…</span>'; return; }
-    // Aucun satellite sélectionné par défaut
     bar.innerHTML = '<span style="font-size:0.72em;color:#555;white-space:nowrap;margin-right:4px;">Afficher :</span>' +
         avail.map(s => {
             const on = passesSelectedIds.has(s.norad);
@@ -385,7 +417,6 @@ function renderPassesSatSelector() {
             border-radius:4px;background:rgba(0,243,255,0.06);border:1px solid #333;color:#555;">⚙</button>`;
 }
 
-
 function togglePassSat(norad) {
     if(passesSelectedIds.has(norad)) passesSelectedIds.delete(norad);
     else passesSelectedIds.add(norad);
@@ -393,47 +424,233 @@ function togglePassSat(norad) {
     loadPasses();
 }
 
+// Filtre les passes dans la fenêtre temporelle
+function filterPassesByWindow(passes, windowH) {
+    const now = Date.now();
+    const limit = now + windowH * 3600 * 1000;
+    return passes.filter(p => {
+        const aos = parseUTCTime(p.aos);
+        return aos && aos <= limit;
+    });
+}
+
+// Parse "HH:MMZ" ou "DD/MM HH:MMZ" → timestamp ms
+function parseUTCTime(str) {
+    if(!str) return null;
+    try {
+        const now = new Date();
+        // Format "DD/MM HH:MMZ"
+        const full = str.match(/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})Z/);
+        if(full) {
+            const d = new Date(Date.UTC(now.getUTCFullYear(), parseInt(full[2])-1, parseInt(full[1]), parseInt(full[3]), parseInt(full[4])));
+            return d.getTime();
+        }
+        // Format "HH:MMZ"
+        const short = str.match(/(\d{2}):(\d{2})Z/);
+        if(short) {
+            const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), parseInt(short[1]), parseInt(short[2])));
+            // Si l'heure est déjà passée, c'est le lendemain
+            if(d.getTime() < now - 3600000) d.setUTCDate(d.getUTCDate() + 1);
+            return d.getTime();
+        }
+    } catch(e) {}
+    return null;
+}
+
+function elClass(el) { return el>=45?'el-h':el>=20?'el-m':'el-l'; }
+
+// Rendu timeline canvas
+function renderTimeline(allData, windowH) {
+    const canvas = document.getElementById('passes-canvas');
+    if(!canvas) return;
+    const W = canvas.parentElement.clientWidth;
+    canvas.width = W;
+    const ctx = canvas.getContext('2d');
+    const now = Date.now();
+    const end = now + windowH * 3600 * 1000;
+    const ROW_H = 22, LABEL_W = 90, TOP = 28, BOTTOM = 18;
+    const rows = allData.filter(d => d.passes.length > 0);
+    const H = TOP + rows.length * ROW_H + BOTTOM;
+    canvas.height = H;
+    ctx.clearRect(0, 0, W, H);
+
+    // Fond
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grille horaire
+    const tW = W - LABEL_W;
+    const stepH = windowH <= 4 ? 1 : windowH <= 12 ? 2 : 4;
+    const totalH = windowH;
+    for(let h = 0; h <= totalH; h += stepH) {
+        const x = LABEL_W + (h / totalH) * tW;
+        const t = new Date(now + h * 3600000);
+        const label = t.getUTCHours().toString().padStart(2,'0') + ':' + t.getUTCMinutes().toString().padStart(2,'0') + 'Z';
+        ctx.strokeStyle = '#1a1a1a';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, TOP); ctx.lineTo(x, H - BOTTOM); ctx.stroke();
+        ctx.fillStyle = '#333';
+        ctx.font = '9px Share Tech Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, x, TOP - 6);
+    }
+
+    // Ligne NOW
+    const nowX = LABEL_W;
+    ctx.strokeStyle = '#ff3b3b';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(nowX, TOP - 8); ctx.lineTo(nowX, H - BOTTOM); ctx.stroke();
+    ctx.fillStyle = '#ff3b3b';
+    ctx.font = 'bold 9px Share Tech Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('NOW', nowX, TOP - 10);
+
+    // Barres satellites
+    rows.forEach((d, i) => {
+        const y = TOP + i * ROW_H;
+        const cy = y + ROW_H / 2;
+
+        // Label satellite
+        ctx.fillStyle = d.color || '#00f3ff';
+        ctx.font = '10px Share Tech Mono, monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText((d.name||'').split(' ')[0], LABEL_W - 6, cy + 3);
+
+        // Ligne de fond
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(LABEL_W, cy); ctx.lineTo(W, cy); ctx.stroke();
+
+        d.passes.forEach(p => {
+            const aos = parseUTCTime(p.aos);
+            const los = parseUTCTime(p.los);
+            if(!aos || !los) return;
+            const x1 = LABEL_W + Math.max(0, (aos - now) / (end - now)) * tW;
+            const x2 = LABEL_W + Math.min(1, (los - now) / (end - now)) * tW;
+            if(x2 < LABEL_W || x1 > W) return;
+            const bw = Math.max(3, x2 - x1);
+            const el = p.max_el || 0;
+            const col = el>=45 ? '#00ff80' : el>=20 ? '#ffcc00' : '#ff6600';
+            // Barra principale
+            const bh = Math.min(ROW_H - 6, 6 + el / 10);
+            ctx.fillStyle = col + '33';
+            ctx.beginPath();
+            ctx.roundRect ? ctx.roundRect(x1, cy - bh/2, bw, bh, 2) : ctx.rect(x1, cy - bh/2, bw, bh);
+            ctx.fill();
+            ctx.strokeStyle = col;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect ? ctx.roundRect(x1, cy - bh/2, bw, bh, 2) : ctx.rect(x1, cy - bh/2, bw, bh);
+            ctx.stroke();
+            // Label élévation si assez large
+            if(bw > 30) {
+                ctx.fillStyle = col;
+                ctx.font = '8px Share Tech Mono, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(el + '°', x1 + bw/2, cy + 3);
+            }
+        });
+    });
+
+    if(!rows.length) {
+        ctx.fillStyle = '#333';
+        ctx.font = '12px Share Tech Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Sélectionnez un satellite ci-dessus', W/2, H/2);
+    }
+}
+
+// Rendu tableau
+function renderPassesTable(allData, windowH) {
+    const wrap = document.getElementById('passes-table-wrap');
+    if(!wrap) return;
+
+    // Aplatir et trier par AOS
+    const rows = [];
+    allData.forEach(d => {
+        d.passes.forEach(p => {
+            rows.push({...p, satName: d.name, satColor: d.color, norad: d.norad});
+        });
+    });
+    rows.sort((a,b) => (parseUTCTime(a.aos)||0) - (parseUTCTime(b.aos)||0));
+
+    if(!rows.length) {
+        wrap.innerHTML = '<div class="pass-empty">Aucun passage prévu dans cette fenêtre.</div>';
+        return;
+    }
+
+    const now = Date.now();
+    wrap.innerHTML = `<table class="ptable">
+        <thead><tr>
+            <th>Satellite</th>
+            <th>AOS (UTC)</th>
+            <th>LOS (UTC)</th>
+            <th>Durée</th>
+            <th>El. max</th>
+            <th>Progression</th>
+        </tr></thead>
+        <tbody>
+        ${rows.map(p => {
+            const aos = parseUTCTime(p.aos);
+            const los = parseUTCTime(p.los);
+            const isNow = aos && los && now >= aos && now <= los;
+            const progress = isNow && aos && los ? Math.round((now - aos) / (los - aos) * 100) : 0;
+            const ec = elClass(p.max_el||0);
+            const col = p.satColor || '#00f3ff';
+            return `<tr>
+                <td class="sat-col" style="color:${col}">
+                    ${p.satName}
+                    ${isNow ? '<span class="now-badge">NOW</span>' : ''}
+                </td>
+                <td>${p.aos}</td>
+                <td>${p.los}</td>
+                <td>${p.duration ? p.duration+'min' : '—'}</td>
+                <td class="${ec}">${p.max_el || '—'}°</td>
+                <td>
+                    ${isNow
+                        ? `<div class="progress-bar"><div class="progress-fill" style="width:${progress}%;background:${col};"></div></div>`
+                        : '<span style="color:#333;font-size:.8em;">—</span>'
+                    }
+                </td>
+            </tr>`;
+        }).join('')}
+        </tbody>
+    </table>`;
+}
+
 async function loadPasses() {
-    const grid = document.getElementById('passes-grid');
-    if(!grid) return;
     const ids = passesSelectedIds.size > 0
         ? [...passesSelectedIds]
-        : positions.filter(p=>!p.error).map(p=>p.norad);
-    if(!ids.length) { grid.innerHTML='<div class="pass-empty">Sélectionnez un satellite ci-dessus.</div>'; return; }
-    grid.innerHTML = '<div class="pass-empty"><span class="spinner"></span>Calcul…</div>';
+        : [];
+    if(!ids.length) {
+        document.getElementById('passes-table-wrap').innerHTML = '<div class="pass-empty">Sélectionnez un satellite ci-dessus.</div>';
+        renderTimeline([], passesWindowH);
+        return;
+    }
+    document.getElementById('passes-table-wrap').innerHTML = '<div class="pass-empty"><span class="spinner"></span>Calcul…</div>';
 
     const results = await Promise.allSettled(
         ids.map(id => fetch(`/api/satellites/passes/${id}`).then(r=>r.json()))
     );
-    grid.innerHTML = '';
-    let any = false;
+
+    passesData = [];
     results.forEach(res => {
         if(res.status !== 'fulfilled') return;
         const d = res.value;
         if(!d.passes?.length || d.passes[0]?.error) return;
-        any = true;
         const sat = positions.find(p => p.norad === d.norad) || {};
-        const col = sat.color || '#00f3ff';
-        const card = document.createElement('div');
-        card.className = 'pass-card';
-        card.style.borderColor = col + '55';
-        const rows = d.passes.slice(0,4).map(p => {
-            const ec = p.max_el>=45?'el-h':p.max_el>=20?'el-m':'el-l';
-            return `<div class="pass-row"><span class="pl">AOS</span><span class="pv">${p.aos}</span></div>
-            <div class="pass-row"><span class="pl">TCA→LOS</span><span class="pv">${p.tca}→${p.los} (${p.duration}min)</span></div>
-            <div class="pass-row"><span class="pl">El max</span><span class="pv ${ec}">${p.max_el}°</span></div>
-            <hr class="pass-sep">`;
-        }).join('');
-        card.innerHTML = `<div class="pass-sat" style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="color:${col}">${sat.icon||'🛰️'} ${d.name}</span>
-            <button onclick="togglePassSat(${d.norad})" title="Retirer des passages"
-                style="font-size:0.65em;padding:1px 5px;cursor:pointer;border-radius:3px;
-                background:rgba(255,50,50,0.1);border:1px solid #ff3333;color:#ff6666;">✕</button>
-        </div>${rows}`;
-        grid.appendChild(card);
+        const filtered = filterPassesByWindow(d.passes, passesWindowH);
+        if(filtered.length) passesData.push({norad: d.norad, name: d.name, color: sat.color||'#00f3ff', passes: filtered});
     });
-    if(!any) grid.innerHTML = '<div class="pass-empty">Aucun passage prévu dans les 24h.</div>';
+
+    renderTimeline(passesData, passesWindowH);
+    renderPassesTable(passesData, passesWindowH);
 }
+
+// Resize timeline on window resize
+window.addEventListener('resize', () => {
+    if(passesData.length) renderTimeline(passesData, passesWindowH);
+});
 
 // ── MAJ KEPS ──────────────────────────────────
 async function refreshKeps() {
@@ -583,6 +800,7 @@ async function saveActiveSats() {
 
 // ── INIT ──────────────────────────────────────
 // Leaflet gère le resize automatiquement
+setPassWindow(passesWindowH);
 loadPositions();
 loadPasses();
 loadKepStatus();

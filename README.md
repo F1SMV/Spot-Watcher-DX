@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v7.3
+# 📡 Radio Spot Watcher DX — v7.4
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -118,6 +118,8 @@ Aucune dépendance cloud.
 ---
 
 ### 🗂️ Historique des versions
+
+### v7.4 landing page est corrigée, devient responsive, correction de la page satellite, plus fonctionnelle
 
 ### v7.3 - correction bug page analysis.html
 

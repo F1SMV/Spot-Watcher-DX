@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v7.3</title>
+<title>📡 NEURAL DX v7.4</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -59,17 +59,46 @@
         }
         #header {
             background-color: var(--panel-bg);
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-bottom: var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #header-row1 {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        #header-row2 {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
         }
         #title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.5em;
+            font-size: 1.3em;
             color: var(--accent);
             text-shadow: 0 0 5px var(--accent);
+            white-space: nowrap;
+        }
+        #nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+        #voice-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+        }
+        @media (max-width: 600px) {
+            #title { font-size: 1em; }
         }
         #ticker-container {
             background-color: #0d0d0d;
@@ -823,34 +852,42 @@
 </div>
 
 <div id="header">
-<div id="title">📡 NEURAL DX WATCHER V7.3</div>
-<div id="controls">
-<span id="indicators">
-<div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
-<div class="indicator-item">UTC: <span id="utc-time"></span></div>
-<div class="indicator-item">LOC: <span id="local-time"></span></div>
-<div class="indicator-item">MODE: <span id="display-mode">SoftTech</span></div>
-<a class="icon-button" href="analysis.html" title="Visualiser les algorithmes d'analyse">📊 AI INSIGHT</a>
-<a class="icon-button" href="/briefing" title="Briefing DX">🛰️ BRIEFING</a>
-<a class="icon-button" href="/map" title="DX Activity Map"> 🗺 MAP</a>
-<a class="icon-button" href="/world" title="World"> 🗺 World</a>
-<a class="icon-button" href="/satellites" title="Satellite Tracker">🛰️ SATELLITES</a>
-</span>
-<select id="voice-distance-filter" title="Filtrer les annonces vocales par distance">
-<option value="ALL">Voice Dist: ALL</option>
-<option value="LOW">Voice Dist: &lt; 5000 km</option>
-<option value="MID">Voice Dist: 5000 - 10000 km</option>
-<option value="HIGH">Voice Dist: &gt; 10000 km</option>
-</select>
-<select id="voice-language-filter" title="Sélectionner la langue de l'annonce vocale">
-<option value="fr-FR">Voice Lang: FR</option>
-<option value="en-US">Voice Lang: EN</option>
-<option value="es-ES">Voice Lang: ES</option>
-<option value="he-IL">Voice Lang: HE</option>
-</select>
-<button id="synth-toggle-button" onclick="toggleVoiceSynth()" title="Activer/Désactiver la synthèse vocale">🔊 VOICE ON</button>
-<button class="icon-button" onclick="toggleTheme()" title="Changer de thème">🔆</button>
-</div>
+  <!-- Ligne 1 : titre + indicateurs -->
+  <div id="header-row1">
+    <div id="title">📡 NEURAL DX WATCHER V7.4</div>
+    <div id="indicators" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
+      <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
+      <div class="indicator-item">UTC: <span id="utc-time"></span></div>
+      <div class="indicator-item">LOC: <span id="local-time"></span></div>
+      <div class="indicator-item">MODE: <span id="display-mode">SoftTech</span></div>
+    </div>
+  </div>
+  <!-- Ligne 2 : nav + voice controls -->
+  <div id="header-row2">
+    <div id="nav-links">
+      <a class="icon-button" href="analysis.html" title="Visualiser les algorithmes d'analyse">📊 AI INSIGHT</a>
+      <a class="icon-button" href="/briefing" title="Briefing DX">📰 BRIEFING</a>
+      <a class="icon-button" href="/map" title="DX Activity Map">🗺 MAP</a>
+      <a class="icon-button" href="/world" title="World">🌍 WORLD</a>
+      <a class="icon-button" href="/satellites" title="Satellite Tracker">🛰️ SATELLITES</a>
+    </div>
+    <div id="voice-controls" style="margin-left:auto;">
+      <select id="voice-distance-filter" title="Filtrer les annonces vocales par distance">
+        <option value="ALL">Voice Dist: ALL</option>
+        <option value="LOW">Voice Dist: &lt; 5000 km</option>
+        <option value="MID">Voice Dist: 5000 - 10000 km</option>
+        <option value="HIGH">Voice Dist: &gt; 10000 km</option>
+      </select>
+      <select id="voice-language-filter" title="Sélectionner la langue de l'annonce vocale">
+        <option value="fr-FR">Voice Lang: FR</option>
+        <option value="en-US">Voice Lang: EN</option>
+        <option value="es-ES">Voice Lang: ES</option>
+        <option value="he-IL">Voice Lang: HE</option>
+      </select>
+      <button id="synth-toggle-button" onclick="toggleVoiceSynth()" title="Activer/Désactiver la synthèse vocale">🔊 VOICE ON</button>
+      <button class="icon-button" onclick="toggleTheme()" title="Changer de thème">🔆</button>
+    </div>
+  </div>
 </div>
 <div id="ticker-container">
 <div id="ticker-content">SYSTEM INITIALIZATION...</div>
