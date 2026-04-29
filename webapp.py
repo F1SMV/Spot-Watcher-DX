@@ -54,7 +54,7 @@ tn_lock = threading.Lock()
 tn_current = None  # socket.socket when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "7.4"
+APP_VERSION = "7.5"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -1365,6 +1365,32 @@ def manage_watchlist():
         logger.info(f"Retrait de la watchlist: {call}")
     save_watchlist()
     return jsonify({"status": "ok"})
+@app.post("/api/watchlist/purge")
+def purge_watchlist():
+    global watchlist
+    data = request.get_json(silent=True) or {}
+    calls_to_remove = [x.upper() for x in data.get("calls", []) if isinstance(x, str)]
+    removed = []
+    for call in calls_to_remove:
+        if call in watchlist:
+            watchlist.remove(call)
+            removed.append(call)
+    if removed:
+        save_watchlist()
+        logger.info(f"Purge watchlist: {len(removed)} calls supprimes")
+    return jsonify({"status": "ok", "removed": removed, "count": len(removed)})
+
+@app.get("/api/watchlist/stale")
+def watchlist_stale():
+    days = int(request.args.get("days", 30))
+    since = time.time() - days * 86400
+    seen = set()
+    for s in spots_buffer:
+        if s.get("timestamp", 0) >= since:
+            seen.add(s.get("dx_call", "").upper())
+    stale = sorted([x for x in watchlist if x not in seen])
+    return jsonify({"stale": stale, "days": days, "total": len(stale)})
+
 @app.get("/api/watchlist/tracking.json")
 def api_watchlist_tracking():
     """Tracking watchlist: derniers spots par call (alimente le pavé Index)."""

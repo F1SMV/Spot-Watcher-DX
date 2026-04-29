@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v7.4
+# 📡 Radio Spot Watcher DX — v7.5
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -105,6 +105,20 @@ Se met à jour toutes les 12 heures, reprenant les infos DX essentielles. Possib
 
 ![Apercu du Dashboard](apercu.png)
 
+
+## 🚀 Installation
+
+```bash
+git clone https://github.com/f1smv/spot-watcher-dx.git
+cd spot-watcher-dx
+chmod +x start.sh
+./start.sh
+```
+
+L'application sera accessible sur `http://localhost:8000`
+
+---
+
 ## ⚙️ Architecture technique
 
 - Backend : Python / Flask
@@ -119,9 +133,17 @@ Aucune dépendance cloud.
 
 ### 🗂️ Historique des versions
 
-### v7.4 landing page est corrigée, devient responsive, correction de la page satellite, plus fonctionnelle
+### v7.5 purge pavé "watching list"
 
-### v7.3 - correction bug page analysis.html
+- vous allez pouvoir enlever facilement les calls des expeditions dx rajoutées dans le pavé 
+
+### v7.4 landing page est corrigée
+
+- devient responsive, correction de la page satellite, plus fonctionnelle
+
+### v7.3 - correction 
+
+-  bug page analysis.html
 
 ### v7.2 — Satellite Tracker
 

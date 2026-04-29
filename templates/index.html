@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v7.4</title>
+<title>📡 NEURAL DX v7.5</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -553,6 +553,69 @@
             font-weight: bold;
         }
         /* Lignes confirmées : seulement si PAS watchlist */
+        /* PURGE MODAL */
+        #purge-modal {
+            display:none;position:fixed;inset:0;z-index:9999;
+            background:rgba(0,0,0,0.75);align-items:center;justify-content:center;
+        }
+        #purge-modal.open { display:flex; }
+        #purge-box {
+            background:#0e0e0e;border:1px solid #333;border-radius:10px;
+            width:min(520px,95vw);max-height:80vh;display:flex;flex-direction:column;
+            box-shadow:0 0 40px rgba(0,243,255,0.1);
+        }
+        #purge-header {
+            padding:14px 16px;border-bottom:1px solid #1a1a1a;
+            display:flex;justify-content:space-between;align-items:center;
+            font-family:'Orbitron',sans-serif;font-size:.85em;color:var(--accent);
+        }
+        #purge-controls {
+            padding:10px 16px;border-bottom:1px solid #1a1a1a;
+            display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.8em;
+        }
+        #purge-list {
+            overflow-y:auto;padding:10px 16px;flex:1;
+            display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;
+        }
+        .purge-item {
+            display:flex;align-items:center;gap:6px;padding:4px 6px;
+            border-radius:4px;font-size:.78em;cursor:pointer;
+            border:1px solid #1a1a1a;transition:background .15s;user-select:none;
+        }
+        .purge-item:hover { background:rgba(255,50,50,0.08);border-color:#ff4444; }
+        .purge-item input[type=checkbox] { accent-color:#ff4444;cursor:pointer;flex-shrink:0; }
+        #purge-footer {
+            padding:12px 16px;border-top:1px solid #1a1a1a;
+            display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;
+        }
+        #purge-status { font-size:.78em;color:#555;flex:1; }
+
+        /* BEACON /B */
+        tr.spot-row-beacon td {
+            background-color: rgba(180, 100, 255, 0.08) !important;
+        }
+        tr.spot-row-beacon td a {
+            color: #cc88ff !important;
+        }
+        .beacon-badge {
+            display: inline-block;
+            background: rgba(180,100,255,0.2);
+            color: #cc88ff;
+            border: 1px solid #cc88ff;
+            border-radius: 3px;
+            font-size: 0.65em;
+            padding: 1px 4px;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+        .bm-pin-call.beacon-pin {
+            background: rgba(180, 100, 255, 0.18) !important;
+            border-color: #cc88ff !important;
+        }
+        .bm-pin-call.beacon-pin a {
+            color: #cc88ff !important;
+        }
+
         tr.spot-row-lotw-confirmed:not(.spot-row-watchlist) td {
             background: rgba(0,100,40,0.20);
         }
@@ -854,7 +917,7 @@
 <div id="header">
   <!-- Ligne 1 : titre + indicateurs -->
   <div id="header-row1">
-    <div id="title">📡 NEURAL DX WATCHER V7.4</div>
+    <div id="title">📡 NEURAL DX WATCHER V7.5</div>
     <div id="indicators" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
       <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
       <div class="indicator-item">UTC: <span id="utc-time"></span></div>
@@ -919,7 +982,7 @@
   <div id="wl-track-body" style="display:flex; flex-direction:column; gap:8px;">
   </div>
 </div>
-<div class="panel-header"><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> WATCHLIST</div>
+<div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;"><span><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> WATCHLIST</span><button onclick="openPurgeModal()" style="padding:2px 9px;font-size:.68em;cursor:pointer;border-radius:4px;background:rgba(255,80,80,0.1);border:1px solid #ff4444;color:#ff6666;font-family:monospace;" title="Purger les calls inactifs">🗑 Purge</button></div>
 <form id="add-wl-form" style="display: flex; gap: 5px; margin-bottom: 10px;">
 <input id="wl_callsign" placeholder="Callsign à ajouter" required="" style="flex-grow: 1; padding: 5px; border: 1px solid #555; background-color: #333; color: var(--text-main); text-transform: uppercase;" type="text"/>
 <button style="padding: 5px 10px; background-color: var(--accent); color: var(--panel-bg); border: none; cursor: pointer;" type="submit">Add</button>
@@ -1446,6 +1509,106 @@
             });
         }
 
+
+        // ── PURGE WATCHLIST ────────────────────────────
+        let purgeStaleList = [];
+
+        function openPurgeModal() {
+            document.getElementById('purge-modal').classList.add('open');
+            loadStale(30);
+        }
+
+        function closePurgeModal() {
+            document.getElementById('purge-modal').classList.remove('open');
+        }
+
+        async function loadStale(days) {
+            // Highlight active button
+            document.querySelectorAll('.purge-day-btn').forEach(b => {
+                b.style.background = parseInt(b.dataset.days) === days
+                    ? 'rgba(255,80,80,0.25)' : '#111';
+                b.style.borderColor = parseInt(b.dataset.days) === days ? '#ff4444' : '#333';
+                b.style.color = parseInt(b.dataset.days) === days ? '#ff8888' : '#666';
+            });
+            const list = document.getElementById('purge-list');
+            list.innerHTML = '<div style="padding:20px;text-align:center;color:#555;">Chargement…</div>';
+            document.getElementById('purge-status').textContent = '—';
+            document.getElementById('purge-confirm-btn').disabled = true;
+
+            try {
+                const r = await fetch('/api/watchlist/stale?days=' + days);
+                const data = await r.json();
+                purgeStaleList = data.stale || [];
+
+                if (!purgeStaleList.length) {
+                    list.innerHTML = '<div style="padding:20px;text-align:center;color:#555;font-style:italic;">Aucun call inactif depuis ' + days + ' jours 🎉</div>';
+                    document.getElementById('purge-status').textContent = 'Rien à purger';
+                    return;
+                }
+
+                list.innerHTML = purgeStaleList.map(call =>
+                    '<label class="purge-item">' +
+                    '<input type="checkbox" class="purge-cb" value="' + call + '" checked>' +
+                    '<span>' + call + '</span>' +
+                    '</label>'
+                ).join('');
+
+                // Update status on checkbox change
+                list.addEventListener('change', updatePurgeStatus);
+                updatePurgeStatus();
+
+            } catch(e) {
+                list.innerHTML = '<div style="padding:20px;text-align:center;color:#ff4444;">Erreur de chargement</div>';
+            }
+        }
+
+        function updatePurgeStatus() {
+            const checked = document.querySelectorAll('.purge-cb:checked').length;
+            const total = purgeStaleList.length;
+            document.getElementById('purge-status').textContent =
+                checked + ' / ' + total + ' calls sélectionnés';
+            document.getElementById('purge-confirm-btn').disabled = checked === 0;
+        }
+
+        function purgeSelectAll(val) {
+            document.querySelectorAll('.purge-cb').forEach(cb => cb.checked = val);
+            updatePurgeStatus();
+        }
+
+        async function confirmPurge() {
+            const calls = [...document.querySelectorAll('.purge-cb:checked')].map(cb => cb.value);
+            if (!calls.length) return;
+
+            document.getElementById('purge-confirm-btn').disabled = true;
+            document.getElementById('purge-status').textContent = 'Suppression en cours…';
+
+            try {
+                const r = await fetch('/api/watchlist/purge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ calls })
+                });
+                const data = await r.json();
+                if (data.status === 'ok') {
+                    // Update local watchlist set
+                    calls.forEach(call => watchlist.delete(call.toUpperCase()));
+                    document.getElementById('purge-status').textContent =
+                        data.count + ' calls supprimés ✓';
+                    // Remove from display
+                    document.querySelectorAll('.purge-cb:checked').forEach(cb =>
+                        cb.closest('.purge-item').remove()
+                    );
+                    purgeStaleList = purgeStaleList.filter(c => !calls.includes(c));
+                    // Refresh watchlist display
+                    await displayWatchlist();
+                    setTimeout(closePurgeModal, 1200);
+                }
+            } catch(e) {
+                document.getElementById('purge-status').textContent = 'Erreur lors de la suppression';
+                document.getElementById('purge-confirm-btn').disabled = false;
+            }
+        }
+
         async function removeFromWatchlist(call) {
             try {
                 const response = await fetch('/watchlist.json', {
@@ -1849,9 +2012,11 @@
 
                         const row = tbody.insertRow();
                         const isWantedCall = isWanted(spot.dx_call);
-                        const callsignClass = isWantedCall ? 'spot-call-watchlist' : 'spot-call-white-bold';
+                        const isBeacon = /\/b$/i.test(spot.dx_call.trim());
+                        const callsignClass = isWantedCall ? 'spot-call-watchlist' : isBeacon ? '' : 'spot-call-white-bold';
 
                         if (isWantedCall) row.classList.add('spot-row-watchlist');
+                        if (isBeacon) row.classList.add('spot-row-beacon');
 
                         // Coloration LoTW
                         let lotwBadge = '';
@@ -1868,7 +2033,7 @@
                         row.innerHTML = `
                             <td>${spot.time}</td>
                             <td>${spot.freq}</td>
-                            <td><span class="${callsignClass}"><a href="https://qrz.com/db/${spot.dx_call}" target="_blank" title="Look up on QRZ.com">${spot.dx_call}</a>${lotwBadge}</span></td>
+                            <td><span class="${callsignClass}"><a href="https://qrz.com/db/${spot.dx_call}" target="_blank" title="Look up on QRZ.com">${spot.dx_call}</a>${lotwBadge}${isBeacon ? '<span class="beacon-badge">BCN</span>' : ''}</span></td>
                             <td><span class="band-tag" style="background-color: ${spot.color};">${spot.band}</span></td>
                             <td>${spot.mode}</td>
                             <td class="${(spot.score >= SPD_THRESHOLD) ? 'high-spd' : ''}">${spot.score}</td>
@@ -2139,6 +2304,14 @@
                 btn.addEventListener('click', () => loadVoacap(btn.dataset.zone));
             });
             loadVoacap(voacapCurrentZone);
+
+            // Init purge modal close-on-backdrop
+            const purgeModal = document.getElementById('purge-modal');
+            if (purgeModal) {
+                purgeModal.addEventListener('click', function(e) {
+                    if (e.target === this) closePurgeModal();
+                });
+            }
             setInterval(() => loadVoacap(voacapCurrentZone), 1800000); // refresh 30min
 
              console.log("Starting client-side initialization...");
@@ -2821,7 +2994,8 @@
                 const x = freqToX(s.freqNum, fmin, fmax, W);
                 const ageMin = Math.floor((now - s.time_ms) / 60000);
                 const focused = (i === bandmapFocusIdx);
-                const callClass = s.isWL ? 'bm-pin-call wl-pin' : 'bm-pin-call';
+                const isBeaconPin = /\/b$/i.test((s.call||'').trim());
+                const callClass = s.isWL ? 'bm-pin-call wl-pin' : isBeaconPin ? 'bm-pin-call beacon-pin' : 'bm-pin-call';
                 const mc = s.isWL ? null : (MODE_COLORS[s.mode] || MODE_DEFAULT);
                 const pinStyle = mc ? `background:${mc.bg};border-color:${mc.border};color:${mc.text};` : '';
                 const aStyle   = mc ? `color:${mc.text}!important;` : '';
@@ -3422,6 +3596,33 @@ fetch('/api/check_update')
     })
     .catch(err => console.warn('Erreur lors de la vérification des mises à jour:', err));
 </script>
+
+<!-- PURGE MODAL -->
+<div id="purge-modal">
+  <div id="purge-box">
+    <div id="purge-header">
+      <span>🗑 PURGE WATCHLIST</span>
+      <button onclick="closePurgeModal()" style="background:none;border:none;color:#666;cursor:pointer;font-size:1.2em;">✕</button>
+    </div>
+    <div id="purge-controls">
+      <span style="color:#777;">Calls absents depuis :</span>
+      <button class="purge-day-btn" data-days="7"  onclick="loadStale(7)">7j</button>
+      <button class="purge-day-btn" data-days="14" onclick="loadStale(14)">14j</button>
+      <button class="purge-day-btn" data-days="30" onclick="loadStale(30)" id="purge-default-btn">30j</button>
+      <button class="purge-day-btn" data-days="60" onclick="loadStale(60)">60j</button>
+      <button onclick="purgeSelectAll(true)"  style="margin-left:auto;padding:2px 8px;font-size:.75em;cursor:pointer;border-radius:3px;background:rgba(255,80,80,0.1);border:1px solid #ff4444;color:#ff6666;">Tout cocher</button>
+      <button onclick="purgeSelectAll(false)" style="padding:2px 8px;font-size:.75em;cursor:pointer;border-radius:3px;background:#111;border:1px solid #333;color:#666;">Décocher</button>
+    </div>
+    <div id="purge-list"><div style="padding:20px;text-align:center;color:#444;font-style:italic;">Cliquez sur une durée pour charger…</div></div>
+    <div id="purge-footer">
+      <span id="purge-status">—</span>
+      <div style="display:flex;gap:8px;">
+        <button onclick="closePurgeModal()" style="padding:6px 16px;cursor:pointer;border-radius:5px;background:#1a1a1a;border:1px solid #333;color:#888;">Annuler</button>
+        <button onclick="confirmPurge()" id="purge-confirm-btn" disabled style="padding:6px 16px;cursor:pointer;border-radius:5px;background:rgba(255,50,50,0.15);border:1px solid #ff4444;color:#ff6666;font-weight:bold;">Supprimer la sélection</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
