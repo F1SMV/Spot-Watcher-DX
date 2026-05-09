@@ -168,6 +168,37 @@
         .item-time { opacity: 0.7; }
 
         /* Callsigns mis en valeur */
+        .countdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72em;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 4px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        .countdown.urgent {
+            background: rgba(255, 50, 50, 0.12);
+            border: 1px solid rgba(255, 50, 50, 0.4);
+            color: #ff6666;
+        }
+        .countdown.soon {
+            background: rgba(255, 165, 0, 0.12);
+            border: 1px solid rgba(255, 165, 0, 0.4);
+            color: #ffaa44;
+        }
+        .countdown.normal {
+            background: rgba(0, 243, 255, 0.06);
+            border: 1px solid rgba(0, 243, 255, 0.2);
+            color: #00c8d4;
+        }
+        .countdown.expired {
+            background: rgba(100,100,100,0.1);
+            border: 1px solid #333;
+            color: #555;
+        }
+
         .callsign {
             background: rgba(0,243,255,0.15);
             padding: 1px 5px; border-radius: 3px;
@@ -335,9 +366,16 @@ function renderGrid(sources) {
             itemsHtml = items.slice(0, 8).map(it => {
                 const body = it.summary ? highlight(it.summary) : '';
                 const time = fmtTime(it.published_utc);
+                const endDate = parseEndDate(it.title||'');
+                const cd = endDate ? fmtCountdown(endDate) : null;
+                const cdHtml = cd && cd.cls !== 'expired'
+                    ? `<span class="countdown ${cd.cls}" data-end-ts="${endDate.getTime()}">${cd.text}</span>`
+                    : cd && cd.cls === 'expired'
+                    ? `<span class="countdown expired" data-end-ts="${endDate.getTime()}">Terminée</span>`
+                    : '';
                 return `
                 <div class="item">
-                    <div class="item-title">${esc(it.title||'Sans titre')}</div>
+                    <div class="item-title">${esc(it.title||'Sans titre')} ${cdHtml}</div>
                     ${body ? `<div class="item-body">${body}</div>` : ''}
                     <div class="item-footer">
                         <span class="item-time">${time}</span>
@@ -375,6 +413,92 @@ function renderGrid(sources) {
 }
 
 // ── CHARGEMENT ─────────────────────────────────────────
+// ── COUNTDOWN DXPÉDITIONS ─────────────────────
+// Parse une date de fin depuis le titre (formats: "→ 15 Apr", "→ Apr 15", "→ 15/04", "→ 2025-04-15")
+function parseEndDate(title) {
+    if (!title) return null;
+    const MONTHS = {
+        jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11,
+        janvier:0,février:1,mars:2,avril:3,mai:4,juin:5,juillet:6,août:7,septembre:8,octobre:9,novembre:10,décembre:11
+    };
+    // Cherche "→" dans le titre
+    const arrowIdx = title.indexOf('→');
+    if (arrowIdx === -1) return null;
+    const after = title.slice(arrowIdx + 1).trim();
+
+    // Format ISO: 2025-04-15
+    let m = after.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(Date.UTC(+m[1], +m[2]-1, +m[3], 23, 59, 59));
+
+    // Format: 15 Apr [2025] ou Apr 15 [2025]
+    m = after.match(/(\d{1,2})\s+([A-Za-zé]+)\s*(\d{4})?/);
+    if (m) {
+        const mon = MONTHS[(m[2]||'').toLowerCase().slice(0,4)];
+        if (mon !== undefined) {
+            const yr = m[3] ? +m[3] : new Date().getFullYear();
+            return new Date(Date.UTC(yr, mon, +m[1], 23, 59, 59));
+        }
+    }
+    m = after.match(/([A-Za-zé]+)\s+(\d{1,2})\s*,?\s*(\d{4})?/);
+    if (m) {
+        const mon = MONTHS[(m[1]||'').toLowerCase().slice(0,4)];
+        if (mon !== undefined) {
+            const yr = m[3] ? +m[3] : new Date().getFullYear();
+            return new Date(Date.UTC(yr, mon, +m[2], 23, 59, 59));
+        }
+    }
+    // Format: 15/04 ou 15/04/2025
+    m = after.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
+    if (m) {
+        const yr = m[3] ? +m[3] : new Date().getFullYear();
+        return new Date(Date.UTC(yr, +m[2]-1, +m[1], 23, 59, 59));
+    }
+    return null;
+}
+
+function fmtCountdown(endDate) {
+    if (!endDate) return null;
+    const now = Date.now();
+    const diff = endDate.getTime() - now;
+    if (diff < 0) return { text: 'Terminée', cls: 'expired' };
+    const totalH = Math.floor(diff / 3600000);
+    const days = Math.floor(totalH / 24);
+    const hours = totalH % 24;
+    const mins = Math.floor((diff % 3600000) / 60000);
+    let text, cls;
+    if (days === 0 && totalH < 24) {
+        text = hours > 0 ? `⚠ J-0 · ${hours}h ${mins}min` : `⚠ J-0 · ${mins}min`;
+        cls = 'urgent';
+    } else if (days <= 3) {
+        text = `⚠ J-${days} · ${hours}h`;
+        cls = 'urgent';
+    } else if (days <= 7) {
+        text = `⏳ J-${days}`;
+        cls = 'soon';
+    } else {
+        text = `⏱ J-${days}`;
+        cls = 'normal';
+    }
+    return { text, cls };
+}
+
+// Met à jour tous les compteurs toutes les 60s
+let countdownTimer = null;
+function startCountdownUpdater() {
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+        document.querySelectorAll('[data-end-ts]').forEach(el => {
+            const ts = parseInt(el.dataset.endTs);
+            if (!ts) return;
+            const cd = fmtCountdown(new Date(ts));
+            if (cd) {
+                el.textContent = cd.text;
+                el.className = 'countdown ' + cd.cls;
+            }
+        });
+    }, 60000);
+}
+
 async function loadBriefing(force = false) {
     metaEl.innerHTML = '<span>⏳ Chargement des flux…</span>';
     const url = new URL('/api/briefing.json', location.origin);
@@ -402,6 +526,7 @@ async function loadBriefing(force = false) {
             <span>📡 Sources: ${data.total_sources||0}</span>`;
 
         renderGrid(data.sources || []);
+        startCountdownUpdater();
 
         if (loadDxMode() && data.items?.length) {
             const n = addToWatchingList(extractCallsigns(data.items));

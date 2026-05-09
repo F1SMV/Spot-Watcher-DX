@@ -133,7 +133,9 @@ Aucune dépendance cloud.
 
 ### 🗂️ Historique des versions
 
-### v7.6 ajout de la greyline dans la page map
+### v7.6 greyline 
+
+- ajout de la greyline dans la page map
 
 ### v7.5 purge pavé "watching list"
 
