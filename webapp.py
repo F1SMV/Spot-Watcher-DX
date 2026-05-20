@@ -140,7 +140,7 @@ BRIEFING_SOURCES_FILE = Path("data/briefing_sources.json")
 BRIEFING_CACHE_TTL = 60 * 60 * 12
 BRIEFING_FEED_TIMEOUT = 15
 BRIEFING_ITEM_LIMIT = 8
-BRIEFING_USER_AGENT = "Spot-Watcher-DX/6.0 (+https://github.com/)"
+BRIEFING_USER_AGENT = "Spot-Watcher-DX/8.0 (+https://github.com/)"
 QO100_NEWS_URL = "https://qo100dx.club/news"
 QO100_HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
