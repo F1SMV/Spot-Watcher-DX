@@ -1,241 +1,591 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>World Forecast — Radio Spot Watcher DX v8.0</title>
+<title>World Forecast — Radio Spot Watcher DX v8.1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <link rel="stylesheet" href="/static/base.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
 <style>
-body[data-page="world"] { margin:0; overflow:hidden; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-.world-layout {
-  display:grid;
-  grid-template-columns:320px 1fr;
-  height:calc(100vh - 48px);
+:root {
+  --bg:      #070B1A;
+  --surface: #10172A;
+  --border:  #1E293B;
+  --cyan:    #22D3EE;
+  --violet:  #8B5CF6;
+  --blue:    #2563EB;
+  --red:     #EF4444;
+  --orange:  #F97316;
+  --muted:   #94A3B8;
+  --text:    #F8FAFC;
 }
 
-@media (max-width: 900px) {
-  .world-layout {
-    grid-template-columns:1fr;
-    grid-template-rows:auto 1fr;
-  }
-
-  .world-sidebar {
-    border-bottom:1px solid #333;
-  }
-
-  .world-map {
-    height:60vh;
-  }
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  overflow: hidden;
 }
 
-.world-sidebar {
-  padding:16px;
-  overflow-y:auto;
+/* ── TOPBAR ── */
+#topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  background: rgba(7,11,26,0.92);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+.nav-brand {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.7em;
+  color: var(--cyan);
+  letter-spacing: 2px;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+.nav-link {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.72em;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: all .2s;
+  white-space: nowrap;
+}
+.nav-link:hover, .nav-link.active {
+  color: var(--cyan);
+  border-color: rgba(34,211,238,0.3);
+  background: rgba(34,211,238,0.06);
 }
 
-.world-map {
-  position:relative;
-}
-
+/* ── MAP fullscreen ── */
 #map {
-  width:100%;
-  height:100%;
+  position: fixed;
+  top: 44px; left: 0; right: 0; bottom: 0;
+  z-index: 1;
 }
 
-.world-legend {
-  position:absolute;
-  bottom:12px;
-  right:12px;
-  pointer-events:none;
+/* ── HUD PANEL ── */
+#hud {
+  position: fixed;
+  top: 60px;
+  left: 16px;
+  z-index: 500;
+  width: 300px;
+  background: rgba(7,11,26,0.88);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(34,211,238,0.05);
+  overflow: hidden;
+  transition: transform .3s;
+}
+#hud.collapsed { transform: translateX(-270px); }
+
+#hud-toggle {
+  position: fixed;
+  top: 70px;
+  left: 12px;
+  z-index: 501;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(34,211,238,0.12);
+  border: 1px solid rgba(34,211,238,0.3);
+  color: var(--cyan);
+  cursor: pointer;
+  font-size: 0.7em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .2s;
+  display: none; /* shown on mobile */
+}
+
+#hud-header {
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#hud-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.7em;
+  color: var(--cyan);
+  letter-spacing: 1.5px;
+  flex: 1;
+}
+#status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #333;
+  transition: background .5s;
+  flex-shrink: 0;
+}
+#status-dot.ok     { background: #22C55E; box-shadow: 0 0 6px #22C55E; }
+#status-dot.warn   { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+#status-dot.err    { background: var(--red); box-shadow: 0 0 6px var(--red); }
+#status-dot.pulse  { animation: dot-pulse 1.5s ease-in-out infinite; }
+@keyframes dot-pulse {
+  0%,100% { opacity:1; } 50% { opacity:0.3; }
+}
+
+#hud-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Stats row */
+#stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+.stat-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  text-align: center;
+}
+.stat-val {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1em;
+  color: var(--cyan);
+  line-height: 1;
+}
+.stat-lbl { font-size: 0.6em; color: var(--muted); margin-top: 3px; }
+
+/* Controls */
+.ctrl-group { display: flex; flex-direction: column; gap: 4px; }
+.ctrl-label { font-size: 0.62em; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+select, input[type=range] {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72em;
+  padding: 6px 8px;
+  outline: none;
+}
+select:focus { border-color: rgba(34,211,238,0.4); }
+input[type=range] {
+  padding: 0;
+  accent-color: var(--cyan);
+  height: 4px;
+  cursor: pointer;
+}
+#window-val {
+  font-size: 0.65em;
+  color: var(--cyan);
+  text-align: right;
+}
+
+/* Anomalies toggle */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.68em;
+  color: var(--muted);
+  cursor: pointer;
+}
+.toggle-row input { accent-color: var(--cyan); }
+
+/* Status text */
+#world-status {
+  font-size: 0.68em;
+  color: var(--muted);
+  min-height: 16px;
+  line-height: 1.4;
+}
+#world-updated { font-size: 0.6em; color: #2a3a4a; }
+
+/* Divider */
+.hud-sep { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+/* Legend */
+#legend {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.65em;
+}
+.leg-item { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+.leg-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Explain section */
+#explain-toggle {
+  font-size: 0.62em;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+#explain-toggle:hover { color: var(--cyan); }
+#explain-body {
+  display: none;
+  font-size: 0.64em;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+#explain-body.open { display: block; }
+#explain-body b { color: var(--text); }
+
+/* ── GREYLINE LEGEND ── */
+#grey-legend {
+  position: fixed;
+  bottom: 20px;
+  left: 16px;
+  z-index: 500;
+  background: rgba(7,11,26,0.82);
+  border: 1px solid rgba(255,204,0,0.3);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.65em;
+  color: #ffcc00;
+  display: none;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+#grey-legend.visible { display: block; }
+
+/* ── PROPAGATION ZONE TOOLTIP ── */
+.prop-tooltip {
+  background: rgba(7,11,26,0.95) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  font-family: 'Share Tech Mono', monospace !important;
+  font-size: 0.72em !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+}
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  #hud { width: 260px; }
+  #hud-toggle { display: flex; }
 }
 </style>
 </head>
+<body>
 
-<body data-page="world">
-
-<div class="topbar">
-  <a href="/">Dashboard</a>
-  <a href="/map">Map</a>
-  <a href="/briefing.html">Briefing</a>
-  <a href="/world"><b>World</b></a>
-  <a href="/satellites">🛰️ Satellites</a>
+<!-- TOPBAR -->
+<div id="topbar">
+  <span class="nav-brand">📡 RSW·DX</span>
+  <a href="/" class="nav-link">Dashboard</a>
+  <a href="/map" class="nav-link">Map</a>
+  <a href="/briefing.html" class="nav-link">Briefing</a>
+  <a href="/world" class="nav-link active">World</a>
+  <a href="/satellites" class="nav-link">🛰 Satellites</a>
 </div>
 
-<div class="world-layout">
+<!-- MAP -->
+<div id="map"></div>
 
-  <!-- SIDEBAR -->
-  <aside class="world-sidebar panel">
-    <h3>🌍 World Forecast</h3>
+<!-- HUD -->
+<div id="hud">
+  <div id="hud-header">
+    <span id="status-dot"></span>
+    <span id="hud-title">🌍 WORLD FORECAST</span>
+    <span id="world-updated"></span>
+  </div>
 
-    <label>Band</label>
-    <select id="bandSelect">
-      <option value="all">All HF</option>
-      <option value="160m">160m</option>
-      <option value="80m">80m</option>
-      <option value="60m">60m</option>
-      <option value="40m">40m</option>
-      <option value="30m">30m</option>
-      <option value="20m">20m</option>
-      <option value="17m">17m</option>
-      <option value="15m">15m</option>
-      <option value="12m">12m</option>
-      <option value="10m">10m</option>
-    </select>
+  <div id="hud-body">
 
-    <label>Time window (minutes)</label>
-    <input type="range" id="windowRange" min="30" max="360" step="30" value="180">
+    <!-- Stats -->
+    <div id="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-zones">—</div>
+        <div class="stat-lbl">Zones</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-confirmed" style="color:#EF4444">—</div>
+        <div class="stat-lbl">Conf.</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-suspect" style="color:#F97316">—</div>
+        <div class="stat-lbl">Susp.</div>
+      </div>
+    </div>
 
-    <label>
+    <div id="world-status">Initialisation…</div>
+
+    <hr class="hud-sep">
+
+    <!-- Controls -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">Bande / Band</span>
+      <select id="bandSelect">
+        <option value="all">Toutes / All HF</option>
+        <option value="160m">160m</option>
+        <option value="80m">80m</option>
+        <option value="60m">60m</option>
+        <option value="40m">40m</option>
+        <option value="30m">30m</option>
+        <option value="20m">20m</option>
+        <option value="17m">17m</option>
+        <option value="15m">15m</option>
+        <option value="12m">12m</option>
+        <option value="10m">10m</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group">
+      <span class="ctrl-label">Fenêtre / Window</span>
+      <input type="range" id="windowRange" min="30" max="360" step="30" value="180">
+      <span id="window-val">180 min</span>
+    </div>
+
+    <label class="toggle-row">
       <input type="checkbox" id="anomaliesOnly">
-      confirmed anomalies only
+      Anomalies confirmées seulement
     </label>
 
-    <div id="world-status" class="muted">Initializing…</div>
-    <div id="world-updated" class="muted"></div>
+    <label class="toggle-row" id="grey-toggle-row">
+      <input type="checkbox" id="greyToggle">
+      🌓 Greyline
+    </label>
 
-    <hr>
-    <h4>🧠 Comment lire cette carte ?</h4>
-    <p>
-      Cette vue <b>World</b> ne montre pas des stations individuelles,
-      mais des <b>zones de propagation radio</b>.
-    </p>
-    <ul>
-      <li><b>Cercles colorés</b> : régions cohérentes spatialement et temporellement</li>
-      <li><span style="color:#ff3b3b">Rouge</span> : propagation confirmée</li>
-      <li><span style="color:#ff9800">Orange</span> : propagation suspecte</li>
-      <li><span style="color:#aaaaaa">Gris</span> : bruit / calibration</li>
-    </ul>
-    <p>
-      Cette page aide à <b>prendre une décision</b>.
-      Pour les stations exactes, utilisez <b>Map</b>.
-    </p>
+    <hr class="hud-sep">
 
-    <hr>
-    <h4>🧠 How to read this map</h4>
-    <p>
-      The <b>World</b> view shows <b>propagation zones</b>,
-      not individual stations.
-    </p>
-    <ul>
-      <li><span style="color:#ff3b3b">Red</span>: confirmed propagation</li>
-      <li><span style="color:#ff9800">Orange</span>: suspect propagation</li>
-      <li><span style="color:#aaaaaa">Grey</span>: background noise</li>
-    </ul>
-    <p>
-      This page supports <b>decision making</b>.
-      Use <b>Map</b> for raw spots.
-    </p>
-  </aside>
-
-  <!-- MAP -->
-  <main class="world-map">
-    <div id="map"></div>
-
-    <div class="world-legend panel">
-      <div><span style="color:#ff3b3b">●</span> confirmed</div>
-      <div><span style="color:#ff9800">●</span> suspect</div>
-      <div><span style="color:#aaaaaa">●</span> calibration</div>
+    <!-- Legend -->
+    <div id="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#EF4444;box-shadow:0 0 6px #EF4444"></div>Propagation confirmée / Confirmed</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#F97316;box-shadow:0 0 4px #F97316"></div>Propagation suspecte / Suspect</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#475569"></div>Bruit / Calibration</div>
     </div>
-  </main>
 
+    <hr class="hud-sep">
+
+    <!-- Explain -->
+    <div id="explain-toggle" onclick="toggleExplain()">
+      <span id="explain-arrow">▶</span> Comment lire cette carte ?
+    </div>
+    <div id="explain-body">
+      <b>World</b> ne montre pas des stations individuelles, mais des <b>zones de propagation</b>.<br><br>
+      <b>Cercles rouges</b> = propagation active confirmée.<br>
+      <b>Cercles orange</b> = activité suspecte, à surveiller.<br>
+      <b>Cercles gris</b> = bruit de fond / calibration.<br><br>
+      👉 Cette page aide à <b>décider</b>. Pour les stations exactes, utilisez <b>Map</b>.
+    </div>
+
+  </div>
 </div>
+
+<!-- Greyline legend -->
+<div id="grey-legend">🌓 Greyline · <span id="grey-time">—</span> UTC</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-/* === STATE (restored) === */
-const state = {
-  band: 'all',
-  window: 180,
-  anomaliesOnly: false
-};
 
-const saved = localStorage.getItem("worldState");
-if (saved) Object.assign(state, JSON.parse(saved));
+// ── STATE ──────────────────────────────────────────
+const state = { band:'all', window:180, anomaliesOnly:false, grey:false };
+try { Object.assign(state, JSON.parse(localStorage.getItem('worldState')||'{}')); } catch(e){}
 
-/* === MAP INIT === */
-const map = L.map('map', { worldCopyJump: true }).setView([20, 0], 2);
-
+// ── MAP ────────────────────────────────────────────
+const map = L.map('map', { worldCopyJump:true, zoomControl:true }).setView([20,0], 2);
 L.tileLayer(
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  { maxZoom: 18 }
+  { maxZoom:18, attribution:'Tiles © Esri' }
 ).addTo(map);
 
 const clusterLayer = L.layerGroup().addTo(map);
-const statusBox = document.getElementById('world-status');
-const updatedBox = document.getElementById('world-updated');
+let greylineLayer = null;
+let greyTimer = null;
 
-/* === CONTROLS === */
-bandSelect.value = state.band;
-windowRange.value = state.window;
-anomaliesOnly.checked = state.anomaliesOnly;
+// ── DOM refs ───────────────────────────────────────
+const statusEl   = document.getElementById('world-status');
+const updatedEl  = document.getElementById('world-updated');
+const dotEl      = document.getElementById('status-dot');
+const statZones  = document.getElementById('stat-zones');
+const statConf   = document.getElementById('stat-confirmed');
+const statSusp   = document.getElementById('stat-suspect');
 
-bandSelect.onchange = e => { state.band = e.target.value; refresh(); };
-windowRange.oninput = e => { state.window = +e.target.value; refresh(); };
-anomaliesOnly.onchange = e => { state.anomaliesOnly = e.target.checked; refresh(); };
+// ── CONTROLS init ──────────────────────────────────
+const bandSel  = document.getElementById('bandSelect');
+const winRange = document.getElementById('windowRange');
+const winVal   = document.getElementById('window-val');
+const anoChk   = document.getElementById('anomaliesOnly');
+const greyChk  = document.getElementById('greyToggle');
 
-/* === REFRESH === */
+bandSel.value  = state.band;
+winRange.value = state.window;
+winVal.textContent = state.window + ' min';
+anoChk.checked = state.anomaliesOnly;
+greyChk.checked = state.grey;
+
+bandSel.onchange  = () => { state.band = bandSel.value; save(); refresh(); };
+winRange.oninput  = () => { state.window = +winRange.value; winVal.textContent = state.window + ' min'; save(); refresh(); };
+anoChk.onchange   = () => { state.anomaliesOnly = anoChk.checked; save(); refresh(); };
+greyChk.onchange  = () => {
+  state.grey = greyChk.checked;
+  save();
+  if (state.grey) { buildGreyline(); greyTimer = setInterval(buildGreyline, 60000); }
+  else { clearInterval(greyTimer); if(greylineLayer){ map.removeLayer(greylineLayer); greylineLayer=null; } document.getElementById('grey-legend').classList.remove('visible'); }
+};
+
+function save() { localStorage.setItem('worldState', JSON.stringify(state)); }
+
+// ── EXPLAIN toggle ─────────────────────────────────
+function toggleExplain() {
+  const b = document.getElementById('explain-body');
+  const a = document.getElementById('explain-arrow');
+  b.classList.toggle('open');
+  a.textContent = b.classList.contains('open') ? '▼' : '▶';
+}
+
+// ── GREYLINE ──────────────────────────────────────
+function calcSunPos(date) {
+  const rad = Math.PI/180;
+  const jd  = date.getTime()/86400000 + 2440587.5;
+  const n   = jd - 2451545.0;
+  const L   = ((280.460 + 0.9856474*n)%360+360)%360;
+  const g   = ((357.528 + 0.9856003*n)%360+360)%360;
+  const lam = L + 1.915*Math.sin(g*rad) + 0.020*Math.sin(2*g*rad);
+  const eps = 23.439 - 0.0000004*n;
+  const sinDec = Math.sin(eps*rad)*Math.sin(lam*rad);
+  const dec = Math.asin(sinDec)/rad;
+  const RA  = Math.atan2(Math.cos(eps*rad)*Math.sin(lam*rad), Math.cos(lam*rad))/rad;
+  const eot = L - RA;
+  const utcH = date.getUTCHours() + date.getUTCMinutes()/60 + date.getUTCSeconds()/3600;
+  const sunLon = ((-(utcH-12)*15+eot)%360+540)%360-180;
+  return { dec, sunLon };
+}
+
+function buildGreyline() {
+  if (greylineLayer) { map.removeLayer(greylineLayer); greylineLayer=null; }
+  const now = new Date();
+  const { dec, sunLon } = calcSunPos(now);
+  const rad = Math.PI/180;
+  const termPts = [];
+  for (let lon=-180; lon<=180; lon+=1) {
+    const H = (lon-sunLon)*rad;
+    if (Math.abs(dec) < 0.001) continue;
+    const latRad = Math.atan(-Math.cos(H)/Math.tan(dec*rad));
+    termPts.push([latRad/rad, lon]);
+  }
+  const nightPoly = termPts.map(p=>[p[0],p[1]]);
+  const poleLat = dec>=0 ? -90 : 90;
+  nightPoly.push([poleLat,180],[poleLat,-180]);
+
+  greylineLayer = L.layerGroup();
+  L.polygon(nightPoly, { color:'transparent', fillColor:'#00004a', fillOpacity:0.38, weight:0, interactive:false }).addTo(greylineLayer);
+  L.polyline(termPts, { color:'#ffcc00', weight:1.5, opacity:0.8, dashArray:'6 4', interactive:false }).addTo(greylineLayer);
+  L.circleMarker([dec, sunLon], { radius:7, color:'#ffcc00', fillColor:'#ffee44', fillOpacity:0.95, weight:2, interactive:true })
+    .addTo(greylineLayer).bindTooltip('☀️ ' + dec.toFixed(1) + '°', {permanent:false});
+  greylineLayer.addTo(map);
+
+  const gl = document.getElementById('grey-legend');
+  gl.classList.add('visible');
+  document.getElementById('grey-time').textContent =
+    now.getUTCHours().toString().padStart(2,'0') + ':' + now.getUTCMinutes().toString().padStart(2,'0');
+}
+
+if (state.grey) { buildGreyline(); greyTimer = setInterval(buildGreyline, 60000); }
+
+// ── REFRESH ────────────────────────────────────────
+function setStatus(txt, level) {
+  statusEl.textContent = txt;
+  dotEl.className = '';
+  dotEl.classList.add(level||'ok');
+}
+
 function refresh() {
   clusterLayer.clearLayers();
-  statusBox.textContent = "Analysing propagation…";
+  dotEl.className = 'pulse';
+  setStatus('Analyse en cours…', 'pulse');
+  statZones.textContent = statConf.textContent = statSusp.textContent = '—';
 
-  fetch(`/api/forecast/anomalies?band=${state.band}&window=${state.window}`)
+  fetch('/api/forecast/anomalies?band='+state.band+'&window='+state.window)
     .then(r => r.json())
     .then(data => {
-      const clusters = data.clusters || [];
+      const clusters = (data.clusters||[]);
+      const conf  = clusters.filter(c => c.status==='confirmed').length;
+      const susp  = clusters.filter(c => c.status==='suspect').length;
+      const total = clusters.length;
 
-      if (!clusters.length) {
-        statusBox.textContent =
-          "No coherent propagation detected in this time window.";
-        updatedBox.textContent =
-          "Last update: " + new Date().toUTCString();
+      statZones.textContent = total;
+      statConf.textContent  = conf;
+      statSusp.textContent  = susp;
+
+      if (!total) {
+        setStatus('Aucune anomalie détectée dans cette fenêtre.', 'warn');
+        updatedEl.textContent = new Date().toUTCTimeString ? '' : '';
         return;
       }
 
-      statusBox.textContent =
-        data.mode === "calibration"
-          ? "Calibration in progress — signals detected"
-          : "Propagation anomalies detected";
+      setStatus(
+        data.mode==='calibration'
+          ? 'Calibration en cours — signaux détectés'
+          : conf + ' zone(s) confirmée(s) · ' + susp + ' suspecte(s)',
+        conf>0 ? 'ok' : 'warn'
+      );
 
       clusters.forEach(c => {
         if (!c.center) return;
-        if (state.anomaliesOnly && c.status !== "confirmed") return;
+        if (state.anomaliesOnly && c.status!=='confirmed') return;
 
         const color =
-          c.status === "confirmed" ? "#ff3b3b" :
-          c.status === "suspect"   ? "#ff9800" :
-                                     "#aaaaaa";
+          c.status==='confirmed' ? '#EF4444' :
+          c.status==='suspect'   ? '#F97316' : '#475569';
 
-        L.circle([c.center.lat, c.center.lon], {
-          radius:
-            c.status === "confirmed" ? 250000 :
-            c.status === "suspect"   ? 150000 :
-                                       80000,
-          color,
-          fillColor: color,
-          weight: 1,
-          fillOpacity: 0.35
-        }).addTo(clusterLayer);
+        const radius =
+          c.status==='confirmed' ? 280000 :
+          c.status==='suspect'   ? 160000 : 80000;
+
+        const circle = L.circle([c.center.lat, c.center.lon], {
+          radius, color, fillColor:color, weight:1.5,
+          fillOpacity: c.status==='confirmed' ? 0.20 : 0.12,
+          className: c.status==='confirmed' ? 'zone-confirmed' : ''
+        });
+
+        // Tooltip
+        const tooltip = '<b style="color:' + color + '">' +
+          (c.status==='confirmed' ? '● CONFIRMÉ' : c.status==='suspect' ? '● SUSPECT' : '● CALIBRATION') +
+          '</b><br>' +
+          (c.band ? 'Bande: ' + c.band + '<br>' : '') +
+          (c.count ? 'Spots: ' + c.count + '<br>' : '') +
+          '<span style="color:#94A3B8;font-size:.85em">' + new Date().toUTCString().slice(17,25) + ' UTC</span>';
+
+        circle.bindTooltip(tooltip, { className:'prop-tooltip', sticky:true });
+        circle.addTo(clusterLayer);
       });
 
-      updatedBox.textContent =
-        "Last update: " + new Date().toUTCString();
-
-      localStorage.setItem("worldState", JSON.stringify(state));
+      const now = new Date();
+      updatedEl.textContent = now.getUTCHours().toString().padStart(2,'0') + ':' +
+        now.getUTCMinutes().toString().padStart(2,'0') + 'Z';
       map.invalidateSize();
     })
-    .catch(() => {
-      statusBox.textContent = "Error loading forecast data.";
-    });
+    .catch(() => { setStatus('Erreur chargement données', 'err'); });
 }
 
-setTimeout(() => map.invalidateSize(), 300);
-refresh();
-setInterval(refresh, 60000); // auto refresh 60s
-</script>
+setTimeout(() => { map.invalidateSize(); refresh(); }, 300);
+setInterval(refresh, 60000);
 
+// ── HUD mobile toggle ──────────────────────────────
+document.getElementById('hud-toggle') && document.getElementById('hud-toggle').addEventListener('click', () => {
+  document.getElementById('hud').classList.toggle('collapsed');
+});
+</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v8.0
+# 📡 Radio Spot Watcher DX — v8.1
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -132,6 +132,28 @@ Aucune dépendance cloud.
 ---
 
 ### 🗂️ Historique des versions
+
+### v8.1 — Mode Intelligent amélioré + World relooké
+
+**Pavé TOP SPOTS — améliorations**
+
+- Drag & drop activé sur le pavé Mode Intelligent
+- Légende des badges bilingue (FR/EN) affichée sous le titre du pavé
+- Nouvelle colonne **Rareté** avec 4 niveaux :
+  - 🔴 **TRÈS RARE** — Nouveau DXCC + distance > 10 000 km
+  - 🟡 **RECHERCHÉ** — Watchlist ou DXCC manquant + distance > 8 000 km
+  - 🔵 **TRACKING** — Call dans la watchlist
+  - ⚡ **EXOTIC DX** — Distance > 10 000 km hors watchlist (badge orange animé)
+
+**Page World entièrement relookée**
+
+- Carte plein écran — plus de sidebar fixe
+- HUD flottant semi-transparent avec backdrop-filter
+- Stats temps réel : zones totales / confirmées / suspectes
+- Greyline intégrée directement dans World
+- Tooltips sur les cercles de propagation (bande, spots, heure UTC)
+- Topbar cohérente avec le reste de l'application
+- Section "Comment lire" rétractable
 
 ### v8.0 — Mode Intelligent 🧠
 

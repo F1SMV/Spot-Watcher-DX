@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v8.0</title>
+<title>📡 NEURAL DX v8.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -1011,7 +1011,7 @@
         }
         .smart-spot {
             display: grid;
-            grid-template-columns: auto 1fr auto;
+            grid-template-columns: auto 1fr auto auto;
             gap: 8px 12px;
             padding: 9px 12px;
             border-bottom: 1px solid #0f172a;
@@ -1081,6 +1081,55 @@
         .sb-wl   { background: rgba(139,92,246,0.15); border:1px solid #8B5CF6; color:#8B5CF6; }
         .sb-conf { background: rgba(34,197,94,0.15);  border:1px solid #22C55E; color:#22C55E; }
         .sb-prop { background: rgba(34,211,238,0.12); border:1px solid #22D3EE; color:#22D3EE; }
+        /* Rareté */
+        .smart-rarity {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 90px;
+            flex-shrink: 0;
+        }
+        .rarity-badge {
+            font-size: 0.7em;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            white-space: nowrap;
+            letter-spacing: 0.5px;
+        }
+        .rarity-most  { background:rgba(239,68,68,0.15);  border:1px solid #EF4444; color:#EF4444; }
+        .rarity-want  { background:rgba(251,191,36,0.15); border:1px solid #FBB924; color:#FBB924; }
+        .rarity-track { background:rgba(139,92,246,0.15); border:1px solid #8B5CF6; color:#8B5CF6; }
+        .rarity-dx    {
+            background: linear-gradient(90deg, rgba(255,165,0,0.2), rgba(255,100,0,0.2));
+            border: 1px solid #FF8C00;
+            color: #FFA500;
+            box-shadow: 0 0 8px rgba(255,140,0,0.4);
+            animation: pulse-dx 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dx {
+            0%, 100% { box-shadow: 0 0 6px rgba(255,140,0,0.3); }
+            50%       { box-shadow: 0 0 14px rgba(255,140,0,0.7); }
+        }
+        .rarity-none  { color:#2a3a4a; font-size:0.65em; }
+
+        /* Légende badges */
+        #smart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 6px 12px 8px 12px;
+            border-bottom: 1px solid #0f172a;
+            font-size: 0.65em;
+            color: #94A3B8;
+            align-items: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
         .smart-empty {
             padding: 24px;
             text-align: center;
@@ -1267,7 +1316,7 @@
 <div id="header">
   <!-- Ligne 1 : titre + indicateurs -->
   <div id="header-row1">
-    <div id="title">📡 NEURAL DX WATCHER V8.0</div>
+    <div id="title">📡 NEURAL DX WATCHER V8.1</div>
     <div id="indicators" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
       <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
       <div class="indicator-item">UTC: <span id="utc-time"></span></div>
@@ -1396,8 +1445,19 @@
 <!-- SMART PANEL -->
 <div class="panel" data-panel-id="smart-spots" id="smart-panel">
 <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;">
-  <span>🧠 TOP SPOTS · MODE INTELLIGENT</span>
+  <span><span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span> 🧠 TOP SPOTS · MODE INTELLIGENT</span>
   <span id="smart-last-update" style="font-size:.65em;color:#94A3B8;font-family:monospace;"></span>
+</div>
+<div id="smart-legend">
+  <span style="color:#555;margin-right:4px;">Badges :</span>
+  <span class="legend-item"><span class="smart-badge sb-new">NEW DXCC</span> Nouveau pays LoTW / New country LoTW</span>
+  <span class="legend-item"><span class="smart-badge sb-wl">WL</span> Dans la watchlist / In watchlist</span>
+  <span class="legend-item"><span class="smart-badge sb-conf">CONF</span> Confirmé LoTW / LoTW confirmed</span>
+  <span class="legend-item"><span class="smart-badge sb-prop">PROP+</span> Propagation favorable / Good propagation</span>
+  <span class="legend-item"><span class="smart-badge sb-prop">SPD+</span> Spot fiable / Reliable spot</span>
+  <span class="legend-item"><span class="smart-badge sb-new">DX++</span> &gt;10 000 km / &gt;10,000 km</span>
+  <span class="legend-item"><span class="smart-badge sb-wl">DX+</span> &gt;5 000 km / &gt;5,000 km</span>
+  <span class="legend-item"><span class="rarity-badge rarity-dx">⚡ EXOTIC DX</span> &gt;10 000 km hors watchlist / &gt;10,000 km not in WL</span>
 </div>
 <div id="smart-spots-list"><div class="smart-empty">Chargement…</div></div>
 </div>
@@ -2385,6 +2445,26 @@
         let lastRawSpotsHF = [];
 
         // ── SCORE COMPOSITE ───────────────────────────
+        function calcRarity(spot) {
+            const inWL = isWanted(spot.dx_call);
+            const dist = Number(spot.distance_km || 0);
+            const isNewDxcc = spot.lotw_active && spot.lotw_dxcc_new;
+
+            if (isNewDxcc && dist > 10000) {
+                return { label: '🔴 TRÈS RARE',   labelEN: 'MOST WANTED', cls: 'rarity-most' };
+            }
+            if (isNewDxcc || (inWL && dist > 8000)) {
+                return { label: '🟡 RECHERCHÉ',   labelEN: 'WANTED',      cls: 'rarity-want' };
+            }
+            if (inWL) {
+                return { label: '🔵 TRACKING',    labelEN: 'TRACKING',    cls: 'rarity-track' };
+            }
+            if (dist > 10000) {
+                return { label: '⚡ EXOTIC DX',   labelEN: 'EXOTIC DX',   cls: 'rarity-dx' };
+            }
+            return null;
+        }
+
         function calcSmartScore(spot) {
             let score = 0;
             const reasons = [];
@@ -2528,9 +2608,24 @@
                 scoreDiv.appendChild(bar);
                 scoreDiv.appendChild(val);
 
+                // Rareté
+                const rarityDiv = document.createElement('div');
+                rarityDiv.className = 'smart-rarity';
+                const rarity = calcRarity(spot);
+                if (rarity) {
+                    const rb = document.createElement('span');
+                    rb.className = 'rarity-badge ' + rarity.cls;
+                    rb.textContent = rarity.label;
+                    rb.title = rarity.labelEN;
+                    rarityDiv.appendChild(rb);
+                } else {
+                    rarityDiv.innerHTML = '<span class="rarity-none">—</span>';
+                }
+
                 div.appendChild(rank);
                 div.appendChild(main);
                 div.appendChild(scoreDiv);
+                div.appendChild(rarityDiv);
                 panel.appendChild(div);
             });
 
