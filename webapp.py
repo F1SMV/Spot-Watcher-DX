@@ -32,6 +32,7 @@ import subprocess
 
 META_DIR = Path("data/meta")
 META_SUMMARY = META_DIR / "summary.json"
+LOTW_CACHE_FILE = Path("data/lotw_cache.json")
 LOG_PATH_DEFAULT = Path("radio_spot_watcher.log")  # log courant
 ANALYZER = Path("tools/log_meta_analyzer.py")
 
@@ -54,7 +55,7 @@ tn_lock = threading.Lock()
 tn_current = None  # socket.socket when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "8.1"
+APP_VERSION = "8.2"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -652,12 +653,18 @@ def get_band_and_mode_smart(freq_float, comment):
         ft8_vhf_min <= freq_khz <= ft8_vhf_max
     )
 
+    # FT8 6m (50.313 MHz)
+    is_ft8_6m = (band == "6m" and abs(freq_khz - 50313) <= 5)
+
+    # FT4 6m (50.318 MHz)
+    is_ft4_6m = (band == "6m" and abs(freq_khz - 50318) <= 2)
+
     # PRIORITE
     if is_ft2_hf:
         mode = "FT2"
-    elif is_ft4_hf or is_ft4_vhf:
+    elif is_ft4_hf or is_ft4_vhf or is_ft4_6m:
         mode = "FT4"
-    elif is_ft8_vhf:
+    elif is_ft8_vhf or is_ft8_6m:
         mode = "FT8"
 
     # CW
@@ -3000,6 +3007,54 @@ lotw_session = {
 }
 
 # Données importées depuis LoTW (en mémoire uniquement)
+def save_lotw_cache():
+    """Persiste lotw_data sur disque pour survie au redémarrage."""
+    try:
+        LOTW_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with lotw_lock:
+            cache = {
+                "confirmed_calls":    list(lotw_data.get("confirmed_calls", [])),
+                "confirmed_dxcc":     list(lotw_data.get("confirmed_dxcc", [])),
+                "confirmed_dxcc_nums":list(lotw_data.get("confirmed_dxcc_nums", [])),
+                "worked_dxcc":        list(lotw_data.get("worked_dxcc", [])),
+                "worked_calls":       list(lotw_data.get("worked_calls", [])),
+                "dxcc_by_band":       {b: list(v) for b, v in lotw_data.get("dxcc_by_band", {}).items()},
+                "total_qso":          lotw_data.get("total_qso", 0),
+                "total_confirmed":    lotw_data.get("total_confirmed", 0),
+                "saved_at":           time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "login":              lotw_session.get("login", ""),
+            }
+        with open(LOTW_CACHE_FILE, "w") as f:
+            json.dump(cache, f)
+        logger.info(f"LoTW cache sauvegardé: {len(cache['confirmed_dxcc'])} DXCC confirmés")
+    except Exception as e:
+        logger.warning(f"Impossible de sauvegarder le cache LoTW: {e}")
+
+
+def load_lotw_cache():
+    """Recharge lotw_data depuis le cache disque au démarrage."""
+    if not LOTW_CACHE_FILE.exists():
+        return
+    try:
+        with open(LOTW_CACHE_FILE, "r") as f:
+            cache = json.load(f)
+        with lotw_lock:
+            lotw_data["confirmed_calls"]     = set(cache.get("confirmed_calls", []))
+            lotw_data["confirmed_dxcc"]      = set(cache.get("confirmed_dxcc", []))
+            lotw_data["confirmed_dxcc_nums"] = set(cache.get("confirmed_dxcc_nums", []))
+            lotw_data["worked_dxcc"]         = set(cache.get("worked_dxcc", []))
+            lotw_data["worked_calls"]        = set(cache.get("worked_calls", []))
+            lotw_data["dxcc_by_band"]        = {b: list(v) for b, v in cache.get("dxcc_by_band", {}).items()}
+            lotw_data["total_qso"]           = cache.get("total_qso", 0)
+            lotw_data["total_confirmed"]     = cache.get("total_confirmed", 0)
+            lotw_session["login"]            = cache.get("login", "")
+            lotw_session["logged_in"]        = bool(cache.get("confirmed_dxcc"))
+            lotw_session["last_sync"]        = cache.get("saved_at", "cache")
+        logger.info(f"LoTW cache rechargé: {len(lotw_data['confirmed_dxcc'])} DXCC, {lotw_data['total_qso']} QSOs")
+    except Exception as e:
+        logger.warning(f"Impossible de charger le cache LoTW: {e}")
+
+
 lotw_data = {
     "confirmed_calls": set(),      # calls déjà confirmés (QSL reçue)
     "confirmed_dxcc": set(),       # entités DXCC confirmées
@@ -3164,6 +3219,7 @@ def lotw_login():
 
     dxcc_count = len(confirmed_dxcc)
     logger.info(f"LoTW sync OK: {len(qsos_all)} QSOs, {total_confirmed} confirmés, {dxcc_count} DXCC")
+    save_lotw_cache()
     return jsonify({
         'ok': True,
         'total_qso': len(qsos_all),
@@ -3291,9 +3347,13 @@ def lotw_spots_status():
 def _extract_callsign_from_text(text):
     """Extrait le premier callsign radio-amateur d'un texte."""
     import re
-    # Pattern callsign RA : préfixe + chiffre + suffixe (ex: VP8PJ, 3B8FA, T30UN)
-    m = re.search(r'([A-Z0-9]{1,3}\d[A-Z]{1,4}(?:/[A-Z0-9]+)?)', text)
-    return m.group(1) if m else None
+    if not text:
+        return None
+    first = text.strip().split()[0].upper() if text.strip() else ''
+    if re.match(r'^[A-Z0-9]{1,3}[0-9][A-Z]{1,4}$', first.split('/')[0]):
+        return first.split('/')[0]
+    m = re.search(r'[A-Z0-9]{1,3}[0-9][A-Z]{1,4}', text.upper())
+    return m.group(0) if m else None
 
 def _extract_end_date_from_text(text):
     """Tente d'extraire une date de fin depuis le texte (ex: 'until April 5', 'until 05/04')."""
@@ -3387,8 +3447,7 @@ def lotw_opportunities():
         else:
             # Vérifier les bandes manquantes
             HF_BANDS = ['160m','80m','40m','30m','20m','17m','15m','12m','10m']
-            confirmed_bands = set(dxcc_by_band.get(b, []) for b in HF_BANDS
-                                  if dxcc in dxcc_by_band.get(b, []))
+            confirmed_bands = set()  # unused, replaced below
             # Reconstruire correctement
             confirmed_bands_for_dxcc = set()
             for band, dxcc_list in dxcc_by_band.items():
@@ -3401,7 +3460,11 @@ def lotw_opportunities():
             else:
                 continue  # tout bon, pas d'opportunité
 
-        # Éviter les doublons (même DXCC)
+        # Déduplication : même call de base (ignore suffixes /P /MM etc.)
+        base_call = call.split('/')[0]
+        if any(o['call'].split('/')[0] == base_call for o in opportunities):
+            continue
+        # Déduplication : même DXCC (garder la priorité la plus haute)
         if any(o['dxcc'] == dxcc for o in opportunities):
             existing = next(o for o in opportunities if o['dxcc'] == dxcc)
             if priority < existing['_priority']:
@@ -3943,6 +4006,7 @@ if __name__ == "__main__":
     load_watchlist()
 
     logger.info(f"\n--- {APP_VERSION} ---")
+    load_lotw_cache()
     logger.info(f"QTH de départ: {user_qra} ({user_lat:.2f}, {user_lon:.2f})")
 
     threading.Thread(target=telnet_worker, daemon=True).start()
@@ -3952,4 +4016,4 @@ if __name__ == "__main__":
     threading.Thread(target=briefing_refresh_worker, daemon=True).start()
 
     logger.info("Tous les Workers ont été démarrés. Lancement du serveur Flask...")
-    app.run(host='0.0.0.0', port=WEB_PORT, debug=False, use_reloader=False)
+    app.run(host='0.0.0.0', port=WEB_PORT, debug=True, use_reloader=False)

@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v8.1
+# 📡 Radio Spot Watcher DX — v8.2
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -132,6 +132,35 @@ Aucune dépendance cloud.
 ---
 
 ### 🗂️ Historique des versions
+
+### v8.2 — LoTW persistance + Pavé 6m Magic Band + corrections
+
+**LoTW — persistance entre redémarrages**
+
+- Cache LoTW sauvegardé dans `data/lotw_cache.json` après chaque synchronisation
+- Rechargement automatique au démarrage — plus besoin de re-synchroniser manuellement
+- Opportunités DXCC disponibles immédiatement après un redémarrage
+- Déduplication corrigée : un même indicatif (avec ou sans suffixe /P /MM) n'apparaît plus en double
+
+**Pavé ⚡ DX 6M · MAGIC BAND** (Mode SMART uniquement)
+
+- Pavé dédié à la bande 6m, visible uniquement en mode intelligent
+- Mini-carte Leaflet 320px avec markers colorés selon distance (vert >8000 km, jaune >3000 km)
+- Tableau 25 spots max, triés par distance décroissante
+- Badge 🔴 OPEN animé quand ≥ 5 spots actifs (détection d'ouverture automatique)
+- Indicateur watchlist et beacon sur chaque spot
+- Drag & drop activé
+
+**Détection modes 6m améliorée**
+
+- 50.313 MHz → FT8 (au lieu de SSB)
+- 50.318 MHz → FT4 (au lieu de SSB)
+
+**Corrections diverses**
+
+- Alignement du pavé Opportunités DXCC avec grille CSS 4 colonnes
+- Bandes manquantes affichées sur une ligne dédiée (↳ manque: ...)
+- Police et couleurs du tableau 6m harmonisées avec le pavé DX WANTED
 
 ### v8.1 — Mode Intelligent amélioré + World relooké
 

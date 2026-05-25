@@ -1,4 +1,4 @@
-# 📡 Radio Spot Watcher DX — v8.1
+# 📡 Radio Spot Watcher DX — v8.2
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -132,6 +132,35 @@ No cloud dependency.
 ---
 
 ## 🗂️ Version History
+
+### v8.2 — LoTW persistence + 6m Magic Band panel + fixes
+
+**LoTW — persistence across restarts**
+
+- LoTW cache saved to `data/lotw_cache.json` after each sync
+- Automatic reload at startup — no need to re-sync manually
+- DXCC opportunities available immediately after a restart
+- Deduplication fixed: same callsign (with or without /P /MM suffix) no longer appears multiple times
+
+**⚡ DX 6M · MAGIC BAND panel** (SMART mode only)
+
+- Dedicated 6m band panel, visible only in Smart mode
+- Leaflet mini-map 320px with color-coded markers by distance (green >8,000 km, yellow >3,000 km)
+- Table of top 25 spots, sorted by descending distance
+- Animated 🔴 OPEN badge when 5+ active spots detected (automatic opening detection)
+- Watchlist and beacon indicators on each spot
+- Drag & drop enabled
+
+**6m mode detection improved**
+
+- 50.313 MHz → FT8 (instead of SSB)
+- 50.318 MHz → FT4 (instead of SSB)
+
+**Various fixes**
+
+- DXCC Opportunities panel aligned with 4-column CSS grid
+- Missing bands displayed on a dedicated line (↳ missing: ...)
+- 6m table font and colors harmonized with DX WANTED panel
 
 ### v8.1 — Smart Mode improvements + World redesign
 

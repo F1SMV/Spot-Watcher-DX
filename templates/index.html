@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v8.1</title>
+<title>📡 NEURAL DX v8.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -769,6 +769,64 @@
         }
         #purge-status { font-size:.78em;color:#555;flex:1; }
 
+        /* ── 6M MAGIC BAND ─────────────────────────── */
+        #panel-6m {
+            display: none;
+        }
+        .smart-mode #panel-6m {
+            display: block;
+        }
+        #map-6m {
+            height: 320px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 8px 10px;
+        }
+        #spots-6m-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82em;
+            font-family: 'Share Tech Mono', monospace;
+        }
+        #spots-6m-table th {
+            padding: 5px 8px;
+            text-align: left;
+            color: var(--accent);
+            border-bottom: 1px solid #1a1a1a;
+            font-size: 0.68em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: rgba(0,243,255,.03);
+        }
+        #spots-6m-table td {
+            padding: 4px 8px;
+            border-bottom: 1px dotted #222;
+            white-space: nowrap;
+            color: var(--text-main);
+        }
+        #spots-6m-table td:first-child {
+            color: var(--accent);
+            font-weight: bold;
+        }
+        #spots-6m-table tr:hover td { background: rgba(0,243,255,.04); }
+        #open-badge {
+            display: none;
+            font-size: 0.65em;
+            padding: 2px 8px;
+            border-radius: 3px;
+            background: rgba(255,50,50,0.15);
+            border: 1px solid #ff3b3b;
+            color: #ff6666;
+            animation: pulse-6m 1.2s ease-in-out infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        @keyframes pulse-6m {
+            0%,100% { box-shadow: 0 0 4px rgba(255,50,50,0.3); }
+            50%      { box-shadow: 0 0 12px rgba(255,50,50,0.8); }
+        }
+        #open-badge.visible { display: inline-block; }
+
         /* BEACON /B */
         tr.spot-row-beacon td {
             background-color: rgba(180, 100, 255, 0.08) !important;
@@ -1316,7 +1374,7 @@
 <div id="header">
   <!-- Ligne 1 : titre + indicateurs -->
   <div id="header-row1">
-    <div id="title">📡 NEURAL DX WATCHER V8.1</div>
+    <div id="title">📡 NEURAL DX WATCHER V8.2</div>
     <div id="indicators" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
       <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
       <div class="indicator-item">UTC: <span id="utc-time"></span></div>
@@ -1442,6 +1500,29 @@
                     </div>
 </div>
 </div>
+<!-- 6M MAGIC BAND PANEL -->
+<div class="panel" data-panel-id="spots-6m" id="panel-6m">
+<div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;">
+  <span>
+    <span class="dd-handle" title="Drag &amp; Drop">⋮⋮</span>
+    ⚡ DX 6M · MAGIC BAND
+    <span id="open-badge">🔴 OPEN</span>
+  </span>
+  <span id="6m-count" style="font-size:.65em;color:#94A3B8;font-family:monospace;"></span>
+</div>
+<!-- Mini carte -->
+<div id="map-6m"></div>
+<!-- Tableau spots -->
+<div style="overflow-x:auto;">
+  <table id="spots-6m-table">
+    <thead><tr>
+      <th>Call</th><th>Freq</th><th>Mode</th><th>Dist km</th><th>SPD</th><th>Heure</th>
+    </tr></thead>
+    <tbody id="spots-6m-tbody"><tr><td colspan="6" style="text-align:center;color:#444;padding:12px;">Mode SMART requis</td></tr></tbody>
+  </table>
+</div>
+</div>
+
 <!-- SMART PANEL -->
 <div class="panel" data-panel-id="smart-spots" id="smart-panel">
 <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;">
@@ -2079,6 +2160,95 @@
             }
         }
 
+        // ── MAP 6M ────────────────────────────────
+        let map6m = null;
+        let markers6m = null;
+        let userMarker6m = null;
+
+        function init6mMap() {
+            if (map6m) return;
+            map6m = L.map('map-6m', {
+                worldCopyJump: true,
+                center: userLatLng,
+                zoom: 3,
+                layers: [
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                        attribution: 'Tiles &copy; Esri',
+                        maxZoom: 18
+                    })
+                ]
+            });
+            map6m.attributionControl.setPrefix(false);
+            markers6m = L.layerGroup().addTo(map6m);
+            userMarker6m = addUserMarker(map6m, userLatLng[0], userLatLng[1]);
+        }
+
+        function update6mPanel(allSpots) {
+            if (!smartMode) return;
+
+            // Init carte si pas encore fait
+            if (!map6m) {
+                init6mMap();
+                setTimeout(() => { if(map6m) map6m.invalidateSize(); }, 300);
+            }
+
+            const spots6m = allSpots.filter(s =>
+                (s.band||'').toLowerCase() === '6m' &&
+                s.lat && s.lon && !isNaN(s.lat) && !isNaN(s.lon)
+            ).sort((a,b) => (b.distance_km||0) - (a.distance_km||0))
+                .slice(0, 25);
+
+            // Badge OPEN : > 5 spots 6m actifs
+            const badge = document.getElementById('open-badge');
+            const countEl = document.getElementById('6m-count');
+            if (badge) badge.classList.toggle('visible', spots6m.length >= 5);
+            if (countEl) countEl.textContent = spots6m.length + ' spot' + (spots6m.length > 1 ? 's' : '');
+
+            // Tableau
+            const tbody = document.getElementById('spots-6m-tbody');
+            if (tbody) {
+                if (!spots6m.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#444;padding:12px;font-style:italic;">Aucun spot 6m actif</td></tr>';
+                } else {
+                    tbody.innerHTML = spots6m.map(s => {
+                        const isBeacon = /\/b$/i.test((s.dx_call||'').trim());
+                        const bcn = isBeacon ? ' <span class="beacon-badge">BCN</span>' : '';
+                        const wl = isWanted(s.dx_call) ? ' <span style="color:#ffeb3b;font-size:.8em;">★</span>' : '';
+                        return '<tr>' +
+                            '<td><a href="https://qrz.com/db/' + s.dx_call + '" target="_blank" style="color:var(--accent);">' + s.dx_call + '</a>' + bcn + wl + '</td>' +
+                            '<td>' + s.freq + '</td>' +
+                            '<td>' + (s.mode||'') + '</td>' +
+                            '<td style="color:' + (s.distance_km>8000?'#00ff80':s.distance_km>3000?'#ffcc00':'#aaa') + '">' + (s.distance_km ? Math.round(s.distance_km) : '—') + '</td>' +
+                            '<td>' + (s.score||'') + '</td>' +
+                            '<td style="color:#555;">' + (s.time||'') + '</td>' +
+                        '</tr>';
+                    }).join('');
+                }
+            }
+
+            // Carte
+            if (map6m && markers6m) {
+                markers6m.clearLayers();
+                spots6m.forEach(s => {
+                    const col = s.distance_km > 8000 ? '#00ff80' : s.distance_km > 3000 ? '#ffcc00' : '#00f3ff';
+                    const icon = L.divIcon({
+                        className: 'dx-marker-point',
+                        html: '<div style="width:10px;height:10px;background:' + col + ';border-radius:50%;border:2px solid #fff;box-shadow:0 0 5px ' + col + ';"></div>',
+                        iconSize: [14,14], iconAnchor: [7,7]
+                    });
+                    const m = L.marker([s.lat, s.lon], {icon});
+                    m.bindPopup('<b>' + s.dx_call + '</b><br>' + s.freq + ' · ' + (s.mode||'') + '<br>' + (s.distance_km?Math.round(s.distance_km)+' km':''));
+                    markers6m.addLayer(m);
+                });
+                if (spots6m.length) {
+                    try { map6m.fitBounds(markers6m.getBounds().pad(0.2)); } catch(e) {}
+                } else {
+                    map6m.setView(userLatLng, 3);
+                }
+                map6m.invalidateSize();
+            }
+        }
+
         function initMap(mapId) {
             const map = L.map(mapId, {
                 worldCopyJump: true,
@@ -2137,6 +2307,7 @@
 
             markersHF.addTo(mapHF);
             markersVHF.addTo(mapVHF);
+            update6mPanel(spots);
         }
 
         function initCharts() {
@@ -3035,6 +3206,9 @@
                  if (cur !== 'smart') localStorage.setItem('prevTheme', cur);
              }
              applySmartMode();
+             if (smartMode && !map6m) {
+                 setTimeout(init6mMap, 500);
+             }
 
              setInterval(updateTimeDisplay, 1000);
 
@@ -3977,25 +4151,26 @@
                 list.innerHTML = opps.map(o => {
                     const st  = statusLabels[o.status] || { label: o.status, color: '#888', bg: 'transparent' };
                     const days = o.days_left != null
-                        ? `<span style="color:#aaa;font-size:1.0em;">J-${o.days_left}</span>`
+                        ? `<span style="color:#aaa;font-size:0.78em;white-space:nowrap;">J-${o.days_left}</span>`
                         : '';
                     const bands = o.missing_bands
-                        ? `<span style="color:#00aaff;font-size:0.95em;"> · manque: ${o.missing_bands.join(', ')}</span>`
+                        ? `<span style="color:#4db8ff;font-size:0.75em;white-space:nowrap;">manque: ${o.missing_bands.join(', ')}</span>`
                         : '';
-                    const link = o.link
-                        ? `href="${o.link}" target="_blank"`
-                        : '';
+                    const link = o.link ? `href="${o.link}" target="_blank"` : '';
                     return `
-                    <div style="display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:4px;
-                                background:${st.bg};border-left:3px solid ${st.color};font-family:monospace;">
-                      <span style="font-size:0.92em;font-weight:bold;color:#fff;">
+                    <div style="display:grid;grid-template-columns:90px 1fr auto auto;
+                                align-items:center;gap:6px 8px;
+                                padding:5px 8px;border-radius:4px;
+                                background:${st.bg};border-left:3px solid ${st.color};
+                                font-family:monospace;margin-bottom:2px;">
+                      <span style="font-size:0.88em;font-weight:bold;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                         <a ${link} style="color:#fff;text-decoration:none;">${o.call}</a>
                       </span>
-                      <span style="font-size:0.82em;color:#aaa;">${o.dxcc}</span>
-                      <span style="font-size:0.78em;padding:1px 5px;border-radius:3px;
-                                   background:${st.color};color:#000;font-weight:bold;">${st.label}</span>
-                      ${bands}
-                      <span style="margin-left:auto;">${days}</span>
+                      <span style="font-size:0.75em;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${o.dxcc}</span>
+                      <span style="font-size:0.7em;padding:1px 6px;border-radius:3px;white-space:nowrap;
+                                   background:${st.color};color:#000;font-weight:bold;justify-self:end;">${st.label}</span>
+                      <span style="justify-self:end;">${days}</span>
+                      ${bands ? `<span style="grid-column:2/-1;font-size:0.72em;color:#4db8ff;padding-left:2px;">↳ manque: ${o.missing_bands.join(', ')}</span>` : ''}
                     </div>`;
                 }).join('');
 
