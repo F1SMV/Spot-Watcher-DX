@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <link rel="stylesheet" href="/static/base.css">
-<title>📡 NEURAL DX v8.2</title>
+<title>📡 NEURAL DX v9.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230e0e0e'/><text y='.9em' font-size='80' x='10'>📡</text></svg>"/>
 <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -64,55 +64,132 @@
         }
         body {
             background-color: var(--bg-color);
+            background-image:
+                radial-gradient(ellipse at 20% 0%, rgba(0,243,255,0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 100%, rgba(139,92,246,0.03) 0%, transparent 50%);
             color: var(--text-main);
             transition: background-color 0.3s, color 0.3s;
             overflow-x: hidden;
         }
         #header {
-            background-color: var(--panel-bg);
-            padding: 8px 16px;
-            border-bottom: var(--border);
+            background: linear-gradient(180deg, #0a0f1e 0%, #070b18 100%);
+            padding: 0;
+            border-bottom: 1px solid rgba(0,243,255,0.15);
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.6), 0 0 40px rgba(0,243,255,0.03);
+            position: relative;
+        }
+        #header::before {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.4;
         }
         #header-row1 {
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 6px;
+            gap: 8px;
+            padding: 8px 16px 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
         }
         #header-row2 {
             display: flex;
             align-items: center;
             flex-wrap: wrap;
-            gap: 5px;
+            gap: 3px;
+            padding: 5px 16px 6px;
+            background: rgba(0,0,0,0.2);
         }
         #title {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.3em;
+            font-size: 1.1em;
             color: var(--accent);
-            text-shadow: 0 0 5px var(--accent);
+            text-shadow: 0 0 10px rgba(0,243,255,0.5), 0 0 30px rgba(0,243,255,0.2);
             white-space: nowrap;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #title::before {
+            content: '';
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            animation: blink-dot 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @keyframes blink-dot {
+            0%,100% { opacity:1; box-shadow: 0 0 8px var(--accent); }
+            50%      { opacity:0.4; box-shadow: 0 0 3px var(--accent); }
         }
         #nav-links {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 2px;
             align-items: center;
         }
         #voice-controls {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
+            gap: 4px;
             align-items: center;
         }
+        /* Indicateurs cockpit */
+        #indicators {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            align-items: stretch;
+        }
+        .indicator-item {
+            padding: 2px 10px;
+            font-size: 0.68em;
+            border-left: 1px solid rgba(0,243,255,0.1);
+            color: #556;
+            font-family: 'Share Tech Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .indicator-item:first-child { border-left: none; }
+        .indicator-item span {
+            color: var(--accent);
+            font-weight: bold;
+        }
+        /* Nav links cockpit */
+        .icon-button {
+            font-size: 0.68em !important;
+            padding: 4px 10px !important;
+            border-radius: 3px !important;
+            border: 1px solid rgba(0,243,255,0.12) !important;
+            background: rgba(0,243,255,0.03) !important;
+            color: #778 !important;
+            text-decoration: none;
+            transition: all .2s;
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: 0.5px;
+        }
+        .icon-button:hover {
+            border-color: rgba(0,243,255,0.4) !important;
+            color: var(--accent) !important;
+            background: rgba(0,243,255,0.08) !important;
+            box-shadow: 0 0 10px rgba(0,243,255,0.1);
+        }
         @media (max-width: 600px) {
-            #title { font-size: 1em; }
+            #title { font-size: 0.85em; letter-spacing: 1px; }
         }
         #ticker-container {
-            background-color: #0d0d0d;
+            background: linear-gradient(90deg, #050810, #080d1a, #050810);
+            border-top: 1px solid rgba(0,243,255,0.08);
+            border-bottom: 1px solid rgba(0,243,255,0.08);
             color: var(--text-main);
             padding: 5px 0;
             overflow: hidden;
@@ -317,23 +394,32 @@
             gap: 10px;
         }
         .panel {
-            background-color: var(--panel-bg);
-            border: var(--border);
-            border-radius: 5px;
+            background: linear-gradient(160deg, rgba(14,20,38,0.97) 0%, rgba(8,12,24,0.99) 100%);
+            border: 1px solid rgba(0,243,255,0.07);
+            border-radius: 6px;
             padding: 10px;
             min-height: 150px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.025);
+            transition: border-color .2s;
+        }
+        .panel:hover {
+            border-color: rgba(0,243,255,0.13);
         }
         .panel-header {
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.1em;
+            font-size: 0.72em;
             color: var(--accent);
             margin-bottom: 8px;
-            border-bottom: 1px dotted #333;
-            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(0,243,255,0.08);
+            padding: 5px 2px 8px;
             display: flex;
             align-items: center;
             cursor: grab;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 8px rgba(0,243,255,0.25);
+            background: linear-gradient(90deg, rgba(0,243,255,0.04) 0%, transparent 70%);
+            margin: -10px -10px 8px -10px;
+            padding: 7px 10px 7px 10px;
         }
         .dd-handle {
             font-size: 1.5em;
@@ -416,8 +502,12 @@
             border-bottom: 1px dotted #1a1a1a;
         }
         .spot-table th {
-            color: var(--text-main);
-            background-color: #1a1a1a;
+            color: var(--accent);
+            background: rgba(0,243,255,0.04);
+            border-bottom: 1px solid rgba(0,243,255,0.12);
+            font-size: 0.72em;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
             position: sticky;
             top: 0;
         }
@@ -997,6 +1087,735 @@
             }
         }
 
+        /* ── 3-STATE MODE TOGGLE ─────────────────────── */
+        #mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid rgba(0,243,255,0.2);
+            background: rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+        .mode-btn {
+            padding: 4px 12px;
+            font-size: 0.62em;
+            font-family: 'Orbitron', monospace;
+            letter-spacing: 1px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: #445;
+            transition: all .2s;
+            border-right: 1px solid rgba(0,243,255,0.1);
+            white-space: nowrap;
+        }
+        .mode-btn:last-child { border-right: none; }
+        .mode-btn:hover { color: #778; background: rgba(0,243,255,0.04); }
+        .mode-btn.active-classic {
+            background: rgba(0,243,255,0.12);
+            color: var(--accent);
+            box-shadow: inset 0 0 10px rgba(0,243,255,0.1);
+        }
+        .mode-btn.active-smart {
+            background: rgba(139,92,246,0.15);
+            color: #a78bfa;
+            box-shadow: inset 0 0 10px rgba(139,92,246,0.15);
+        }
+        .mode-btn.active-cockpit {
+            background: rgba(249,115,22,0.15);
+            color: #fb923c;
+            box-shadow: inset 0 0 10px rgba(249,115,22,0.1);
+        }
+
+        /* ── COCKPIT MODE ────────────────────────────── */
+        /* ════════════════════════════════════════
+           COCKPIT MODE — FULL REWRITE v9.0
+           ════════════════════════════════════════ */
+        #cockpit-layout {
+            display: none;
+            grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) minmax(0,320px);
+            grid-template-rows: 1fr;
+            gap: 8px;
+            padding: 8px;
+            height: calc(100vh - 88px);
+            overflow: hidden;
+        }
+        /* Scrollable columns */
+        .ck-col {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-width: 0;
+        }
+        .ck-col::-webkit-scrollbar { width: 3px; }
+        .ck-col::-webkit-scrollbar-thumb { background: rgba(0,243,255,0.15); border-radius: 3px; }
+        /* Panel cockpit générique */
+        .ck-panel {
+            background: linear-gradient(160deg, rgba(10,15,28,0.98) 0%, rgba(6,10,20,0.99) 100%);
+            border: 1px solid rgba(0,243,255,0.08);
+            border-radius: 8px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .ck-panel:hover { border-color: rgba(0,243,255,0.14); }
+        .ck-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.6em;
+            color: var(--accent);
+            letter-spacing: 2px;
+            padding: 7px 12px;
+            border-bottom: 1px solid rgba(0,243,255,0.07);
+            background: linear-gradient(90deg, rgba(0,243,255,0.05), transparent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ck-title.orange { color: #fb923c; background: linear-gradient(90deg, rgba(251,146,60,0.07), transparent); border-bottom-color: rgba(251,146,60,0.12); }
+        .ck-title.green  { color: #22C55E; background: linear-gradient(90deg, rgba(34,197,94,0.07), transparent); border-bottom-color: rgba(34,197,94,0.12); }
+        /* Stats 24h */
+        #ck-stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+        .ck-stat {
+            background: linear-gradient(160deg, rgba(10,15,28,0.98), rgba(6,10,20,0.99));
+            border: 1px solid rgba(0,243,255,0.07);
+            border-radius: 6px;
+            padding: 10px 8px 8px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .ck-stat::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--sc, var(--accent));
+            opacity: 0.7;
+        }
+        .ck-stat-v {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5em;
+            font-weight: 900;
+            color: var(--sc, var(--accent));
+            line-height: 1;
+            text-shadow: 0 0 16px var(--sc, rgba(0,243,255,0.5));
+        }
+        .ck-stat-l { font-size: 0.55em; color: #3a4560; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+        /* Solar panel */
+        #ck-solar-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+        }
+        .ck-solar-item {
+            padding: 10px 8px;
+            text-align: center;
+            border-right: 1px solid rgba(0,243,255,0.06);
+        }
+        .ck-solar-item:last-child { border-right: none; }
+        .ck-solar-label { font-size: 0.58em; color: #3a4560; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .ck-solar-val {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.4em;
+            font-weight: 900;
+            line-height: 1;
+        }
+        /* Band Conditions */
+        #ck-bc-grid {
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .ck-bc-row {
+            display: grid;
+            grid-template-columns: 38px 1fr 62px;
+            align-items: center;
+            gap: 8px;
+        }
+        .ck-bc-band { font-size: 0.68em; color: #3a4560; font-family: 'Share Tech Mono', monospace; text-align: right; }
+        .ck-bc-wrap { height: 7px; background: rgba(255,255,255,0.03); border-radius: 4px; overflow: hidden; }
+        .ck-bc-fill { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(.4,0,.2,1); }
+        .ck-bc-lbl { font-size: 0.6em; font-family: 'Share Tech Mono', monospace; font-weight: bold; text-align: right; }
+        /* 6m Magic Band */
+        #ck-6m-body {
+            display: grid;
+            grid-template-columns: 1.05fr 1.4fr 1fr;
+            gap: 12px;
+            padding: 14px;
+            align-items: stretch;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(255,214,10,0.10), transparent 26%),
+                linear-gradient(180deg, rgba(7,11,25,0.92), rgba(3,8,18,0.98));
+        }
+        .ck-6m-hero {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2px 0 6px;
+        }
+        .ck-6m-ribbon {
+            font-family: 'Orbitron', sans-serif;
+            font-size: .66em;
+            letter-spacing: 1.2px;
+            color: #e9ff5a;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(233,255,90,.55);
+        }
+        .ck-6m-main-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.05em;
+            line-height: 1;
+            font-weight: 900;
+            color: #f3f7ff;
+            text-shadow: 0 0 18px rgba(34,211,238,.24);
+        }
+        .ck-6m-main-title .accent { color: #7dd3fc; }
+        .ck-6m-subtitle {
+            margin-top: 2px;
+            color: #b3c0d8;
+            font-size: .82em;
+            font-style: italic;
+            letter-spacing: .02em;
+        }
+        .ck-6m-card {
+            min-height: 210px;
+            background: linear-gradient(180deg, rgba(8,16,34,.92), rgba(5,10,22,.98));
+            border: 1px solid rgba(82,161,255,.18);
+            border-radius: 12px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), 0 14px 28px rgba(0,0,0,.32);
+            overflow: hidden;
+            position: relative;
+        }
+        .ck-6m-card::before {
+            content: '';
+            position: absolute;
+            left: 0; right: 0; top: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,214,10,.75), transparent);
+        }
+        .ck-6m-card-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px 8px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: .66em;
+            color: #7dd3fc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255,255,255,.05);
+            background: linear-gradient(90deg, rgba(15,32,69,.82), rgba(8,15,31,.68));
+        }
+        .ck-6m-card-title .minor {
+            font-size: .84em;
+            color: #9dd6ff;
+        }
+        .ck-gauge-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 16px 14px 12px;
+            height: calc(100% - 40px);
+        }
+        .ck-gauge { position: relative; width: 132px; height: 132px; }
+        .ck-gauge svg { transform: rotate(-90deg); }
+        .ck-gauge-bg { fill: none; stroke: rgba(50,255,120,0.10); stroke-width: 10; }
+        .ck-gauge-arc { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dasharray 1.2s cubic-bezier(.4,0,.2,1); }
+        .ck-gauge-inner { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .ck-gauge-pct { font-family: 'Orbitron', monospace; font-size: 1.7em; font-weight: 900; line-height: 1; }
+        .ck-gauge-sub { font-size: 0.52em; color: #8ba1c2; margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+        .ck-gauge-status { font-family: 'Orbitron', monospace; font-size: 0.74em; font-weight: bold; letter-spacing: 2px; text-shadow: 0 0 10px currentColor; }
+        .ck-6m-strength-scale {
+            width: 100%;
+            max-width: 120px;
+            display: flex;
+            justify-content: space-between;
+            font-size: .58em;
+            color: #6f84a6;
+            margin-top: 1px;
+        }
+        .ck-6m-strength-bar {
+            width: 118px;
+            height: 7px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255,255,255,.05);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.04);
+        }
+        #ck-6m-strength-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #1dd75b, #90f93c);
+            transition: width .9s ease;
+            box-shadow: 0 0 12px rgba(29,215,91,.55);
+        }
+        .ck-6m-map-wrap {
+            position: relative;
+            height: calc(100% - 40px);
+            min-height: 168px;
+            padding: 10px;
+        }
+        #ck-6m-map {
+            height: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(60,173,255,.12);
+            background: radial-gradient(circle at 50% 50%, rgba(19,78,158,.30), rgba(4,10,24,.95) 68%);
+            box-shadow: inset 0 0 26px rgba(0,0,0,.45);
+        }
+        .ck-6m-map-label {
+            position: absolute;
+            right: 14px;
+            font-size: .58em;
+            color: #ffd84d;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(255,216,77,.4);
+            z-index: 500;
+        }
+        .ck-6m-map-label.high { top: 14px; }
+        .ck-6m-map-label.low { bottom: 14px; }
+        .ck-6m-spots {
+            position: absolute;
+            left: 16px;
+            bottom: 14px;
+            max-width: calc(100% - 56px);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            z-index: 500;
+        }
+        .ck-6m-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: .62em;
+            font-family: 'Share Tech Mono', monospace;
+            color: #eff7ff;
+            background: rgba(3,8,18,.78);
+            border: 1px solid rgba(125,211,252,.26);
+            box-shadow: 0 6px 14px rgba(0,0,0,.25);
+        }
+        .ck-6m-tag::before {
+            content: '';
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--dot, #22d3ee);
+            box-shadow: 0 0 8px var(--dot, #22d3ee);
+        }
+        .ck-6m-status-wrap {
+            padding: 14px 14px 12px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100% - 40px);
+        }
+        .ck-6m-band-range {
+            color: #e3f0ff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: .98em;
+            font-weight: 700;
+            letter-spacing: .5px;
+        }
+        .ck-6m-band-sub {
+            margin-top: 4px;
+            color: #7fbef5;
+            font-size: .65em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .ck-6m-chart-box {
+            margin-top: 10px;
+            height: 92px;
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(5,22,52,.70), rgba(4,12,29,.95));
+            border: 1px solid rgba(60,173,255,.14);
+            position: relative;
+            overflow: hidden;
+        }
+        .ck-6m-chart-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(to top, rgba(255,255,255,.08) 1px, transparent 1px),
+                linear-gradient(to right, rgba(255,255,255,.05) 1px, transparent 1px);
+            background-size: 100% 22px, 28px 100%;
+            opacity: .35;
+        }
+        .ck-6m-chart-box svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+        .ck-6m-chart-axis {
+            margin-top: 6px;
+            display: flex;
+            justify-content: space-between;
+            color: #7a9cc6;
+            font-size: .58em;
+        }
+        .ck-6m-kpi {
+            margin-top: auto;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,.05);
+        }
+        .ck-6m-kpi-label {
+            color: #7fbef5;
+            font-size: .63em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .ck-6m-kpi-row {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        #ck-6m-dxcc {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2em;
+            line-height: 1;
+            color: #6cf37e;
+            text-shadow: 0 0 16px rgba(108,243,126,.35);
+        }
+        #ck-6m-dxcc-sub {
+            color: #9ecbff;
+            font-size: .68em;
+        }
+        .ck-6m-spot-row { display: grid; grid-template-columns: 65px 55px 1fr; gap: 4px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        @media (max-width: 1380px) {
+            #ck-6m-body { grid-template-columns: 1fr; }
+            .ck-6m-card { min-height: 180px; }
+            .ck-6m-map-wrap { height: 230px; }
+        }
+        /* Top Spots */
+        .ck-spot-row {
+            display: grid;
+            grid-template-columns: 18px 1fr auto auto;
+            gap: 4px 8px;
+            padding: 5px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            align-items: center;
+        }
+        .ck-spot-row:hover { background: rgba(0,243,255,0.02); }
+        .ck-spot-rank { font-size: 0.6em; color: #2a3550; text-align: right; font-family: monospace; }
+        .ck-spot-call { font-size: 0.82em; font-weight: bold; color: var(--accent); }
+        .ck-spot-meta { font-size: 0.65em; color: #3a4560; }
+        .ck-spot-score { font-size: 0.68em; font-family: monospace; }
+        /* DX Feed */
+        #ck-feed-rows { font-family: 'Share Tech Mono', monospace; font-size: 0.78em; }
+        .ck-feed-row {
+            display: grid;
+            grid-template-columns: 38px 72px 65px 40px 1fr;
+            gap: 0 5px;
+            padding: 3px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            align-items: center;
+            transition: background .1s;
+        }
+        .ck-feed-row:hover { background: rgba(0,243,255,0.025); }
+        .ck-feed-row.ck-new { animation: ck-flash .6s ease-out; }
+        @keyframes ck-flash { 0% { background: rgba(0,243,255,0.1); } 100% { background: transparent; } }
+        .ck-ft { color: #2a3550; }
+        .ck-fc { color: var(--accent); font-weight: bold; }
+        .ck-fc.ck-wl  { color: #fbbf24; }
+        .ck-fc.ck-new-dxcc { color: #f87171; }
+        .ck-ff { color: #2a3550; }
+        .ck-fi { color: #2a3550; font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ck-feed-hdr {
+            display: grid;
+            grid-template-columns: 38px 72px 65px 40px 1fr;
+            gap: 0 5px;
+            padding: 5px 10px;
+            font-size: 0.6em;
+            color: #1e2840;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: rgba(0,243,255,0.02);
+            border-bottom: 1px solid rgba(0,243,255,0.06);
+            position: sticky; top: 0;
+        }
+        /* Spot Manuel cockpit */
+        #ck-spotter { padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
+        .ck-input {
+            width: 100%;
+            padding: 6px 10px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(0,243,255,0.1);
+            border-radius: 4px;
+            color: #e8ffff;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.76em;
+            outline: none;
+            transition: border-color .2s;
+        }
+        .ck-input:focus { border-color: rgba(0,243,255,0.3); }
+        .ck-input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+        .ck-btn {
+            width: 100%;
+            padding: 7px;
+            border-radius: 4px;
+            border: 1px solid rgba(0,243,255,0.2);
+            background: rgba(0,243,255,0.06);
+            color: var(--accent);
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.6em;
+            letter-spacing: 1.5px;
+            transition: all .2s;
+        }
+        .ck-btn:hover { background: rgba(0,243,255,0.12); border-color: rgba(0,243,255,0.4); }
+        #ck-spot-st { font-size: 0.62em; color: #3a4560; text-align: center; min-height: 14px; }
+        /* Opps DXCC */
+        .ck-opp-row {
+            display: grid;
+            grid-template-columns: 70px 1fr auto;
+            gap: 6px;
+            padding: 5px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            align-items: center;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.72em;
+        }
+        .ck-opp-row:hover { background: rgba(0,243,255,0.02); }
+        /* Live dot */
+        .ck-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.75em;
+            color: #22C55E;
+        }
+        .ck-live::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #22C55E;
+            box-shadow: 0 0 6px #22C55E;
+            animation: blink-dot 1.5s ease-in-out infinite;
+        }
+        @media (max-width: 1200px) {
+            #cockpit-layout { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 800px) {
+            #cockpit-layout { grid-template-columns: 1fr; height: auto; overflow-y: auto; }
+        }
+        body.mode-cockpit #cockpit-layout { display: grid; }
+        body.mode-cockpit #main-container { display: none; }
+        body.mode-cockpit #dashboard-panel { display: none; }
+        body.mode-cockpit #ticker-container { display: none; }
+
+        /* Stats bar */
+        #cockpit-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .cstat {
+            background: linear-gradient(135deg, rgba(14,20,38,0.98), rgba(8,12,24,0.99));
+            border: 1px solid rgba(0,243,255,0.08);
+            border-radius: 6px;
+            padding: 10px 12px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .cstat::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--cstat-color, var(--accent));
+            opacity: 0.6;
+        }
+        .cstat-val {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.6em;
+            font-weight: 900;
+            color: var(--cstat-color, var(--accent));
+            line-height: 1;
+            text-shadow: 0 0 15px var(--cstat-color, rgba(0,243,255,0.5));
+        }
+        .cstat-lbl {
+            font-size: 0.58em;
+            color: #445;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+        .cstat-delta {
+            font-size: 0.6em;
+            color: #22C55E;
+            margin-top: 2px;
+        }
+
+        /* Left column cockpit */
+        #cockpit-left {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        #cockpit-left::-webkit-scrollbar { width: 3px; }
+        #cockpit-left::-webkit-scrollbar-thumb { background: rgba(0,243,255,0.2); border-radius: 3px; }
+
+        /* Band conditions */
+        #band-conditions {
+            background: linear-gradient(160deg, rgba(14,20,38,0.98), rgba(8,12,24,0.99));
+            border: 1px solid rgba(0,243,255,0.08);
+            border-radius: 6px;
+            padding: 10px;
+        }
+        .bc-header {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.65em;
+            color: var(--accent);
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(0,243,255,0.08);
+        }
+        .bc-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px 12px;
+        }
+        .bc-row {
+            display: grid;
+            grid-template-columns: 38px 1fr 52px;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 0;
+        }
+        .bc-band {
+            font-size: 0.68em;
+            color: #556;
+            font-family: 'Share Tech Mono', monospace;
+            text-align: right;
+        }
+        .bc-bar-wrap {
+            height: 6px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .bc-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width .8s cubic-bezier(.4,0,.2,1);
+        }
+        .bc-label {
+            font-size: 0.58em;
+            text-align: right;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: bold;
+        }
+
+        /* DX Feed terminal */
+        #cockpit-right {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow: hidden;
+        }
+        #dx-feed {
+            background: rgba(4,8,16,0.97);
+            border: 1px solid rgba(0,243,255,0.1);
+            border-radius: 6px;
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        #dx-feed-header {
+            padding: 7px 10px;
+            border-bottom: 1px solid rgba(0,243,255,0.08);
+            font-family: 'Orbitron', monospace;
+            font-size: 0.62em;
+            color: var(--accent);
+            letter-spacing: 1.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,243,255,0.03);
+        }
+        #dx-feed-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8em;
+        }
+        #dx-feed-live::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #22C55E;
+            box-shadow: 0 0 6px #22C55E;
+            animation: blink-dot 1.5s ease-in-out infinite;
+        }
+        #dx-feed-body {
+            flex: 1;
+            overflow-y: auto;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.72em;
+        }
+        #dx-feed-body::-webkit-scrollbar { width: 3px; }
+        #dx-feed-body::-webkit-scrollbar-thumb { background: rgba(0,243,255,0.15); }
+        .feed-row {
+            display: grid;
+            grid-template-columns: 42px 80px 70px 50px 1fr;
+            gap: 0 6px;
+            padding: 3px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            align-items: center;
+            transition: background .15s;
+        }
+        .feed-row:hover { background: rgba(0,243,255,0.03); }
+        .feed-row.feed-new { animation: feed-flash .5s ease-out; }
+        @keyframes feed-flash {
+            0% { background: rgba(0,243,255,0.12); }
+            100% { background: transparent; }
+        }
+        .feed-time { color: #334; font-size: 0.9em; }
+        .feed-call { color: var(--accent); font-weight: bold; }
+        .feed-call.feed-wl { color: #fbbf24; }
+        .feed-call.feed-new-dxcc { color: #f87171; }
+        .feed-freq { color: #556; }
+        .feed-band { }
+        .feed-info { color: #445; font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .feed-hdr {
+            display: grid;
+            grid-template-columns: 42px 80px 70px 50px 1fr;
+            gap: 0 6px;
+            padding: 5px 10px;
+            border-bottom: 1px solid rgba(0,243,255,0.1);
+            font-size: 0.68em;
+            color: #334;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: rgba(0,243,255,0.02);
+            position: sticky; top: 0;
+        }
+
         /* ── MODE SMART ──────────────────────────────── */
         #smart-toggle-wrap {
             display: flex;
@@ -1204,6 +2023,1329 @@
             border-color: #1E293B;
             box-shadow: 0 0 20px rgba(34,211,238,0.04);
         }
+
+
+        /* ════════════════════════════════════════
+           COCKPIT PHOTO UI — override ChatGPT 2026
+           Objectif : cockpit radio dense, sombre, lisible, néon cyan/orange.
+           Ne touche pas aux IDs JS : uniquement rendu visuel.
+           ════════════════════════════════════════ */
+
+        body.mode-cockpit {
+            --ck-bg0: #030611;
+            --ck-bg1: #07111f;
+            --ck-glass: rgba(8, 18, 34, .78);
+            --ck-glass-strong: rgba(10, 24, 44, .92);
+            --ck-line: rgba(34, 211, 238, .22);
+            --ck-line-soft: rgba(148, 163, 184, .12);
+            --ck-cyan: #22d3ee;
+            --ck-blue: #38bdf8;
+            --ck-orange: #fb923c;
+            --ck-green: #22c55e;
+            --ck-red: #f87171;
+            --ck-purple: #a78bfa;
+            --ck-text: #dff9ff;
+            --ck-muted: #6f86a8;
+            --bg-color: var(--ck-bg0);
+            --panel-bg: var(--ck-glass);
+            --text-main: var(--ck-text);
+            --accent: var(--ck-cyan);
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 18% 12%, rgba(34,211,238,.18), transparent 30%),
+                radial-gradient(circle at 82% 18%, rgba(251,146,60,.12), transparent 28%),
+                radial-gradient(circle at 50% 105%, rgba(59,130,246,.16), transparent 36%),
+                linear-gradient(135deg, #02040b 0%, #07111f 46%, #02040b 100%) !important;
+        }
+
+        body.mode-cockpit::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                linear-gradient(rgba(34,211,238,.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(34,211,238,.028) 1px, transparent 1px);
+            background-size: 32px 32px;
+            mask-image: radial-gradient(circle at center, black 0%, transparent 82%);
+        }
+
+        body.mode-cockpit::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1;
+            background:
+                repeating-linear-gradient(
+                    to bottom,
+                    rgba(255,255,255,.018) 0,
+                    rgba(255,255,255,.018) 1px,
+                    transparent 1px,
+                    transparent 4px
+                );
+            opacity: .38;
+            mix-blend-mode: screen;
+        }
+
+        body.mode-cockpit #header {
+            z-index: 5;
+            background:
+                linear-gradient(180deg, rgba(4,10,22,.96), rgba(3,7,16,.90)) !important;
+            border-bottom: 1px solid rgba(34,211,238,.24) !important;
+            box-shadow:
+                0 16px 50px rgba(0,0,0,.58),
+                0 0 32px rgba(34,211,238,.08) !important;
+            backdrop-filter: blur(18px);
+        }
+
+        body.mode-cockpit #header-row1,
+        body.mode-cockpit #header-row2 {
+            background: transparent !important;
+        }
+
+        body.mode-cockpit #title {
+            color: #e9fbff !important;
+            text-shadow: 0 0 12px rgba(34,211,238,.75), 0 0 28px rgba(34,211,238,.22);
+        }
+
+        body.mode-cockpit .indicator-item,
+        body.mode-cockpit .icon-button,
+        body.mode-cockpit .mode-btn {
+            border-color: rgba(34,211,238,.18) !important;
+            background: rgba(7,16,31,.58) !important;
+            color: #8fb4c7 !important;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,.025);
+        }
+
+        body.mode-cockpit .icon-button:hover,
+        body.mode-cockpit .mode-btn:hover {
+            color: #e9fbff !important;
+            border-color: rgba(34,211,238,.50) !important;
+            box-shadow: 0 0 18px rgba(34,211,238,.14);
+        }
+
+        body.mode-cockpit .mode-btn.active-cockpit {
+            color: #ffd2b2 !important;
+            border-color: rgba(251,146,60,.50) !important;
+            background: linear-gradient(180deg, rgba(251,146,60,.22), rgba(251,146,60,.07)) !important;
+            box-shadow: inset 0 0 18px rgba(251,146,60,.15), 0 0 18px rgba(251,146,60,.12) !important;
+        }
+
+        body.mode-cockpit #cockpit-layout {
+            position: relative;
+            z-index: 2;
+            grid-template-columns: minmax(390px, 1.25fr) minmax(360px, 1fr) minmax(390px, .95fr);
+            gap: 14px;
+            padding: 14px;
+            height: calc(100vh - 82px);
+            overflow: hidden;
+            perspective: 1200px;
+        }
+
+        body.mode-cockpit .ck-col {
+            gap: 14px;
+            padding: 2px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(34,211,238,.35) transparent;
+        }
+
+        body.mode-cockpit .ck-col::-webkit-scrollbar { width: 6px; }
+        body.mode-cockpit .ck-col::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(34,211,238,.55), rgba(251,146,60,.25));
+            border-radius: 999px;
+        }
+
+        body.mode-cockpit #ck-stats-row {
+            gap: 12px;
+        }
+
+        body.mode-cockpit .ck-stat {
+            min-height: 92px;
+            border-radius: 18px;
+            padding: 16px 10px 12px;
+            background:
+                linear-gradient(160deg, rgba(255,255,255,.075), rgba(255,255,255,.015)),
+                radial-gradient(circle at 50% -10%, color-mix(in srgb, var(--sc, #22d3ee) 32%, transparent), transparent 55%),
+                rgba(5, 14, 28, .78);
+            border: 1px solid color-mix(in srgb, var(--sc, #22d3ee) 38%, transparent);
+            box-shadow:
+                0 16px 38px rgba(0,0,0,.38),
+                0 0 34px color-mix(in srgb, var(--sc, #22d3ee) 16%, transparent),
+                inset 0 1px 0 rgba(255,255,255,.12),
+                inset 0 -18px 42px rgba(0,0,0,.20);
+            backdrop-filter: blur(16px);
+        }
+
+        body.mode-cockpit .ck-stat::after {
+            height: 3px;
+            opacity: 1;
+            box-shadow: 0 0 18px var(--sc, #22d3ee);
+        }
+
+        body.mode-cockpit .ck-stat-v {
+            font-size: clamp(1.7rem, 2.4vw, 2.55rem);
+            color: #f7fdff;
+            text-shadow:
+                0 0 10px var(--sc, #22d3ee),
+                0 0 26px color-mix(in srgb, var(--sc, #22d3ee) 58%, transparent);
+        }
+
+        body.mode-cockpit .ck-stat-l {
+            color: #91a8c4;
+            font-size: .66em;
+            margin-top: 8px;
+        }
+
+        body.mode-cockpit .ck-panel {
+            position: relative;
+            border-radius: 20px;
+            background:
+                linear-gradient(155deg, rgba(255,255,255,.07), rgba(255,255,255,.018) 38%, rgba(255,255,255,.032)),
+                var(--ck-glass);
+            border: 1px solid var(--ck-line);
+            box-shadow:
+                0 18px 45px rgba(0,0,0,.46),
+                0 0 0 1px rgba(255,255,255,.045) inset,
+                inset 0 1px 0 rgba(255,255,255,.10);
+            backdrop-filter: blur(18px) saturate(1.25);
+            overflow: hidden;
+        }
+
+        body.mode-cockpit .ck-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(110deg, rgba(255,255,255,.11), transparent 30%, transparent 68%, rgba(34,211,238,.06)),
+                radial-gradient(circle at 18% 0%, rgba(34,211,238,.12), transparent 36%);
+            opacity: .70;
+        }
+
+        body.mode-cockpit .ck-panel:hover {
+            border-color: rgba(34,211,238,.42);
+            box-shadow:
+                0 22px 55px rgba(0,0,0,.52),
+                0 0 28px rgba(34,211,238,.13),
+                0 0 0 1px rgba(255,255,255,.06) inset;
+        }
+
+        body.mode-cockpit .ck-title {
+            position: relative;
+            z-index: 1;
+            min-height: 42px;
+            padding: 12px 16px;
+            color: #eafdff;
+            font-size: .72em;
+            font-weight: 900;
+            letter-spacing: .16em;
+            background:
+                linear-gradient(90deg, rgba(34,211,238,.18), rgba(34,211,238,.045) 45%, transparent);
+            border-bottom: 1px solid rgba(34,211,238,.20);
+            text-shadow: 0 0 12px rgba(34,211,238,.52);
+        }
+
+        body.mode-cockpit .ck-title::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 12px currentColor;
+            margin-right: 10px;
+            flex: 0 0 auto;
+        }
+
+        body.mode-cockpit .ck-title.orange {
+            color: #ffd7ba;
+            background: linear-gradient(90deg, rgba(251,146,60,.22), rgba(251,146,60,.055) 46%, transparent);
+            border-bottom-color: rgba(251,146,60,.28);
+            text-shadow: 0 0 14px rgba(251,146,60,.52);
+        }
+
+        body.mode-cockpit .ck-title.green {
+            color: #d5ffe3;
+            background: linear-gradient(90deg, rgba(34,197,94,.20), rgba(34,197,94,.05) 46%, transparent);
+            border-bottom-color: rgba(34,197,94,.25);
+        }
+
+        body.mode-cockpit #ck-solar-grid {
+            position: relative;
+            z-index: 1;
+            padding: 10px;
+            gap: 10px;
+        }
+
+        body.mode-cockpit .ck-solar-item {
+            border: 1px solid var(--ck-line-soft);
+            border-radius: 16px;
+            padding: 16px 8px;
+            background: rgba(3, 9, 20, .48);
+            box-shadow: inset 0 0 24px rgba(34,211,238,.035);
+        }
+
+        body.mode-cockpit .ck-solar-label,
+        body.mode-cockpit .ck-bc-band,
+        body.mode-cockpit .ck-gauge-sub,
+        body.mode-cockpit .ck-spot-meta,
+        body.mode-cockpit .ck-feed-hdr,
+        body.mode-cockpit .ck-fi,
+        body.mode-cockpit .ck-ft,
+        body.mode-cockpit .ck-ff,
+        body.mode-cockpit .ck-stat-l {
+            color: var(--ck-muted);
+        }
+
+        body.mode-cockpit .ck-solar-val {
+            font-size: 1.8em;
+            text-shadow: 0 0 18px currentColor;
+        }
+
+        body.mode-cockpit #ck-bc-grid {
+            position: relative;
+            z-index: 1;
+            padding: 14px 16px 16px;
+            gap: 9px;
+        }
+
+        body.mode-cockpit .ck-bc-row {
+            grid-template-columns: 46px 1fr 76px;
+            gap: 11px;
+        }
+
+        body.mode-cockpit .ck-bc-wrap {
+            height: 10px;
+            background: rgba(0,0,0,.34);
+            border: 1px solid rgba(255,255,255,.06);
+            box-shadow: inset 0 1px 8px rgba(0,0,0,.42);
+        }
+
+        body.mode-cockpit .ck-bc-fill {
+            box-shadow: 0 0 12px currentColor;
+        }
+
+        body.mode-cockpit .ck-bc-lbl {
+            font-size: .66em;
+            text-shadow: 0 0 10px currentColor;
+        }
+
+        body.mode-cockpit #ck-6m-body,
+        body.mode-cockpit #ck-spotter {
+            position: relative;
+            z-index: 1;
+        }
+
+        body.mode-cockpit #ck-6m-body {
+            grid-template-columns: 1.05fr 1.4fr 1fr;
+            gap: 14px;
+            padding: 16px;
+        }
+
+        body.mode-cockpit .ck-gauge {
+            width: 148px;
+            height: 148px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle, rgba(251,146,60,.18), transparent 48%),
+                radial-gradient(circle, rgba(0,0,0,.78), rgba(0,0,0,.15) 62%, transparent 64%);
+            box-shadow:
+                0 0 36px rgba(251,146,60,.16),
+                inset 0 0 30px rgba(0,0,0,.55);
+        }
+
+        body.mode-cockpit .ck-gauge svg {
+            width: 148px;
+            height: 148px;
+            overflow: visible;
+            filter: drop-shadow(0 0 10px rgba(251,146,60,.42));
+        }
+
+        body.mode-cockpit .ck-gauge-bg { stroke: rgba(255,255,255,.08); stroke-width: 9; }
+        body.mode-cockpit .ck-gauge-arc { stroke-width: 9; }
+
+        body.mode-cockpit .ck-gauge-pct {
+            font-size: 1.8em;
+            color: #ffd7ba !important;
+            text-shadow: 0 0 18px rgba(251,146,60,.75);
+        }
+
+        body.mode-cockpit .ck-gauge-status {
+            color: #fb923c !important;
+            font-size: .72em;
+            margin-top: 8px;
+        }
+
+        body.mode-cockpit .ck-6m-spot-row {
+            grid-template-columns: 78px 62px 1fr;
+            padding: 7px 0;
+            border-bottom-color: rgba(255,255,255,.055);
+        }
+
+        body.mode-cockpit .ck-spot-row,
+        body.mode-cockpit .ck-feed-row,
+        body.mode-cockpit .ck-opp-row {
+            position: relative;
+            z-index: 1;
+            border-bottom: 1px solid rgba(148,163,184,.07);
+        }
+
+        body.mode-cockpit .ck-spot-row {
+            grid-template-columns: 28px 1fr auto auto;
+            padding: 9px 14px;
+        }
+
+        body.mode-cockpit .ck-spot-row:hover,
+        body.mode-cockpit .ck-feed-row:hover,
+        body.mode-cockpit .ck-opp-row:hover {
+            background: linear-gradient(90deg, rgba(34,211,238,.105), transparent);
+        }
+
+        body.mode-cockpit .ck-spot-rank {
+            color: #536989;
+        }
+
+        body.mode-cockpit .ck-spot-call,
+        body.mode-cockpit .ck-fc {
+            color: #eafdff;
+            text-shadow: 0 0 10px rgba(34,211,238,.45);
+        }
+
+        body.mode-cockpit .ck-fc.ck-wl,
+        body.mode-cockpit .feed-call.feed-wl {
+            color: #fbbf24;
+            text-shadow: 0 0 10px rgba(251,191,36,.55);
+        }
+
+        body.mode-cockpit .ck-fc.ck-new-dxcc,
+        body.mode-cockpit .feed-call.feed-new-dxcc {
+            color: #ff9a9a;
+            text-shadow: 0 0 10px rgba(248,113,113,.58);
+        }
+
+        body.mode-cockpit .ck-feed-hdr {
+            z-index: 2;
+            padding: 8px 12px;
+            background: rgba(0,0,0,.26);
+            border-bottom: 1px solid rgba(34,211,238,.14);
+            color: #7da3bb;
+        }
+
+        body.mode-cockpit .ck-feed-row {
+            grid-template-columns: 44px minmax(82px, .8fr) 72px 46px minmax(0, 1fr);
+            padding: 6px 12px;
+            font-size: 1.04em;
+        }
+
+        body.mode-cockpit .ck-live {
+            color: #7dffac;
+            text-shadow: 0 0 12px rgba(34,197,94,.55);
+        }
+
+        body.mode-cockpit .ck-input {
+            padding: 11px 12px;
+            border-radius: 12px;
+            background: rgba(0,0,0,.42);
+            border: 1px solid rgba(34,211,238,.22);
+            color: #f1fdff;
+            box-shadow: inset 0 0 18px rgba(0,0,0,.25);
+        }
+
+        body.mode-cockpit .ck-input:focus {
+            border-color: rgba(34,211,238,.72);
+            box-shadow: 0 0 18px rgba(34,211,238,.16), inset 0 0 18px rgba(0,0,0,.32);
+        }
+
+        body.mode-cockpit .ck-btn {
+            padding: 12px 14px;
+            border-radius: 14px;
+            color: #06111d;
+            border: 1px solid rgba(34,211,238,.78);
+            background: linear-gradient(135deg, #67e8f9, #22d3ee 48%, #0ea5e9);
+            box-shadow: 0 12px 26px rgba(34,211,238,.16), inset 0 1px 0 rgba(255,255,255,.42);
+            font-weight: 900;
+        }
+
+        body.mode-cockpit .ck-btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+            box-shadow: 0 18px 36px rgba(34,211,238,.22);
+        }
+
+        body.mode-cockpit #ck-spot-st {
+            color: #8fb4c7;
+        }
+
+        @media (max-width: 1320px) {
+            body.mode-cockpit #cockpit-layout {
+                grid-template-columns: minmax(340px, 1fr) minmax(340px, 1fr);
+                height: auto;
+                min-height: calc(100vh - 82px);
+                overflow-y: auto;
+            }
+        }
+
+        @media (max-width: 820px) {
+            body.mode-cockpit #cockpit-layout {
+                grid-template-columns: 1fr;
+                padding: 10px;
+                gap: 10px;
+            }
+            body.mode-cockpit #ck-stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            body.mode-cockpit #ck-solar-grid,
+            body.mode-cockpit #ck-6m-body {
+                grid-template-columns: 1fr;
+            }
+            body.mode-cockpit .ck-feed-row,
+            body.mode-cockpit .ck-feed-hdr {
+                grid-template-columns: 42px 72px 66px 42px minmax(90px, 1fr);
+                font-size: .72em;
+            }
+        }
+
+        /* ── COCKPIT MAP PANELS / LIVE FEED ENHANCED ───────────────────── */
+        .ck-map-panel {
+            min-height: 300px;
+        }
+        .ck-map-frame {
+            position: relative;
+            height: 245px;
+            margin: 10px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.10);
+            background:
+                radial-gradient(circle at 20% 20%, rgba(34,211,238,0.10), transparent 35%),
+                linear-gradient(180deg, rgba(7,11,26,0.95), rgba(16,23,42,0.98));
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 10px 22px rgba(0,0,0,0.35);
+        }
+        #ck-heatmap-map {
+            height: 245px;
+        }
+        #ck-prop-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            background: #050814;
+        }
+        #ck-prop-fallback {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            color: #8aa4c8;
+            font-size: .82em;
+            letter-spacing: .04em;
+            background: radial-gradient(circle at center, rgba(34,211,238,0.12), rgba(5,8,20,0.95));
+        }
+        #ck-prop-meta {
+            padding: 0 12px 12px;
+            font-size: .78em;
+            line-height: 1.45;
+            color: #b8c4dc;
+        }
+        #ck-prop-meta b,
+        #ck-prop-status,
+        #ck-heatmap-count {
+            color: var(--accent);
+        }
+        body.mode-cockpit .ck-feed-hdr {
+            font-size: .72em !important;
+            color: #7dd3fc !important;
+            letter-spacing: 1px;
+        }
+        body.mode-cockpit .ck-feed-row {
+            font-size: .88em !important;
+            min-height: 34px;
+            border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+        }
+        body.mode-cockpit .ck-ft { color: #93a7c7 !important; font-size: .96em !important; }
+        body.mode-cockpit .ck-fc { font-size: 1.06em !important; font-weight: 800 !important; }
+        body.mode-cockpit .ck-ff { color: #d8e4ff !important; font-size: 1em !important; }
+        body.mode-cockpit .ck-fi { color: #c9d7f0 !important; font-size: .96em !important; }
+        body.mode-cockpit #cockpit-smart-list,
+        body.mode-cockpit #cockpit-opp-list,
+        body.mode-cockpit #ck-feed-rows {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(34,211,238,0.35) transparent;
+        }
+        body.mode-cockpit #cockpit-smart-list > div,
+        body.mode-cockpit #cockpit-opp-list > div {
+            font-size: .92em;
+        }
+        @media (max-width: 1200px) {
+            .ck-map-panel { min-height: 280px; }
+            .ck-map-frame, #ck-heatmap-map { height: 220px; }
+        }
+
+
+        @media (max-width: 980px) {
+            body.mode-cockpit #ck-6m-body { grid-template-columns: 1fr; }
+            body.mode-cockpit .ck-6m-map-wrap { height: 240px; }
+        }
+
+
+        /* ===== COCKPIT 6 m FINAL PATCH ===== */
+        body.mode-cockpit #cockpit-layout {
+            grid-template-columns: minmax(330px,.82fr) minmax(640px,1.85fr) minmax(360px,.95fr) !important;
+            gap: 12px !important;
+            padding: 12px !important;
+        }
+        body.mode-cockpit .ck-magic-band-panel {
+            min-height: 560px;
+            border-color: rgba(255,216,77,.45) !important;
+            box-shadow: 0 0 0 1px rgba(255,216,77,.18) inset, 0 0 32px rgba(255,216,77,.16), 0 16px 42px rgba(0,0,0,.45) !important;
+        }
+        body.mode-cockpit .ck-magic-band-panel .ck-title {
+            font-size: .78em !important;
+            color: #ffd84d !important;
+            background: linear-gradient(90deg, rgba(255,216,77,.16), rgba(34,211,238,.06), transparent) !important;
+            border-bottom-color: rgba(255,216,77,.22) !important;
+        }
+        body.mode-cockpit .ck-magic-band-panel #ck-6m-body {
+            min-height: 515px;
+            grid-template-columns: 1.05fr 1.55fr 1.05fr !important;
+            gap: 16px !important;
+        }
+        body.mode-cockpit .ck-6m-main-title { font-size: 2.55em !important; }
+        body.mode-cockpit .ck-6m-card { min-height: 255px; }
+        body.mode-cockpit .ck-6m-map-wrap { min-height: 220px; }
+        body.mode-cockpit #ck-6m-map { min-height: 220px; }
+        body.mode-cockpit #cockpit-smart-list { max-height: 430px !important; }
+        body.mode-cockpit .ck-smart6-row {
+            display: grid;
+            grid-template-columns: 30px minmax(0,1fr) 92px 90px;
+            gap: 10px;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            align-items: center;
+            background: linear-gradient(90deg, rgba(15,23,42,.82), rgba(8,13,26,.62));
+        }
+        body.mode-cockpit .ck-smart6-row:hover { background: rgba(34,211,238,.08); }
+        body.mode-cockpit .ck-smart6-rank { color:#64748b;font-size:.8em;text-align:right;font-family:monospace; }
+        body.mode-cockpit .ck-smart6-call a { font-size:1.22em;font-weight:900;text-decoration:none;text-shadow:0 0 12px currentColor; }
+        body.mode-cockpit .ck-smart6-meta { display:flex;flex-wrap:wrap;gap:6px;margin-top:5px; }
+        body.mode-cockpit .ck-smart6-meta span {
+            color:#cbd5e1;
+            background:rgba(255,255,255,.055);
+            border:1px solid rgba(255,255,255,.07);
+            border-radius:999px;
+            padding:2px 7px;
+            font-size:.78em;
+        }
+        body.mode-cockpit .ck-smart6-meta .mode {
+            font-size:.95em;
+            font-weight:900;
+            color:#ffd84d;
+            border-color:rgba(255,216,77,.24);
+            background:rgba(255,216,77,.10);
+        }
+        body.mode-cockpit .ck-smart6-score { display:flex;flex-direction:column;gap:5px;align-items:flex-end; }
+        body.mode-cockpit .ck-smart6-bar { width:76px;height:8px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden; }
+        body.mode-cockpit .ck-smart6-fill { height:100%;border-radius:inherit;box-shadow:0 0 12px currentColor; }
+        body.mode-cockpit .ck-smart6-score-val { font-family:Orbitron,monospace;font-size:1em;font-weight:900; }
+        body.mode-cockpit .ck-smart6-rarity { text-align:right;font-size:.76em; }
+        body.mode-cockpit .ck-feed-row { grid-template-columns: 48px 112px 78px 44px 1fr !important; min-height:42px !important; }
+        body.mode-cockpit .ck-feed-hdr { grid-template-columns: 48px 112px 78px 44px 1fr !important; }
+        body.mode-cockpit .ck-fc { font-size:1.35em !important; font-weight:900 !important; text-shadow:0 0 12px currentColor; }
+        body.mode-cockpit .ck-ff, body.mode-cockpit .ck-fi { font-size:1.02em !important; }
+        #ck-voacap-canvas { height: 190px !important; background:#06101f; }
+        #ck-voacap-meta { color:#93a7c7 !important; font-size:.68em !important; }
+        #ck-spot-st.ok { color:#22c55e !important; }
+        #ck-spot-st.err { color:#ef4444 !important; }
+        @media (max-width: 1250px) {
+            body.mode-cockpit #cockpit-layout { grid-template-columns: 1fr !important; height:auto !important; overflow-y:auto !important; }
+            body.mode-cockpit .ck-magic-band-panel #ck-6m-body { grid-template-columns: 1fr !important; }
+        }
+
+
+        /* ===== COCKPIT 6 m DRAG & DROP ===== */
+        body.mode-cockpit .ck-title,
+        body.mode-cockpit .ck-stats-drag-handle {
+            cursor: grab;
+            user-select: none;
+        }
+        body.mode-cockpit .ck-title:active,
+        body.mode-cockpit .ck-stats-drag-handle:active {
+            cursor: grabbing;
+        }
+        body.mode-cockpit .ck-panel[data-panel-id] .ck-title::before,
+        body.mode-cockpit .ck-stats-drag-handle::before {
+            content: '⋮⋮';
+            color: rgba(125,211,252,.55);
+            margin-right: 8px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.15em;
+            letter-spacing: -4px;
+        }
+        body.mode-cockpit .ck-sortable-ghost {
+            opacity: .35 !important;
+            border: 1px dashed rgba(125,211,252,.75) !important;
+            box-shadow: 0 0 28px rgba(34,211,238,.20) !important;
+        }
+        body.mode-cockpit .ck-sortable-chosen {
+            transform: scale(.995);
+        }
+        body.mode-cockpit .ck-sortable-drag {
+            opacity: .92 !important;
+            box-shadow: 0 22px 60px rgba(0,0,0,.55), 0 0 30px rgba(34,211,238,.18) !important;
+        }
+        body.mode-cockpit #ck-stats-row[data-panel-id] {
+            position: relative;
+        }
+        body.mode-cockpit #ck-stats-row .ck-stats-drag-handle {
+            grid-column: 1 / -1;
+            margin-bottom: 2px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, rgba(34,211,238,.08), rgba(15,23,42,.35));
+            border: 1px solid rgba(125,211,252,.10);
+            color: #7dd3fc;
+            font-size: .62em;
+            padding: 7px 10px;
+        }
+        body.mode-cockpit .ck-title button,
+        body.mode-cockpit .ck-title input,
+        body.mode-cockpit .ck-title select {
+            cursor: pointer;
+        }
+
+
+        /* ===== COCKPIT 6 m BROADCAST HEATMAP — faithful CSS implementation ===== */
+        body.mode-cockpit #cockpit-layout {
+            grid-template-columns: minmax(280px,.72fr) minmax(760px,1.85fr) minmax(330px,.82fr) !important;
+            gap: 12px !important;
+        }
+
+        body.mode-cockpit .ck6m-broadcast-panel {
+            min-height: 760px !important;
+            border: 1px solid rgba(0,221,255,.62) !important;
+            border-radius: 18px !important;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(0,221,255,.13), transparent 30%),
+                linear-gradient(180deg, rgba(1,18,39,.98), rgba(1,7,20,.99)) !important;
+            box-shadow:
+                0 0 0 1px rgba(255,216,77,.20) inset,
+                0 0 28px rgba(0,221,255,.16),
+                0 0 44px rgba(255,216,77,.10) !important;
+            overflow: hidden;
+        }
+
+        body.mode-cockpit .ck6m-broadcast-titlebar {
+            background:
+                linear-gradient(90deg, rgba(255,216,77,.18), transparent 34%, rgba(0,221,255,.10)) !important;
+            color: #ffe35a !important;
+            border-bottom: 1px solid rgba(255,216,77,.34) !important;
+            font-size: .72em !important;
+        }
+
+        body.mode-cockpit .ck6m-broadcast {
+            display: grid !important;
+            grid-template-columns: 1fr !important;
+            gap: 14px !important;
+            padding: 16px !important;
+            background:
+                linear-gradient(rgba(0,221,255,.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,221,255,.022) 1px, transparent 1px),
+                radial-gradient(circle at 50% 8%, rgba(255,216,77,.10), transparent 28%),
+                linear-gradient(180deg, #031329 0%, #020817 100%) !important;
+            background-size: 28px 28px, 28px 28px, auto, auto;
+        }
+
+        body.mode-cockpit .ck6m-hero-broadcast {
+            padding: 4px 0 0 !important;
+            min-height: 82px;
+        }
+
+        body.mode-cockpit .ck6m-hero-broadcast .ck-6m-ribbon {
+            font-size: .75em !important;
+            color: #f9ff46 !important;
+            text-shadow: 0 0 12px rgba(249,255,70,.75);
+        }
+
+        body.mode-cockpit .ck6m-hero-broadcast .ck-6m-main-title {
+            font-size: clamp(2.35em, 3.2vw, 4.2em) !important;
+            letter-spacing: .035em;
+            color: #f7fbff !important;
+            text-shadow:
+                0 0 12px rgba(34,211,238,.38),
+                0 4px 18px rgba(0,0,0,.65);
+        }
+
+        body.mode-cockpit .ck6m-hero-broadcast .accent {
+            color: #7dd3fc !important;
+            text-shadow: 0 0 18px rgba(125,211,252,.55);
+        }
+
+        body.mode-cockpit .ck6m-world-stage {
+            border-radius: 16px;
+            border: 1px solid rgba(0,221,255,.35);
+            background:
+                radial-gradient(ellipse at center, rgba(0,122,255,.14), transparent 62%),
+                linear-gradient(180deg, rgba(3,18,43,.90), rgba(2,8,23,.96));
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,.035),
+                inset 0 0 45px rgba(0,174,255,.10),
+                0 14px 28px rgba(0,0,0,.32);
+            overflow: hidden;
+        }
+
+        body.mode-cockpit .ck6m-stage-header {
+            height: 34px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 14px;
+            color: #7dd3fc;
+            font-family: 'Orbitron', sans-serif;
+            font-size: .72em;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(0,221,255,.20);
+            background: linear-gradient(90deg, rgba(0,180,255,.08), transparent);
+        }
+
+        body.mode-cockpit .ck6m-world-shell {
+            position: relative;
+            height: clamp(330px, 38vh, 520px);
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse at center, rgba(0,96,215,.24), transparent 58%),
+                linear-gradient(180deg, #031a3a 0%, #020816 100%);
+        }
+
+        body.mode-cockpit #ck-6m-map {
+            position: absolute !important;
+            inset: 8px 30px !important;
+            height: auto !important;
+            border-radius: 50% / 44% !important;
+            overflow: hidden !important;
+            border: 1px solid rgba(0,190,255,.45);
+            background: #041225 !important;
+            box-shadow:
+                inset 0 0 36px rgba(0, 221, 255, .18),
+                0 0 38px rgba(0, 123, 255, .18);
+            filter: saturate(1.55) contrast(1.2) brightness(.82);
+            z-index: 1;
+        }
+
+        body.mode-cockpit #ck-6m-map .leaflet-tile {
+            filter: hue-rotate(165deg) saturate(1.65) contrast(1.14) brightness(.72);
+        }
+
+        body.mode-cockpit #ck-6m-map .leaflet-control-container {
+            display: none !important;
+        }
+
+        body.mode-cockpit .ck6m-map-scan {
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(rgba(0,221,255,.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,221,255,.035) 1px, transparent 1px);
+            background-size: 32px 32px;
+            opacity: .55;
+            mix-blend-mode: screen;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        body.mode-cockpit .ck6m-map-vignette {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at center, transparent 42%, rgba(1,8,23,.30) 67%, rgba(1,8,23,.92) 100%),
+                linear-gradient(90deg, rgba(1,8,23,.55), transparent 18%, transparent 82%, rgba(1,8,23,.55));
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        body.mode-cockpit .ck6m-legend {
+            position: absolute;
+            left: 34px;
+            bottom: 30px;
+            display: grid;
+            grid-template-columns: 34px 16px;
+            grid-template-rows: auto 104px auto;
+            gap: 4px 9px;
+            align-items: center;
+            z-index: 9;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        body.mode-cockpit .ck6m-legend-high {
+            grid-column: 2;
+            color: #ff2d1b;
+            font-size: .70em;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(255,45,27,.7);
+        }
+
+        body.mode-cockpit .ck6m-legend-low {
+            grid-column: 2;
+            color: #39d6ff;
+            font-size: .70em;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(57,214,255,.6);
+        }
+
+        body.mode-cockpit .ck6m-legend-bar {
+            grid-column: 1 / span 1;
+            grid-row: 1 / span 3;
+            width: 26px;
+            height: 138px;
+            border-radius: 4px;
+            background: linear-gradient(180deg, #f00 0%, #ff8f00 22%, #ffff34 43%, #25ff5f 62%, #19d8ff 82%, #004cff 100%);
+            box-shadow:
+                0 0 16px rgba(255,64,0,.34),
+                0 0 18px rgba(0,221,255,.24);
+            opacity: .94;
+        }
+
+        body.mode-cockpit .ck-6m-map-label {
+            right: 16px !important;
+            z-index: 10 !important;
+            font-size: .68em !important;
+            color: #ffd84d !important;
+        }
+
+        body.mode-cockpit .ck-6m-spots {
+            position: absolute !important;
+            left: auto !important;
+            right: 22px !important;
+            bottom: 20px !important;
+            max-width: 42% !important;
+            z-index: 10 !important;
+        }
+
+        body.mode-cockpit .ck-6m-tag {
+            background: rgba(1,8,23,.76) !important;
+            border-color: rgba(125,211,252,.35) !important;
+            color: #eaf7ff !important;
+            backdrop-filter: blur(6px);
+        }
+
+        body.mode-cockpit #ck-6m-map .leaflet-interactive {
+            filter: drop-shadow(0 0 8px rgba(255,216,77,.82)) drop-shadow(0 0 18px rgba(0,255,96,.36));
+        }
+
+        body.mode-cockpit .ck6m-bottom-grid {
+            display: grid;
+            grid-template-columns: 1.05fr 1.25fr 1.15fr .95fr;
+            gap: 12px;
+            min-height: 210px;
+        }
+
+        body.mode-cockpit .ck6m-bottom-card {
+            border-radius: 14px;
+            border: 1px solid rgba(0,221,255,.31);
+            background:
+                linear-gradient(180deg, rgba(4,22,52,.86), rgba(2,8,23,.94));
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,.035),
+                0 10px 24px rgba(0,0,0,.28);
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        body.mode-cockpit .ck6m-bottom-card .ck-6m-card-title {
+            background: linear-gradient(90deg, rgba(0,180,255,.12), rgba(0,0,0,.08)) !important;
+            color: #42e6ff !important;
+            border-bottom: 1px solid rgba(0,221,255,.18) !important;
+        }
+
+        body.mode-cockpit .ck6m-gauge-card .ck-gauge-wrap {
+            height: calc(100% - 40px) !important;
+            padding: 12px !important;
+        }
+
+        body.mode-cockpit .ck6m-gauge-card .ck-gauge {
+            width: 150px !important;
+            height: 150px !important;
+            background:
+                radial-gradient(circle, rgba(29,215,91,.18), transparent 48%),
+                radial-gradient(circle, rgba(0,0,0,.82), rgba(0,0,0,.08) 62%, transparent 64%) !important;
+            box-shadow:
+                0 0 32px rgba(29,215,91,.20),
+                inset 0 0 30px rgba(0,0,0,.55) !important;
+        }
+
+        body.mode-cockpit .ck6m-gauge-card .ck-gauge svg {
+            width: 150px !important;
+            height: 150px !important;
+            filter: drop-shadow(0 0 12px rgba(29,215,91,.58)) !important;
+        }
+
+        body.mode-cockpit .ck6m-gauge-card .ck-gauge-pct {
+            font-size: 2.05em !important;
+        }
+
+        body.mode-cockpit .ck6m-gauge-card .ck-gauge-status {
+            font-size: .82em !important;
+        }
+
+        body.mode-cockpit .ck6m-live-count {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .78em;
+            color: #a7c4eb;
+        }
+
+        body.mode-cockpit .ck6m-hotspot-list {
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 13px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        body.mode-cockpit .ck6m-hotspot-row {
+            display: grid;
+            grid-template-columns: 22px 1fr auto;
+            align-items: center;
+            gap: 10px;
+            color: #94eaff;
+            font-size: .98em;
+        }
+
+        body.mode-cockpit .ck6m-hotspot-row b {
+            color: #bdf7ff;
+            font-weight: 800;
+            letter-spacing: .04em;
+        }
+
+        body.mode-cockpit .ck6m-hotspot-row em {
+            color: #ff7b45;
+            font-style: normal;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        body.mode-cockpit .ck6m-hotspot-row .dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 2px solid #ffe14d;
+            box-shadow: 0 0 0 5px rgba(255,216,77,.18), 0 0 14px currentColor;
+        }
+
+        body.mode-cockpit .ck6m-hotspot-row .dot.high { background:#ff2418; color:#ff2418; }
+        body.mode-cockpit .ck6m-hotspot-row .dot.med  { background:#ff9f1a; color:#ff9f1a; }
+        body.mode-cockpit .ck6m-hotspot-row .dot.low  { background:#18f060; color:#18f060; }
+
+        body.mode-cockpit .ck6m-band-card {
+            padding-bottom: 10px;
+        }
+
+        body.mode-cockpit .ck6m-band-card .ck-6m-band-range,
+        body.mode-cockpit .ck6m-band-card .ck-6m-band-sub,
+        body.mode-cockpit .ck6m-band-card .ck-6m-chart-box,
+        body.mode-cockpit .ck6m-band-card .ck-6m-chart-axis {
+            margin-left: 16px !important;
+            margin-right: 16px !important;
+        }
+
+        body.mode-cockpit .ck6m-band-card .ck-6m-band-range {
+            margin-top: 12px;
+            font-size: 1.2em !important;
+            color: #43e6ff !important;
+        }
+
+        body.mode-cockpit .ck6m-band-card .ck-6m-band-sub {
+            color: #c6d6f3 !important;
+            font-size: .78em !important;
+        }
+
+        body.mode-cockpit .ck6m-band-card .ck-6m-chart-box {
+            height: 88px !important;
+            margin-top: 10px !important;
+        }
+
+        body.mode-cockpit .ck6m-dxcc-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        body.mode-cockpit .ck6m-dxcc-number {
+            margin-top: 22px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(3.4em, 5vw, 5.8em);
+            line-height: .9;
+            color: #22d3ee;
+            text-shadow:
+                0 0 12px rgba(34,211,238,.55),
+                0 0 28px rgba(34,211,238,.28);
+        }
+
+        body.mode-cockpit .ck6m-dxcc-trend {
+            margin-top: 10px;
+            font-family: 'Orbitron', sans-serif;
+            color: #32ff59;
+            font-size: 1.05em;
+            text-shadow: 0 0 12px rgba(50,255,89,.36);
+        }
+
+        body.mode-cockpit .ck6m-dxcc-sub {
+            margin-top: 8px;
+            color: #70dbff;
+            font-size: .86em;
+        }
+
+        @media (max-width: 1380px) {
+            body.mode-cockpit #cockpit-layout {
+                grid-template-columns: 1fr !important;
+                height: auto !important;
+                overflow-y: auto !important;
+            }
+            body.mode-cockpit .ck6m-bottom-grid {
+                grid-template-columns: repeat(2, minmax(280px,1fr));
+            }
+            body.mode-cockpit .ck6m-world-shell {
+                height: 420px;
+            }
+        }
+
+        @media (max-width: 760px) {
+            body.mode-cockpit .ck6m-bottom-grid {
+                grid-template-columns: 1fr;
+            }
+            body.mode-cockpit .ck6m-world-shell {
+                height: 330px;
+            }
+            body.mode-cockpit .ck6m-legend {
+                transform: scale(.78);
+                transform-origin: left bottom;
+            }
+        }
+
+        /* ===== PATCH COCKPIT 6 m — 2026-05-28 v2 =====
+           Fixs : carte 6 m pleine largeur, Leaflet invalidate, VOACAP plus lisible. */
+        body.mode-cockpit [data-panel-id="ck-heatmap"] {
+            display: none !important;
+        }
+
+        body.mode-cockpit #cockpit-layout {
+            grid-template-columns: minmax(270px, .58fr) minmax(760px, 1.95fr) minmax(330px, .82fr) !important;
+            gap: 12px !important;
+            padding: 12px !important;
+        }
+
+        body.mode-cockpit #ck-col1,
+        body.mode-cockpit #ck-col2,
+        body.mode-cockpit #ck-col3 {
+            min-width: 0 !important;
+        }
+
+        body.mode-cockpit .ck6m-broadcast-panel {
+            min-height: 0 !important;
+        }
+
+        /* L'ID #ck-6m-body avait une grille 3 colonnes plus spécifique : on force ici le cockpit 6 m en vraie pile verticale. */
+        body.mode-cockpit #ck-6m-body.ck6m-broadcast {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) !important;
+            grid-auto-rows: auto !important;
+            align-items: start !important;
+            gap: 12px !important;
+            padding: 14px !important;
+        }
+
+        body.mode-cockpit .ck6m-hero-broadcast,
+        body.mode-cockpit .ck6m-world-stage,
+        body.mode-cockpit .ck6m-bottom-grid {
+            grid-column: 1 / -1 !important;
+            min-width: 0 !important;
+        }
+
+        body.mode-cockpit .ck6m-world-stage {
+            width: 100% !important;
+        }
+
+        body.mode-cockpit .ck6m-world-shell {
+            position: relative !important;
+            height: clamp(350px, 40vh, 560px) !important;
+            min-height: 350px !important;
+        }
+
+        body.mode-cockpit #ck-6m-map {
+            position: absolute !important;
+            inset: 10px 16px !important;
+            width: auto !important;
+            height: auto !important;
+            min-height: 0 !important;
+            border-radius: 18px !important;
+        }
+
+        body.mode-cockpit #ck-6m-map .leaflet-pane,
+        body.mode-cockpit #ck-6m-map .leaflet-tile-pane,
+        body.mode-cockpit #ck-6m-map .leaflet-overlay-pane {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        body.mode-cockpit .ck6m-bottom-grid {
+            grid-template-columns: repeat(2, minmax(260px, 1fr)) !important;
+            gap: 12px !important;
+            min-height: 0 !important;
+        }
+
+        body.mode-cockpit .ck6m-bottom-card {
+            min-height: 185px !important;
+            min-width: 0 !important;
+        }
+
+        body.mode-cockpit .ck6m-hotspot-list {
+            padding: 14px 16px !important;
+            gap: 10px !important;
+        }
+
+        body.mode-cockpit .ck6m-hotspot-row {
+            grid-template-columns: 20px minmax(0, 1fr) auto !important;
+        }
+
+        body.mode-cockpit .ck6m-band-card .ck-6m-chart-box {
+            height: 74px !important;
+        }
+
+        body.mode-cockpit .ck6m-gauge-card .ck-gauge {
+            width: 132px !important;
+            height: 132px !important;
+        }
+
+        body.mode-cockpit .ck6m-gauge-card .ck-gauge svg {
+            width: 132px !important;
+            height: 132px !important;
+        }
+
+        body.mode-cockpit .ck6m-gauge-card .ck-gauge-pct {
+            font-size: 1.75em !important;
+        }
+
+        body.mode-cockpit #ck-voacap-canvas {
+            width: 100% !important;
+            height: 210px !important;
+            min-height: 210px !important;
+            display: block !important;
+            border-radius: 8px !important;
+            background: #06101f !important;
+        }
+
+        body.mode-cockpit [data-panel-id="ck-voacap"] > div:last-child {
+            padding: 8px 10px 10px !important;
+        }
+
+        @media (max-width: 1450px) {
+            body.mode-cockpit #cockpit-layout {
+                grid-template-columns: minmax(265px, .55fr) minmax(720px, 1.85fr) minmax(320px, .78fr) !important;
+            }
+            body.mode-cockpit .ck6m-world-shell {
+                height: 380px !important;
+            }
+        }
+
+        @media (max-width: 1250px) {
+            body.mode-cockpit #cockpit-layout {
+                grid-template-columns: 1fr !important;
+                height: auto !important;
+                overflow-y: auto !important;
+            }
+            body.mode-cockpit .ck6m-bottom-grid {
+                grid-template-columns: repeat(2, minmax(260px, 1fr)) !important;
+            }
+        }
+
+        @media (max-width: 760px) {
+            body.mode-cockpit .ck6m-bottom-grid {
+                grid-template-columns: 1fr !important;
+            }
+            body.mode-cockpit .ck6m-world-shell {
+                height: 320px !important;
+                min-height: 320px !important;
+            }
+        }
+
+
+
+
+        /* ===== PATCH COCKPIT v3 — carte naturelle, stats lisibles, VOACAP robuste ===== */
+        body.mode-cockpit #ck-6m-map .leaflet-tile {
+            filter: saturate(1.08) contrast(1.02) brightness(.94) !important;
+        }
+
+        body.mode-cockpit #ck-6m-map {
+            filter: none !important;
+            background: #07345d !important;
+        }
+
+        body.mode-cockpit .ck6m-world-shell {
+            background:
+                radial-gradient(ellipse at center, rgba(0,129,255,.18), transparent 58%),
+                linear-gradient(180deg, #06335f 0%, #031b34 100%) !important;
+        }
+
+        body.mode-cockpit .ck6m-world-stage {
+            background:
+                linear-gradient(180deg, rgba(5,28,54,.92), rgba(2,12,28,.98)) !important;
+        }
+
+        body.mode-cockpit .ck6m-map-vignette {
+            background:
+                radial-gradient(ellipse at center, transparent 50%, rgba(1,8,23,.18) 75%, rgba(1,8,23,.70) 100%),
+                linear-gradient(90deg, rgba(1,8,23,.22), transparent 16%, transparent 84%, rgba(1,8,23,.22)) !important;
+        }
+
+        body.mode-cockpit #ck-stats-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+        }
+
+        body.mode-cockpit #ck-stats-row .ck-stats-drag-handle {
+            grid-column: 1 / -1 !important;
+        }
+
+        body.mode-cockpit .ck-stat {
+            min-width: 0 !important;
+            padding: 12px 6px 10px !important;
+        }
+
+        body.mode-cockpit .ck-stat-v {
+            font-size: clamp(1.55rem, 3.2vw, 2.15rem) !important;
+            white-space: nowrap !important;
+            overflow: visible !important;
+            letter-spacing: .01em !important;
+        }
+
+        body.mode-cockpit .ck-stat-l {
+            font-size: .58em !important;
+            line-height: 1.1 !important;
+            word-break: normal !important;
+        }
+
+        body.mode-cockpit [data-panel-id="ck-voacap"] {
+            min-height: 300px !important;
+        }
+
+        body.mode-cockpit #ck-voacap-canvas {
+            height: 230px !important;
+            min-height: 230px !important;
+            background: #05101e !important;
+        }
+
+        body.mode-cockpit #ck-voacap-meta {
+            color: #9db7d8 !important;
+            font-size: .72em !important;
+            min-height: 14px !important;
+        }
+
 </style>
 </head>
 <body>
@@ -1374,18 +3516,18 @@
 <div id="header">
   <!-- Ligne 1 : titre + indicateurs -->
   <div id="header-row1">
-    <div id="title">📡 NEURAL DX WATCHER V8.2</div>
+    <div id="title">📡 NEURAL DX WATCHER V9.0</div>
     <div id="indicators" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;">
       <div class="indicator-item">QRA: <span id="qra-display">{{ user_qra }}</span></div>
       <div class="indicator-item">UTC: <span id="utc-time"></span></div>
       <div class="indicator-item">LOC: <span id="local-time"></span></div>
       <div class="indicator-item">MODE: <span id="display-mode">SoftTech</span></div>
     </div>
-    <!-- SMART MODE TOGGLE -->
-    <div id="smart-toggle-wrap" onclick="toggleSmartMode()" title="Basculer en mode Intelligent">
-      <span class="smart-label" id="smart-label">BASIC</span>
-      <div class="smart-slider"></div>
-      <span style="font-size:1em;">🧠</span>
+    <!-- 3-STATE MODE TOGGLE -->
+    <div id="mode-toggle">
+      <button class="mode-btn active-classic" id="btn-classic" onclick="setMode('classic')">⚡ CLASSIC</button>
+      <button class="mode-btn" id="btn-smart" onclick="setMode('smart')">🧠 SMART</button>
+      <button class="mode-btn" id="btn-cockpit" onclick="setMode('cockpit')">🎛 COCKPIT 6 m</button>
     </div>
     </div>
   </div>
@@ -1424,6 +3566,249 @@
 <div id="ticker-container">
 <div id="ticker-content">SYSTEM INITIALIZATION...</div>
 </div>
+<!-- COCKPIT LAYOUT v9.0 — MODE 3 -->
+<div id="cockpit-layout">
+
+  <!-- ═══ COL 1 : Heatmap + Stats + Band Conditions ═══ -->
+  <div class="ck-col" id="ck-col1">
+
+    <!-- Heatmap activité DX supprimée : le pavé MAGIC BAND 6 m central fait désormais référence unique. -->
+
+    <!-- Prévisions VOACAP -->
+    <div class="ck-panel" data-panel-id="ck-voacap">
+      <div class="ck-title" style="gap:6px;">
+        <span>&#128225; PROPAGATION HF &middot; VOACAP</span>
+        <div style="display:flex;gap:3px;margin-left:auto;">
+          <button onclick="loadCockpitVoacap('EU')" data-ckzone="EU" style="padding:1px 7px;font-size:.6em;cursor:pointer;border-radius:3px;background:rgba(0,243,255,.15);border:1px solid rgba(0,243,255,.4);color:var(--accent);font-family:monospace;">EU</button>
+          <button onclick="loadCockpitVoacap('NA')" data-ckzone="NA" style="padding:1px 7px;font-size:.6em;cursor:pointer;border-radius:3px;background:rgba(0,0,0,.3);border:1px solid #333;color:#556;font-family:monospace;">NA</button>
+          <button onclick="loadCockpitVoacap('AS')" data-ckzone="AS" style="padding:1px 7px;font-size:.6em;cursor:pointer;border-radius:3px;background:rgba(0,0,0,.3);border:1px solid #333;color:#556;font-family:monospace;">AS</button>
+          <button onclick="loadCockpitVoacap('OC')" data-ckzone="OC" style="padding:1px 7px;font-size:.6em;cursor:pointer;border-radius:3px;background:rgba(0,0,0,.3);border:1px solid #333;color:#556;font-family:monospace;">OC</button>
+        </div>
+      </div>
+      <div style="padding:6px 8px 8px;">
+        <canvas id="ck-voacap-canvas" style="width:100%;display:block;border-radius:4px;"></canvas>
+        <div id="ck-voacap-meta" style="font-size:.58em;color:#2a3550;text-align:right;margin-top:3px;font-family:monospace;"></div>
+      </div>
+    </div>
+    <!-- Stats 24h -->
+    <div id="ck-stats-row" data-panel-id="ck-stats">
+      <div class="ck-stats-drag-handle ck-title">📌 SYNTHÈSE 6 m / 24H</div>
+      <div class="ck-stat" style="--sc:#22D3EE">
+        <div class="ck-stat-v" id="ck-spots">—</div>
+        <div class="ck-stat-l">Spots 24h</div>
+      </div>
+      <div class="ck-stat" style="--sc:#a78bfa">
+        <div class="ck-stat-v" id="ck-dxcc">—</div>
+        <div class="ck-stat-l">DXCC uniques</div>
+      </div>
+      <div class="ck-stat" style="--sc:#fb923c">
+        <div class="ck-stat-v" id="ck-sfi">—</div>
+        <div class="ck-stat-l">SFI</div>
+      </div>
+      <div class="ck-stat" style="--sc:#22C55E">
+        <div class="ck-stat-v" id="ck-kp">—</div>
+        <div class="ck-stat-l">K-index</div>
+      </div>
+    </div>
+
+    <!-- Solar & Geomagnetic -->
+    <div class="ck-panel" data-panel-id="ck-solar">
+      <div class="ck-title">☀️ SOLAR &amp; GEOMAGNETIC DATA</div>
+      <div id="ck-solar-grid">
+        <div class="ck-solar-item">
+          <div class="ck-solar-label">SFI</div>
+          <div class="ck-solar-val" id="ck-sfi2" style="color:#fb923c">—</div>
+        </div>
+        <div class="ck-solar-item">
+          <div class="ck-solar-label">A-INDEX</div>
+          <div class="ck-solar-val" id="ck-a" style="color:#22D3EE">—</div>
+        </div>
+        <div class="ck-solar-item">
+          <div class="ck-solar-label">K-INDEX</div>
+          <div class="ck-solar-val" id="ck-k" style="color:#22C55E">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Band Conditions -->
+    <div class="ck-panel" data-panel-id="ck-band-conditions" style="flex:1">
+      <div class="ck-title">📊 BAND CONDITIONS · HF</div>
+      <div id="ck-bc-grid"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══ COL 2 : 6m Magic Band + Top Spots ═══ -->
+  <div class="ck-col" id="ck-col2">
+
+    <!-- 6m Magic Band -->
+    <div class="ck-panel ck-magic-band-panel ck6m-broadcast-panel" data-panel-id="ck-magic-band">
+      <div class="ck-title orange ck6m-broadcast-titlebar">
+        <span>⚡ MAGIC BAND 6 m · HEATMAP ACTIVITÉ DX</span>
+        <span id="ck-6m-badge" style="display:none;color:#ef4444;font-size:.9em;animation:blink-dot 1s infinite;">● OPEN</span>
+      </div>
+
+      <div id="ck-6m-body" class="ck6m-broadcast">
+        <div class="ck-6m-hero ck6m-hero-broadcast">
+          <div class="ck-6m-ribbon">★ NEW FEATURE ★</div>
+          <div class="ck-6m-main-title">MAGIC BAND <span class="accent">6 m</span></div>
+          <div class="ck-6m-subtitle">The Magic of Sporadic‑E Openings</div>
+        </div>
+
+        <div class="ck6m-world-stage">
+          <div class="ck6m-stage-header">
+            <span>E-LAYER HOTSPOTS</span>
+            <span id="ck-6m-live-label">LIVE</span>
+          </div>
+
+          <div class="ck6m-world-shell">
+            <div id="ck-6m-map"></div>
+
+            <div class="ck6m-map-scan"></div>
+            <div class="ck6m-map-vignette"></div>
+
+            <div class="ck6m-legend">
+              <span class="ck6m-legend-high">HIGH</span>
+              <span class="ck6m-legend-bar"></span>
+              <span class="ck6m-legend-low">LOW</span>
+            </div>
+
+            <span class="ck-6m-map-label high">HIGH</span>
+            <span class="ck-6m-map-label low">LOW</span>
+
+            <div class="ck-6m-spots" id="ck-6m-spots"></div>
+          </div>
+        </div>
+
+        <div class="ck6m-bottom-grid">
+          <div class="ck6m-bottom-card ck6m-gauge-card">
+            <div class="ck-6m-card-title">
+              <span>6 m Activity (Live)</span>
+              <span class="minor">Opening</span>
+            </div>
+
+            <div class="ck-gauge-wrap">
+              <div class="ck-gauge">
+                <svg width="148" height="148" viewBox="0 0 148 148">
+                  <circle class="ck-gauge-bg" cx="74" cy="74" r="58"/>
+                  <circle class="ck-gauge-arc" id="ck-gauge-arc" cx="74" cy="74" r="58"
+                    stroke="#1dd75b" stroke-dasharray="0 365"/>
+                </svg>
+                <div class="ck-gauge-inner">
+                  <span class="ck-gauge-pct" id="ck-gauge-pct" style="color:#1dd75b">0%</span>
+                  <span class="ck-gauge-status" id="ck-gauge-status" style="color:#1dd75b">CLOSED</span>
+                  <span class="ck-gauge-sub">Opening Strength</span>
+                </div>
+              </div>
+
+              <div class="ck-6m-strength-bar"><div id="ck-6m-strength-fill"></div></div>
+              <div class="ck-6m-strength-scale"><span>0</span><span>50</span><span>100</span></div>
+              <span class="ck6m-live-count" id="ck-6m-count">0 spots</span>
+            </div>
+          </div>
+
+          <div class="ck6m-bottom-card ck6m-hotspots-card">
+            <div class="ck-6m-card-title">
+              <span>E-Layer Hotspots</span>
+              <span class="minor">Top zones</span>
+            </div>
+            <div id="ck-6m-hotspot-list" class="ck6m-hotspot-list">
+              <div class="ck6m-hotspot-row"><span class="dot high"></span><b>EUROPE</b><em>—</em></div>
+              <div class="ck6m-hotspot-row"><span class="dot med"></span><b>EAST COAST NA</b><em>—</em></div>
+              <div class="ck6m-hotspot-row"><span class="dot med"></span><b>JAPAN</b><em>—</em></div>
+              <div class="ck6m-hotspot-row"><span class="dot low"></span><b>AUSTRALIA</b><em>—</em></div>
+            </div>
+          </div>
+
+          <div class="ck6m-bottom-card ck6m-band-card">
+            <div class="ck-6m-card-title">
+              <span>6 m Band Status</span>
+              <span class="minor">50.0 – 54.0 MHz</span>
+            </div>
+
+            <div class="ck-6m-band-range">50.0 – 54.0 MHz</div>
+            <div class="ck-6m-band-sub">FT8 Activity · Last 60 min</div>
+
+            <div class="ck-6m-chart-box">
+              <div class="ck-6m-chart-grid"></div>
+              <svg viewBox="0 0 240 92" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="ck6mArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#3bb7ff" stop-opacity="0.55"/>
+                    <stop offset="100%" stop-color="#3bb7ff" stop-opacity="0.06"/>
+                  </linearGradient>
+                </defs>
+                <path id="ck-6m-activity-area" d="M0,92 L0,76 40,68 80,58 120,40 160,52 200,34 240,72 L240,92 Z" fill="url(#ck6mArea)"></path>
+                <polyline id="ck-6m-activity-line" points="0,76 40,68 80,58 120,40 160,52 200,34 240,72" fill="none" stroke="#3bb7ff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
+              </svg>
+            </div>
+            <div class="ck-6m-chart-axis"><span>-60</span><span>-45</span><span>-30</span><span>-15</span><span>now</span></div>
+          </div>
+
+          <div class="ck6m-bottom-card ck6m-dxcc-card">
+            <div class="ck-6m-card-title">
+              <span>DXCC Worked Today</span>
+              <span class="minor">6 m</span>
+            </div>
+            <div class="ck6m-dxcc-number" id="ck-6m-dxcc">0</div>
+            <div class="ck6m-dxcc-trend" id="ck-6m-dxcc-trend">▲ —</div>
+            <div class="ck6m-dxcc-sub" id="ck-6m-dxcc-sub">unique DXCC / calls today</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Spots Intelligents -->
+    <div class="ck-panel" data-panel-id="ck-top-spots" style="flex:1">
+      <div class="ck-title">🧠 TOP SPOTS 6 m INTELLIGENTS</div>
+      <div id="cockpit-smart-list" style="overflow-y:auto;max-height:320px;"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══ COL 3 : DX Feed + Opps + Spot Manuel ═══ -->
+  <div class="ck-col" id="ck-col3">
+
+    <!-- DX Spot Feed -->
+    <div class="ck-panel" data-panel-id="ck-dx-feed" style="flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div class="ck-title">
+        <span>DX SPOT FEED · 6 m · 20 MIN</span>
+        <span class="ck-live">LIVE</span>
+      </div>
+      <div style="overflow-y:auto;flex:1;">
+        <div class="ck-feed-hdr">
+          <span>UTC</span><span>CALL</span><span>FREQ</span><span>BAND</span><span>INFO</span>
+        </div>
+        <div id="ck-feed-rows"></div>
+      </div>
+    </div>
+
+    <!-- Opportunités DXCC -->
+    <div class="ck-panel" data-panel-id="ck-opportunities" style="max-height:200px;display:flex;flex-direction:column;">
+      <div class="ck-title">🎯 OPPORTUNITÉS DXCC</div>
+      <div id="cockpit-opp-list" style="overflow-y:auto;flex:1;"></div>
+    </div>
+
+    <!-- Spot Manuel -->
+    <div class="ck-panel" data-panel-id="ck-manual-spot">
+      <div class="ck-title">📡 SPOT MANUEL</div>
+      <div id="ck-spotter">
+        <div class="ck-input-row">
+          <input class="ck-input" id="ck-spot-call" placeholder="CALLSIGN"
+            oninput="this.value=this.value.toUpperCase()" type="text"/>
+          <input class="ck-input" id="ck-spot-freq" placeholder="Fréquence" type="text"/>
+        </div>
+        <input class="ck-input" id="ck-spot-comment" placeholder="Commentaire (optionnel)" type="text"/>
+        <button class="ck-btn" onclick="sendCockpitSpot()">📡 ENVOYER AU CLUSTER</button>
+        <div id="ck-spot-st"></div>
+        <div id="ck-spot-last" style="font-size:.72em;color:#7dd3fc;text-align:center;min-height:16px;font-family:monospace;"></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
 <div id="main-container">
 <div class="column" id="col1">
 <div class="panel" data-panel-id="watchlist" id="watchlist-panel">
@@ -2184,12 +4569,16 @@
         }
 
         function update6mPanel(allSpots) {
-            if (!smartMode) return;
+            if (currentMode !== 'smart' && currentMode !== 'cockpit') return;
 
             // Init carte si pas encore fait
             if (!map6m) {
                 init6mMap();
-                setTimeout(() => { if(map6m) map6m.invalidateSize(); }, 300);
+                setTimeout(() => { if(map6m) map6m.invalidateSize(); }, 200);
+                setTimeout(() => { if(map6m) map6m.invalidateSize(); }, 600);
+                setTimeout(() => { if(map6m) map6m.invalidateSize(); }, 1200);
+            } else {
+                map6m.invalidateSize();
             }
 
             const spots6m = allSpots.filter(s =>
@@ -2533,6 +4922,8 @@
                 const allSpots = await allSpotsResponse.json();
                 updateMaps(allSpots);
                 clearExpiredAnnouncedSpots(allSpots);
+                lastAllSpots = allSpots;
+                if (currentMode === 'cockpit') renderDxFeed(allSpots);
                 bandmapRefresh(allSpots);  // BANDMAP update
             } catch(e) { console.error("Failed to fetch all spots for map/cleanup:", e); }
 
@@ -2572,6 +4963,12 @@
             } catch (e) { console.error("Failed to fetch live bands data:", e); }
 
             await loadWatchlist();
+
+            // Rafraîchit les widgets cockpit après récupération des spots complets.
+            // Sans cela, la jauge 6m peut rester sur l'ancien état jusqu'au prochain changement de mode.
+            if (currentMode === 'cockpit') {
+                loadCockpitData();
+            }
         }
 
         function parseFreqForSort(freqStr) {
@@ -2580,40 +4977,742 @@
         }
 
 
-        // ── MODE SMART ────────────────────────────────
-        let smartMode = localStorage.getItem('smartMode') === '1';
+        // ── 3-STATE MODE SYSTEM ───────────────────────
+        let currentMode = localStorage.getItem('appMode') || 'classic';
 
-        function toggleSmartMode() {
-            smartMode = !smartMode;
-            localStorage.setItem('smartMode', smartMode ? '1' : '0');
-            applySmartMode();
-            if (smartMode) renderSmartSpots(lastRawSpotsHF);
-        }
+        // Compatibility shim for old smartMode
+        let smartMode = currentMode === 'smart';
 
-        function applySmartMode() {
-            const wrap = document.getElementById('smart-toggle-wrap');
-            const label = document.getElementById('smart-label');
-            if (smartMode) {
-                wrap.classList.add('active');
-                label.textContent = 'SMART';
+        function setMode(mode) {
+            const prev = currentMode;
+            currentMode = mode;
+            smartMode = (mode === 'smart');
+            localStorage.setItem('appMode', mode);
+
+            // Save theme before smart/cockpit
+            if (prev === 'classic') {
+                const cur = document.body.getAttribute('data-theme') || 'softtech';
+                if (cur !== 'smart') localStorage.setItem('prevTheme', cur);
+            }
+
+            // Update buttons
+            ['classic','smart','cockpit'].forEach(m => {
+                const btn = document.getElementById('btn-' + m);
+                if (btn) {
+                    btn.className = 'mode-btn' + (m === mode ? ' active-' + m : '');
+                }
+            });
+
+            // Apply body classes
+            document.body.classList.remove('smart-mode', 'mode-cockpit', 'mode-classic');
+
+            if (mode === 'smart') {
                 document.body.classList.add('smart-mode');
                 document.body.setAttribute('data-theme', 'smart');
-                localStorage.setItem('theme', 'smart');
                 document.documentElement.setAttribute('data-theme', 'smart');
+                localStorage.setItem('theme', 'smart');
+                renderSmartSpots(lastRawSpotsHF);
+            } else if (mode === 'cockpit') {
+                document.body.classList.add('mode-cockpit');
+                document.body.setAttribute('data-theme', 'smart');
+                document.documentElement.setAttribute('data-theme', 'smart');
+                localStorage.setItem('theme', 'smart');
+                initCockpitDragAndDrop();
+                refreshCockpitLayoutAfterDrag();
+                loadCockpitData();
+                setTimeout(refreshCockpitLayoutAfterDrag, 450);
+                setTimeout(refreshCockpitLayoutAfterDrag, 1100);
             } else {
-                wrap.classList.remove('active');
-                label.textContent = 'BASIC';
-                document.body.classList.remove('smart-mode');
-                // Restaurer thème précédent
-                const prev = localStorage.getItem('prevTheme') || 'softtech';
-                document.body.setAttribute('data-theme', prev);
-                document.documentElement.setAttribute('data-theme', prev);
-                localStorage.setItem('theme', prev);
+                document.body.classList.add('mode-classic');
+                const prev2 = localStorage.getItem('prevTheme') || 'softtech';
+                document.body.setAttribute('data-theme', prev2);
+                document.documentElement.setAttribute('data-theme', prev2);
+                localStorage.setItem('theme', prev2);
+            }
+        }
+
+        // Legacy shim
+        function toggleSmartMode() { setMode(currentMode === 'smart' ? 'classic' : 'smart'); }
+        function applySmartMode() { setMode(currentMode); }
+
+
+        window.addEventListener('resize', () => {
+            if (currentMode === 'cockpit') {
+                clearTimeout(window.__ckResizeTimer);
+                window.__ckResizeTimer = setTimeout(refreshCockpitLayoutAfterDrag, 180);
+            }
+        });
+
+        // ── COCKPIT DATA ──────────────────────────────
+        const BAND_ORDER = ['160m','80m','40m','30m','20m','17m','15m','12m','10m','6m','2m'];
+
+        function bandConditionColor(count, max) {
+            const pct = max > 0 ? count / max : 0;
+            if (pct >= 0.7) return { color: '#22C55E', label: 'EXCELLENT' };
+            if (pct >= 0.45) return { color: '#84cc16', label: 'BON' };
+            if (pct >= 0.25) return { color: '#eab308', label: 'FAIR' };
+            if (pct >= 0.1)  return { color: '#f97316', label: 'LOW' };
+            return { color: '#374151', label: 'CLOSED' };
+        }
+
+        function renderBandConditions(recentByBand) {
+            const grid = document.getElementById('ck-bc-grid');
+            if (!grid) return;
+            const vals = BAND_ORDER.map(b => recentByBand[b] || 0);
+            const max = Math.max(...vals, 1);
+            grid.innerHTML = BAND_ORDER.map((band, i) => {
+                const count = vals[i];
+                const pct = Math.round((count / max) * 100);
+                const { color, label } = bandConditionColor(count, max);
+                return '<div class="ck-bc-row">' +
+                    '<span class="ck-bc-band">' + band + '</span>' +
+                    '<div class="ck-bc-wrap"><div class="ck-bc-fill" style="width:' + pct + '%;background:' + color + ';box-shadow:0 0 5px ' + color + '50;"></div></div>' +
+                    '<span class="ck-bc-lbl" style="color:' + color + '">' + label + '</span>' +
+                '</div>';
+            }).join('');
+        }
+
+
+        let cockpitHeatmapMap = null;
+        let cockpitHeatmapLayer = null;
+        let cockpitHeatUserMarker = null;
+
+        let cockpit6mMap = null;
+        let cockpit6mLayer = null;
+        let cockpit6mUserMarker = null;
+
+        function numTs(v) {
+            const n = Number(v);
+            if (!Number.isFinite(n) || n <= 0) return null;
+            return n < 1e12 ? n * 1000 : n;
+        }
+
+        function spotTsMs(spot) {
+            const direct = numTs(spot.timestamp ?? spot.ts ?? spot.epoch ?? spot.time_unix ?? spot.utc_ts);
+            if (direct) return direct;
+            const raw = String(spot.time || spot.utc || '').trim();
+            const m = raw.match(/^(\d{1,2})[:h]?(\d{2})/i);
+            if (!m) return null;
+            const now = new Date();
+            const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), Number(m[1]), Number(m[2]), 0));
+            let ts = d.getTime();
+            if (ts - now.getTime() > 6 * 3600 * 1000) ts -= 24 * 3600 * 1000;
+            return ts;
+        }
+
+        function hexToRgba(hex, alpha) {
+            if (!hex) return 'rgba(34,211,238,' + alpha + ')';
+            let h = String(hex).replace('#','').trim();
+            if (h.length === 3) h = h.split('').map(c => c + c).join('');
+            if (h.length !== 6) return 'rgba(34,211,238,' + alpha + ')';
+            const r = parseInt(h.slice(0,2), 16);
+            const g = parseInt(h.slice(2,4), 16);
+            const b = parseInt(h.slice(4,6), 16);
+            return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+        }
+
+        function modeColor(mode) {
+            const m = String(mode || '').toUpperCase();
+            if (m.includes('CW')) return '#fbbf24';
+            if (m.includes('FT8') || m.includes('FT4') || m.includes('DIGI')) return '#a78bfa';
+            if (m.includes('SSB') || m.includes('USB') || m.includes('LSB')) return '#22d3ee';
+            if (m.includes('FM')) return '#4ade80';
+            return '#cbd5e1';
+        }
+
+        function infoDistanceColor(km) {
+            const d = Number(km) || 0;
+            if (d >= 10000) return '#4ade80';
+            if (d >= 4000) return '#fbbf24';
+            if (d > 0) return '#7dd3fc';
+            return '#cbd5e1';
+        }
+
+
+        function smartScoreColor(score) {
+            const pct = Number(score) || 0;
+            return pct >= 60 ? '#22D3EE' : pct >= 35 ? '#8B5CF6' : '#2563EB';
+        }
+
+        function smartBadgeHtml(reason) {
+            if (!reason) return '';
+            const cls = reason.cls || '';
+            let color = '#7dd3fc', bg = 'rgba(34,211,238,.10)', bd = 'rgba(34,211,238,.28)';
+            if (cls.includes('most') || cls.includes('new')) { color = '#f87171'; bg = 'rgba(248,113,113,.12)'; bd = 'rgba(248,113,113,.30)'; }
+            else if (cls.includes('want')) { color = '#fbbf24'; bg = 'rgba(251,191,36,.12)'; bd = 'rgba(251,191,36,.30)'; }
+            else if (cls.includes('track')) { color = '#60a5fa'; bg = 'rgba(96,165,250,.12)'; bd = 'rgba(96,165,250,.30)'; }
+            return '<span style="display:inline-flex;margin-left:6px;padding:2px 6px;border-radius:999px;font-size:.58em;font-weight:800;color:' + color + ';background:' + bg + ';border:1px solid ' + bd + ';vertical-align:middle;">' + reason.label + '</span>';
+        }
+
+        function initCockpitHeatmapMap() {
+            const el = document.getElementById('ck-heatmap-map');
+            if (!el || cockpitHeatmapMap) return;
+            cockpitHeatmapMap = L.map('ck-heatmap-map', {
+                worldCopyJump: true,
+                center: userLatLng,
+                zoom: 2,
+                zoomControl: true,
+                layers: [
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                        attribution: 'Tiles &copy; Esri',
+                        maxZoom: 18
+                    })
+                ]
+            });
+            cockpitHeatmapMap.attributionControl.setPrefix(false);
+            cockpitHeatmapLayer = L.layerGroup().addTo(cockpitHeatmapMap);
+            cockpitHeatUserMarker = addUserMarker(cockpitHeatmapMap, userLatLng[0], userLatLng[1]);
+            setTimeout(() => { try { cockpitHeatmapMap.invalidateSize(); } catch(e){} }, 300);
+        }
+
+        function updateCockpitHeatmap(spots) {
+            if (currentMode !== 'cockpit') return;
+            initCockpitHeatmapMap();
+            if (!cockpitHeatmapMap || !cockpitHeatmapLayer) return;
+            cockpitHeatmapLayer.clearLayers();
+            const usable = (spots || []).filter(s => s.lat && s.lon && !isNaN(s.lat) && !isNaN(s.lon));
+            const groups = new Map();
+            usable.forEach(s => {
+                const lat = Math.round(Number(s.lat) * 2) / 2;
+                const lon = Math.round(Number(s.lon) * 2) / 2;
+                const key = lat + '|' + lon;
+                const cur = groups.get(key) || { lat, lon, count: 0, calls: [] };
+                cur.count += 1;
+                if (cur.calls.length < 4 && s.dx_call) cur.calls.push(s.dx_call);
+                groups.set(key, cur);
+            });
+            const zones = Array.from(groups.values()).sort((a,b) => b.count - a.count).slice(0, 80);
+            const countEl = document.getElementById('ck-heatmap-count');
+            if (countEl) countEl.textContent = zones.length + ' zones';
+            zones.forEach(z => {
+                const col = z.count >= 6 ? '#ef4444' : z.count >= 4 ? '#f97316' : z.count >= 2 ? '#fbbf24' : '#22d3ee';
+                const radius = Math.min(28, 7 + z.count * 2.6);
+                const marker = L.circleMarker([z.lat, z.lon], {
+                    radius,
+                    color: col,
+                    weight: 1,
+                    fillColor: col,
+                    fillOpacity: 0.32
+                }).bindPopup('<b>Zone active</b><br>' + z.count + ' spot(s)<br>' + z.calls.join(', '));
+                cockpitHeatmapLayer.addLayer(marker);
+            });
+            try {
+                if (zones.length) {
+                    cockpitHeatmapMap.fitBounds(cockpitHeatmapLayer.getBounds().pad(0.22));
+                } else {
+                    cockpitHeatmapMap.setView(userLatLng, 2);
+                }
+                cockpitHeatmapMap.invalidateSize();
+            } catch(e) {}
+        }
+
+        function refreshCockpitForecastPanel(solar) {
+            const img = document.getElementById('ck-prop-img');
+            const fb  = document.getElementById('ck-prop-fallback');
+            const meta = document.getElementById('ck-prop-meta');
+            const st = document.getElementById('ck-prop-status');
+            if (!img || !fb || !meta || !st) return;
+            const sfi = Number(solar && solar.sfi);
+            const kp  = solar && solar.kp != null ? Number(solar.kp) : (solar && solar.k != null ? Number(solar.k) : NaN);
+            const pred = Number.isFinite(sfi) ? hfPrediction(sfi) : 'Prévision HF indisponible';
+            meta.innerHTML = '<b>SFI:</b> ' + (solar && solar.sfi != null ? solar.sfi : '—') +
+                ' &nbsp; <b>Kp:</b> ' + (Number.isFinite(kp) ? kp.toFixed(1) : '—') +
+                '<br><b>Tendance HF:</b> ' + pred +
+                '<br><span style="color:#7c93b8;">Source image: /api/forecast/heatmap.png</span>';
+            st.textContent = 'LIVE';
+            fb.style.display = 'none';
+            img.onerror = () => { fb.style.display = 'flex'; st.textContent = 'OFFLINE'; };
+            img.onload = () => { fb.style.display = 'none'; st.textContent = 'LIVE'; };
+            img.src = '/api/forecast/heatmap.png?ts=' + Date.now();
+        }
+
+
+        function initCockpit6mMap() {
+            const el = document.getElementById('ck-6m-map');
+            if (!el || cockpit6mMap) return;
+            cockpit6mMap = L.map('ck-6m-map', {
+                worldCopyJump: true,
+                center: userLatLng,
+                zoom: 2,
+                zoomControl: false,
+                attributionControl: false,
+                layers: [
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                        attribution: 'Tiles &copy; Esri',
+                        maxZoom: 18
+                    })
+                ]
+            });
+            cockpit6mLayer = L.layerGroup().addTo(cockpit6mMap);
+            cockpit6mUserMarker = addUserMarker(cockpit6mMap, userLatLng[0], userLatLng[1]);
+            [120, 350, 900].forEach(delay => setTimeout(() => { try { cockpit6mMap.invalidateSize(); } catch(e){} }, delay));
+        }
+
+        function updateCockpit6mMap(spots6m) {
+            initCockpit6mMap();
+            if (!cockpit6mMap || !cockpit6mLayer) return;
+            cockpit6mLayer.clearLayers();
+            const mapped = (spots6m || []).filter(s => s.lat && s.lon && !isNaN(s.lat) && !isNaN(s.lon)).slice(0, 24);
+            mapped.forEach((s, idx) => {
+                const dist = Number(s.distance_km) || 0;
+                const col = dist >= 9000 ? '#6dfc6d' : dist >= 4500 ? '#ffb020' : '#22d3ee';
+                const radius = dist >= 9000 ? 13 : dist >= 4500 ? 10 : 8;
+                const circle = L.circleMarker([s.lat, s.lon], {
+                    radius,
+                    color: '#ffe14d',
+                    weight: 1.5,
+                    fillColor: col,
+                    fillOpacity: 0.88,
+                    opacity: 0.95
+                }).bindPopup('<b>' + (s.dx_call || 'DX') + '</b><br>' + (s.freq || '') + ' · ' + (s.mode || '') + '<br>' + (dist ? Math.round(dist) + ' km' : ''));
+                cockpit6mLayer.addLayer(circle);
+            });
+            try {
+                if (mapped.length) cockpit6mMap.fitBounds(cockpit6mLayer.getBounds().pad(0.20));
+                else cockpit6mMap.setView(userLatLng, 2);
+                cockpit6mMap.invalidateSize();
+                setTimeout(() => { try { cockpit6mMap.invalidateSize(); } catch(e){} }, 180);
+            } catch(e) {}
+        }
+
+        function build6mActivitySeries(spots6m) {
+            const now = Date.now();
+            const bins = new Array(7).fill(0);
+            (spots6m || []).forEach(s => {
+                const ts = spotTsMs(s);
+                if (!ts) return;
+                const diff = now - ts;
+                if (diff < 0 || diff > 60*60*1000) return;
+                const idx = Math.min(6, Math.floor((60*60*1000 - diff) / (10*60*1000)));
+                bins[idx] += 1;
+            });
+            return bins;
+        }
+
+        function render6mActivityChart(series) {
+            const line = document.getElementById('ck-6m-activity-line');
+            const area = document.getElementById('ck-6m-activity-area');
+            if (!line || !area) return;
+            const data = (series && series.length ? series : [0,0,0,0,0,0,0]).slice(0,7);
+            const maxv = Math.max(...data, 1);
+            const w = 240, h = 92, step = w / (data.length - 1), base = h - 12, topPad = 12;
+            const pts = data.map((v, i) => {
+                const x = i * step;
+                const y = base - ((v / maxv) * (base - topPad));
+                return [x, y];
+            });
+            const points = pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+            const areaD = 'M0,' + h + ' L' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' L') + ' L' + w + ',' + h + ' Z';
+            line.setAttribute('points', points);
+            area.setAttribute('d', areaD);
+        }
+
+        function renderDxFeed(spots) {
+            const rows = document.getElementById('ck-feed-rows');
+            if (!rows) return;
+            const now = Date.now();
+            const latest = [...(spots || [])]
+                .filter(s => (s.band || '').toLowerCase() === '6m')
+                .filter(s => {
+                    const ts = spotTsMs(s);
+                    return ts ? (now - ts) <= 20 * 60 * 1000 && (now - ts) >= -2 * 60 * 1000 : false;
+                })
+                .sort((a,b) => (spotTsMs(b) || 0) - (spotTsMs(a) || 0))
+                .slice(0, 80);
+            if (!latest.length) {
+                rows.innerHTML = '<div style="padding:18px;text-align:center;color:#6f84a6;font-size:1.05em;">Aucun spot 6 m sur les 20 dernières minutes</div>';
+                return;
+            }
+            rows.innerHTML = latest.map((s, i) => {
+                const smart = calcSmartScore(s);
+                const col = smartScoreColor(smart.total);
+                const isWL = isWanted(s.dx_call);
+                const isNew = s.lotw_dxcc_new;
+                const cc = isNew ? 'ck-fc ck-new-dxcc' : isWL ? 'ck-fc ck-wl' : 'ck-fc';
+                const bg = 'background:linear-gradient(90deg,' + hexToRgba(col, 0.20) + ', rgba(15,23,42,0.62) 68%);border-left:4px solid ' + col + ';';
+                const modeCol = modeColor(s.mode);
+                const distTxt = s.distance_km ? Math.round(s.distance_km) + 'km' : '—';
+                const infoCol = infoDistanceColor(s.distance_km);
+                return '<div class="ck-feed-row' + (i===0?' ck-new':'') + '" style="' + bg + '">' +
+                    '<span class="ck-ft">' + (s.time||'') + '</span>' +
+                    '<span class="' + cc + '" style="color:' + col + '">' + (s.dx_call||'') + '</span>' +
+                    '<span class="ck-ff">' + (s.freq||'') + '</span>' +
+                    '<span style="color:#e84393;font-size:1.08em;font-weight:800;">6m</span>' +
+                    '<span class="ck-fi"><span style="color:' + modeCol + ';font-weight:900;">' + (s.mode||'') + '</span> <span style="color:' + infoCol + ';">' + distTxt + '</span> <span style="color:' + col + ';font-weight:800;">SPD ' + smart.total + '</span></span>' +
+                '</div>';
+            }).join('');
+        }
+
+        function renderCockpitSmartSpots(spots) {
+            const el = document.getElementById('cockpit-smart-list');
+            if (!el) return;
+            const source = (lastAllSpots && lastAllSpots.length) ? lastAllSpots : (spots || []);
+            const scored = source
+                .filter(s => (s.band || '').toLowerCase() === '6m')
+                .map(s => ({...s, smart: calcSmartScore(s)}))
+                .sort((a,b) => b.smart.total - a.smart.total)
+                .slice(0, 15);
+            if (!scored.length) {
+                el.innerHTML = '<div style="padding:14px;text-align:center;color:#64748b;font-size:.9em;">Aucun spot 6 m à analyser</div>';
+                return;
+            }
+            el.innerHTML = scored.map((s,i) => {
+                const pct = Math.min(100, s.smart.total);
+                const col = smartScoreColor(pct);
+                const isBeacon = /\/b$/i.test((s.dx_call || '').trim());
+                const rarity = calcRarity(s);
+                const badges = (s.smart.reasons || []).map(smartBadgeHtml).join('') + (isBeacon ? '<span style="display:inline-flex;margin-left:6px;padding:2px 6px;border-radius:999px;font-size:.58em;font-weight:800;color:#cc88ff;background:rgba(180,100,255,.12);border:1px solid rgba(204,136,255,.32);">BCN</span>' : '');
+                const meta = [
+                    s.freq,
+                    s.band || '6m',
+                    '<span class="mode">' + (s.mode || '') + '</span>',
+                    s.time,
+                    s.distance_km ? Math.round(s.distance_km) + ' km' : '',
+                    s.score != null ? 'SPD ' + s.score : ''
+                ].filter(Boolean).map(x => String(x).startsWith('<span') ? x : '<span>' + x + '</span>').join('');
+                const rarityHtml = rarity ? '<span class="rarity-badge ' + rarity.cls + '" title="' + rarity.labelEN + '">' + rarity.label + '</span>' : '<span style="color:#64748b;">—</span>';
+                return '<div class="ck-smart6-row">' +
+                    '<span class="ck-smart6-rank">' + (i+1) + '</span>' +
+                    '<div class="ck-smart6-main">' +
+                      '<div class="ck-smart6-call"><a href="https://qrz.com/db/' + s.dx_call + '" target="_blank" style="color:' + col + '">' + s.dx_call + '</a>' + badges + '</div>' +
+                      '<div class="ck-smart6-meta">' + meta + '</div>' +
+                    '</div>' +
+                    '<div class="ck-smart6-score"><div class="ck-smart6-bar"><div class="ck-smart6-fill" style="width:' + pct + '%;background:' + col + ';color:' + col + '"></div></div><span class="ck-smart6-score-val" style="color:' + col + '">' + s.smart.total + '</span></div>' +
+                    '<div class="ck-smart6-rarity">' + rarityHtml + '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function renderCockpitOpps(opps) {
+            const el = document.getElementById('cockpit-opp-list');
+            if (!el) return;
+            if (!opps || !opps.length) {
+                el.innerHTML = '<div style="padding:12px;text-align:center;color:#334;font-size:.72em;">Synchroniser LoTW</div>';
+                return;
+            }
+            const statusColors = { new:'#EF4444', worked_unconfirmed:'#eab308', band_missing:'#22D3EE' };
+            el.innerHTML = opps.slice(0,8).map(o => {
+                const col = statusColors[o.status] || '#556';
+                const days = o.days_left != null ? ' J-' + o.days_left : '';
+                return '<div class="ck-opp-row">' +
+                    '<span style="color:' + col + ';font-weight:bold;">' + o.call + '</span>' +
+                    '<span style="color:#3a4560;">' + (o.dxcc||'') + '</span>' +
+                    '<span style="color:#2a3550;">' + days + '</span>' +
+                '</div>';
+            }).join('');
+        }
+
+        function render6mGauge(allSpots, recentByBand) {
+            const spots6m = (allSpots || []).filter(s => (s.band||'').toLowerCase() === '6m');
+            const total6m = spots6m.length;
+
+            const bandValues = Object.values(recentByBand || {}).map(v => Number(v) || 0);
+            const ref6m = Number((recentByBand || {})['6m']);
+            const effective6m = Number.isFinite(ref6m) && ref6m > 0 ? ref6m : total6m;
+            const maxRef = Math.max(...bandValues, effective6m, 10, 1);
+            const pct = total6m ? Math.min(100, Math.max(5, Math.round((effective6m / maxRef) * 100))) : 0;
+
+            const gaugeCirc = 2 * Math.PI * 58;
+            const arc = document.getElementById('ck-gauge-arc');
+            const pctEl = document.getElementById('ck-gauge-pct');
+            const statusEl = document.getElementById('ck-gauge-status');
+            const countEl = document.getElementById('ck-6m-count');
+            const openBadge = document.getElementById('ck-6m-badge');
+            const strengthFill = document.getElementById('ck-6m-strength-fill');
+            const liveLabel = document.getElementById('ck-6m-live-label');
+
+            if (arc) arc.setAttribute('stroke-dasharray', (pct/100*gaugeCirc) + ' ' + (gaugeCirc - pct/100*gaugeCirc));
+            if (pctEl) pctEl.textContent = pct + '%';
+            if (countEl) countEl.textContent = total6m + ' live spot' + (total6m > 1 ? 's' : '');
+            if (strengthFill) strengthFill.style.width = pct + '%';
+            if (liveLabel) liveLabel.textContent = total6m ? 'ACTIVE' : 'IDLE';
+
+            let statusText, statusColor;
+            if (pct >= 80) { statusText = 'EXCELLENT'; statusColor = '#6dfc6d'; }
+            else if (pct >= 55) { statusText = 'STRONG'; statusColor = '#95f84b'; }
+            else if (pct >= 30) { statusText = 'FAIR'; statusColor = '#ffd84d'; }
+            else if (pct >= 10) { statusText = 'LOW'; statusColor = '#ff9f43'; }
+            else { statusText = 'CLOSED'; statusColor = '#6e829f'; }
+
+            if (statusEl) { statusEl.textContent = statusText; statusEl.style.color = statusColor; }
+            if (arc) arc.setAttribute('stroke', statusColor);
+            if (pctEl) pctEl.style.color = statusColor;
+            if (openBadge) openBadge.style.display = pct >= 20 ? 'inline' : 'none';
+            if (strengthFill) {
+                strengthFill.style.background = pct >= 55
+                    ? 'linear-gradient(90deg, #2dd95b, #98ff4f)'
+                    : pct >= 25
+                    ? 'linear-gradient(90deg, #f6b73b, #ffe14d)'
+                    : 'linear-gradient(90deg, #fb923c, #ffd84d)';
+                strengthFill.style.boxShadow = '0 0 12px ' + statusColor;
+            }
+
+            // hotspot tags + mini map
+            const el6m = document.getElementById('ck-6m-spots');
+            const mapped = spots6m.filter(s => s.lat && s.lon && !isNaN(s.lat) && !isNaN(s.lon))
+                                 .sort((a,b) => (Number(b.distance_km)||0) - (Number(a.distance_km)||0));
+            const hotspotList = document.getElementById('ck-6m-hotspot-list');
+            const zoneNames = ['EUROPE', 'EAST COAST NA', 'JAPAN / ASIA', 'AUSTRALIA'];
+            const zoneStatus = ['VERY HIGH', 'HIGH', 'HIGH', 'MEDIUM'];
+            if (el6m) {
+                if (!mapped.length) {
+                    el6m.innerHTML = '<span class="ck-6m-tag" style="--dot:#7dd3fc;">No hotspot</span>';
+                } else {
+                    el6m.innerHTML = mapped.slice(0,5).map(s => {
+                        const col = (Number(s.distance_km)||0) >= 9000 ? '#6dfc6d' : (Number(s.distance_km)||0) >= 4500 ? '#ffd84d' : '#22d3ee';
+                        return '<span class="ck-6m-tag" style="--dot:' + col + ';">' + (s.dx_call || 'DX') + ' · ' + (s.mode || 'FT8') + '</span>';
+                    }).join('');
+                }
+            }
+            if (hotspotList) {
+                const rows = (mapped.length ? mapped.slice(0,4) : []).map((s, i) => {
+                    const dist = Number(s.distance_km) || 0;
+                    const level = dist >= 9000 ? 'VERY HIGH' : dist >= 4500 ? 'HIGH' : 'MEDIUM';
+                    const cls = dist >= 9000 ? 'high' : dist >= 4500 ? 'med' : 'low';
+                    const name = s.dxcc || s.country || s.entity || zoneNames[i] || (s.dx_call || 'DX');
+                    return '<div class="ck6m-hotspot-row"><span class="dot ' + cls + '"></span><b>' + name + '</b><em>' + level + '</em></div>';
+                });
+                while (rows.length < 4) {
+                    const i = rows.length;
+                    rows.push('<div class="ck6m-hotspot-row"><span class="dot ' + (i === 0 ? 'high' : i < 3 ? 'med' : 'low') + '"></span><b>' + zoneNames[i] + '</b><em>' + (total6m ? zoneStatus[i] : '—') + '</em></div>');
+                }
+                hotspotList.innerHTML = rows.join('');
+            }
+            updateCockpit6mMap(mapped);
+
+            // activity chart (last 60 min)
+            render6mActivityChart(build6mActivitySeries(spots6m));
+
+            // unique dxcc / calls today
+            const dayKey = new Date().toISOString().slice(0,10);
+            const dxccSet = new Set();
+            spots6m.forEach(s => {
+                const dxcc = s.dxcc || s.country || s.entity || s.dx_call || null;
+                if (dxcc) dxccSet.add(String(dxcc));
+            });
+            const dxccEl = document.getElementById('ck-6m-dxcc');
+            const dxccSub = document.getElementById('ck-6m-dxcc-sub');
+            if (dxccEl) dxccEl.textContent = dxccSet.size;
+            if (dxccSub) dxccSub.textContent = dxccSet.size ? 'unique DXCC / calls today' : 'no active DXCC today';
+            const dxccTrend = document.getElementById('ck-6m-dxcc-trend');
+            if (dxccTrend) dxccTrend.textContent = dxccSet.size ? '▲ ' + Math.max(8, Math.min(99, Math.round(pct / 2))) + '%' : '▲ —';
+        }
+
+
+        // ── COCKPIT 6 m PROPAGATION CANVAS ───────────────────────────
+        let ckVoacapZone = localStorage.getItem('ck_voacap_zone') || 'EU';
+
+        function ckZoneOffset(zone) {
+            return {EU: 0.10, NA: 0.02, AS: -0.02, OC: -0.08, SA: 0.04, AF: 0.06}[zone] || 0;
+        }
+
+        function drawCockpitVoacapCanvas(zone, solar) {
+            const canvas = document.getElementById('ck-voacap-canvas');
+            const meta = document.getElementById('ck-voacap-meta');
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const panel = canvas.closest('.ck-panel');
+            const usableWidth = rect.width || canvas.parentElement.clientWidth || (panel ? panel.clientWidth - 24 : 520);
+            const w = Math.max(300, Math.floor(usableWidth));
+            const h = 210;
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(w * dpr);
+            canvas.height = Math.floor(h * dpr);
+            canvas.style.height = h + 'px';
+            const ctx = canvas.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, w, h);
+
+            const g = ctx.createLinearGradient(0, 0, 0, h);
+            g.addColorStop(0, '#07162f');
+            g.addColorStop(1, '#030712');
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, w, h);
+
+            // grid
+            ctx.strokeStyle = 'rgba(125,211,252,.10)';
+            ctx.lineWidth = 1;
+            for (let x = 40; x < w; x += 46) { ctx.beginPath(); ctx.moveTo(x, 22); ctx.lineTo(x, h - 28); ctx.stroke(); }
+            for (let y = 34; y < h - 24; y += 28) { ctx.beginPath(); ctx.moveTo(38, y); ctx.lineTo(w - 12, y); ctx.stroke(); }
+
+            const sfi = Number(solar && solar.sfi) || 120;
+            const kp = Number((solar && (solar.kp ?? solar.k)) || 2);
+            const base = Math.max(0.10, Math.min(0.92, (sfi - 70) / 130 - Math.max(0, kp - 2) * 0.08 + ckZoneOffset(zone)));
+            const bands = ['50', '70', '144', '432'];
+            const hours = ['06', '09', '12', '15', '18', '21'];
+
+            ctx.font = "12px 'Share Tech Mono', monospace";
+            ctx.fillStyle = '#7dd3fc';
+            ctx.fillText('6 m propagation probability · ' + zone, 14, 16);
+            ctx.fillStyle = '#64748b';
+            bands.forEach((b, i) => ctx.fillText(b + 'MHz', 2, 45 + i * 31));
+            hours.forEach((hr, i) => ctx.fillText(hr + 'z', 52 + i * ((w - 78) / 5), h - 8));
+
+            const cellW = Math.max(34, (w - 78) / 6);
+            const cellH = 27;
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 6; c++) {
+                    const diurnal = Math.sin((c / 5) * Math.PI);
+                    const bandPenalty = r === 0 ? 0 : r === 1 ? .22 : r === 2 ? .42 : .58;
+                    const rel = Math.max(0.02, Math.min(0.98, base * (.55 + diurnal * .55) - bandPenalty));
+                    const red = rel > .70 ? 34 : rel > .48 ? 245 : rel > .25 ? 56 : 15;
+                    const green = rel > .70 ? 220 : rel > .48 ? 190 : rel > .25 ? 150 : 52;
+                    const blue = rel > .70 ? 110 : rel > .48 ? 40 : rel > .25 ? 255 : 96;
+                    const x = 44 + c * cellW;
+                    const y = 31 + r * 34;
+                    ctx.fillStyle = 'rgba(' + red + ',' + green + ',' + blue + ',' + (.50 + rel * .42) + ')';
+                    ctx.fillRect(x, y, cellW - 6, cellH);
+                    ctx.strokeStyle = 'rgba(255,255,255,.18)';
+                    ctx.strokeRect(x + .5, y + .5, cellW - 7, cellH - 1);
+                    ctx.fillStyle = rel > .45 ? '#031329' : '#eaf6ff';
+                    ctx.font = "bold 11px 'Share Tech Mono', monospace";
+                    ctx.textAlign = 'center';
+                    ctx.fillText(Math.round(rel * 100) + '%', x + (cellW - 6) / 2, y + 18);
+                    ctx.textAlign = 'left';
+                    ctx.font = "12px 'Share Tech Mono', monospace";
+                }
+            }
+            if (meta) meta.textContent = 'Zone ' + zone + ' · SFI ' + (solar && solar.sfi || '—') + ' · Kp ' + (Number.isFinite(kp) ? kp.toFixed(1) : '—') + ' · generated locally';
+        }
+
+        async function loadCockpitVoacap(zone) {
+            ckVoacapZone = zone || ckVoacapZone || 'EU';
+            localStorage.setItem('ck_voacap_zone', ckVoacapZone);
+            document.querySelectorAll('[data-ckzone]').forEach(btn => {
+                const active = btn.dataset.ckzone === ckVoacapZone;
+                btn.style.background = active ? 'rgba(0,243,255,.18)' : 'rgba(0,0,0,.3)';
+                btn.style.borderColor = active ? 'rgba(0,243,255,.55)' : '#333';
+                btn.style.color = active ? 'var(--accent)' : '#556';
+            });
+            let solar = {};
+            try {
+                const r = await fetch('/api/solar.json', {cache:'no-store'});
+                if (r.ok) solar = await r.json();
+            } catch(e) {}
+            drawCockpitVoacapCanvas(ckVoacapZone, solar);
+        }
+
+        async function loadCockpitData() {
+            if (currentMode !== 'cockpit') return;
+
+            // IMPORTANT: stats doit rester disponible après le try/catch.
+            // Avant correction, `const stats` était limité au bloc try, puis utilisé plus bas
+            // par render6mGauge(), ce qui cassait la jauge 6m en mode cockpit.
+            let stats = { recent_by_band: {} };
+
+            try {
+                const [statsR, solarR, oppsR] = await Promise.all([
+                    fetch('/dxcc_stats_24h.json'),
+                    fetch('/api/solar.json'),
+                    fetch('/api/lotw/opportunities')
+                ]);
+                stats = await statsR.json();
+                const solar = await solarR.json();
+                const opps  = await oppsR.json();
+
+                // Stats bar
+                const ckSpots = document.getElementById('ck-spots');
+                const ckDxcc  = document.getElementById('ck-dxcc');
+                const ckSfi   = document.getElementById('ck-sfi');
+                const ckKp    = document.getElementById('ck-kp');
+                if (ckSpots) ckSpots.textContent = stats.total_spots_24h || '—';
+                if (ckDxcc)  ckDxcc.textContent  = stats.unique_dxcc_count || '—';
+                if (ckSfi)   ckSfi.textContent   = solar.sfi || '—';
+                // Solar panel
+                const sfi2 = document.getElementById('ck-sfi2');
+                const aEl  = document.getElementById('ck-a');
+                const kEl  = document.getElementById('ck-k');
+                if (sfi2) sfi2.textContent = solar.sfi || '—';
+                if (aEl)  aEl.textContent  = solar.a  || '—';
+                if (kEl)  {
+                    let kVal, kNum;
+                    if (solar.kp != null) { kVal = Number(solar.kp).toFixed(1); kNum = solar.kp; }
+                    else if (solar.k && solar.k !== 'N/A') { kVal = solar.k; kNum = parseFloat(solar.k); }
+                    else if (solar.a && solar.a !== 'N/A') { kVal = solar.a; kNum = parseFloat(solar.a) / 3; }
+                    else { kVal = '—'; kNum = 0; }
+                    kEl.textContent = kVal;
+                    kEl.style.color = kNum >= 5 ? '#ef4444' : kNum >= 3 ? '#f97316' : '#22C55E';
+                }
+                if (ckKp) {
+                    const kpTxt = solar.kp != null ? Number(solar.kp).toFixed(1) :
+                        (solar.k && solar.k !== 'N/A' ? solar.k :
+                        (solar.a && solar.a !== 'N/A' ? solar.a : '—'));
+                    ckKp.textContent = kpTxt;
+                }
+
+                // Band conditions
+                renderBandConditions(stats.recent_by_band || {});
+                // VOACAP
+                loadCockpitVoacap(ckVoacapZone);
+
+                // Opportunities
+                renderCockpitOpps(opps.opportunities || []);
+
+                // Propagation forecast panel
+                refreshCockpitForecastPanel(solar || {});
+
+            } catch(e) { console.error('Cockpit data error:', e); }
+
+            const cockpitSpots = lastAllSpots.length ? lastAllSpots : lastRawSpotsHF;
+            // 6m gauge
+            render6mGauge(cockpitSpots, stats.recent_by_band || {});
+            // Smart spots
+            renderCockpitSmartSpots(lastRawSpotsHF);
+            // DX Feed
+            renderDxFeed(cockpitSpots);
+            // Heatmap
+            updateCockpitHeatmap(cockpitSpots);
+        }
+
+
+        async function sendCockpitSpot() {
+            const elCall = document.getElementById('ck-spot-call');
+            const elFreq = document.getElementById('ck-spot-freq');
+            const elCom  = document.getElementById('ck-spot-comment');
+            const elSt   = document.getElementById('ck-spot-st');
+            const elLast = document.getElementById('ck-spot-last');
+            const btn = document.querySelector('#ck-spotter .ck-btn');
+            const call = (elCall && elCall.value || '').trim().toUpperCase();
+            const freq = (elFreq && elFreq.value || '').trim();
+            const comment = (elCom && elCom.value || '').trim();
+            function st(msg, ok) {
+                if (!elSt) return;
+                elSt.textContent = msg;
+                elSt.className = ok ? 'ok' : 'err';
+            }
+            if (!call || !freq) {
+                st('CALL + fréquence requis.', false);
+                return;
+            }
+            if (btn) btn.disabled = true;
+            st('Envoi au cluster…', true);
+            try {
+                const r = await fetch('/spot', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({call, freq, comment})
+                });
+                const j = await r.json().catch(() => ({ok:false, error:'Réponse invalide'}));
+                if (!r.ok || !j.ok) {
+                    st(j.error || ('Erreur HTTP ' + r.status), false);
+                    return;
+                }
+                st('Spot envoyé ✔', true);
+                if (elLast) elLast.textContent = 'CALL ENVOYÉ : ' + call + ' · ' + freq;
+                if (elCall) elCall.value = '';
+                if (elFreq) elFreq.value = '';
+                if (elCom) elCom.value = '';
+                try { await updateData(); } catch(e) {}
+            } catch(e) {
+                st('Erreur réseau : ' + e.message, false);
+            } finally {
+                if (btn) btn.disabled = false;
             }
         }
 
         // Stocker les spots HF bruts pour le mode smart
         let lastRawSpotsHF = [];
+        let lastAllSpots = [];
 
         // ── SCORE COMPOSITE ───────────────────────────
         function calcRarity(spot) {
@@ -2827,10 +5926,14 @@
                     // Filtrer par type
                     spots = spots.filter(spot => spot.type.toLowerCase() === type);
 
-                    // Stocker pour le mode smart
+                    // Stocker pour le mode smart/cockpit
                     if (type === 'hf') {
                         lastRawSpotsHF = spots;
-                        if (smartMode) renderSmartSpots(spots);
+                        if (currentMode === 'smart') renderSmartSpots(spots);
+                        if (currentMode === 'cockpit') {
+                            renderCockpitSmartSpots(spots);
+                            renderDxFeed(spots);
+                        }
                     }
 
                     // Tri par fréquence si demandé
@@ -2950,6 +6053,43 @@
             }
         }
 
+
+        function refreshCockpitLayoutAfterDrag() {
+            setTimeout(() => {
+                try { if (typeof cockpitHeatmapMap !== 'undefined' && cockpitHeatmapMap) cockpitHeatmapMap.invalidateSize(); } catch(e) {}
+                try { if (typeof cockpit6mMap !== 'undefined' && cockpit6mMap) cockpit6mMap.invalidateSize(); } catch(e) {}
+                try { if (typeof loadCockpitVoacap === 'function') loadCockpitVoacap(ckVoacapZone || 'EU'); } catch(e) {}
+                try { if (typeof render6mActivityChart === 'function') render6mActivityChart(build6mActivitySeries((lastAllSpots || []).filter(s => (s.band||'').toLowerCase() === '6m'))); } catch(e) {}
+                try { if (currentMode === 'cockpit') loadCockpitData(); } catch(e) {}
+            }, 160);
+        }
+
+        function initCockpitDragAndDrop() {
+            if (typeof Sortable === 'undefined') return;
+            ['ck-col1', 'ck-col2', 'ck-col3'].forEach(columnId => {
+                const colElement = document.getElementById(columnId);
+                if (!colElement || colElement.dataset.sortableReady === '1') return;
+                loadPanelOrder(columnId);
+                Sortable.create(colElement, {
+                    group: 'cockpit-6m-panels',
+                    animation: 180,
+                    handle: '.ck-title',
+                    draggable: '[data-panel-id]',
+                    ghostClass: 'ck-sortable-ghost',
+                    chosenClass: 'ck-sortable-chosen',
+                    dragClass: 'ck-sortable-drag',
+                    filter: 'button,input,select,textarea,a,.leaflet-container,.ck-no-drag',
+                    preventOnFilter: false,
+                    onEnd: function(evt) {
+                        savePanelOrder(evt.from.id);
+                        if (evt.from.id !== evt.to.id) savePanelOrder(evt.to.id);
+                        refreshCockpitLayoutAfterDrag();
+                    }
+                });
+                colElement.dataset.sortableReady = '1';
+            });
+        }
+
         function initDragAndDrop() {
             ['col1', 'col2', 'col3'].forEach(columnId => {
                 const colElement = document.getElementById(columnId);
@@ -2967,6 +6107,10 @@
                     }
                 });
             });
+
+
+            // ---- Drag & Drop Cockpit 6 m : tous les pavés peuvent changer de colonne ----
+            initCockpitDragAndDrop();
 
             // ---- Drag & Drop natif pour le panneau Bandmap (pleine largeur) ----
             const bmPanel  = document.getElementById('bandmap-panel');
@@ -3200,12 +6344,13 @@
                  console.error("Failed to initialize Drag and Drop. Check Sortable.js script.", e);
              }
 
-             // Init mode smart
-             if (!smartMode) {
+             // Init 3-state mode
+             {
                  const cur = document.body.getAttribute('data-theme') || 'softtech';
                  if (cur !== 'smart') localStorage.setItem('prevTheme', cur);
              }
-             applySmartMode();
+             setMode(currentMode);
+             if (currentMode === 'cockpit') loadCockpitData();
              if (smartMode && !map6m) {
                  setTimeout(init6mMap, 500);
              }
@@ -4470,6 +7615,162 @@ fetch('/api/check_update')
     </div>
   </div>
 </div>
+
+
+<script>
+/* ===== PATCH COCKPIT v3 — VOACAP robuste + resize Leaflet ===== */
+(function(){
+  function numFromSolar(value, fallback) {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const m = String(value).replace(',', '.').match(/-?\d+(?:\.\d+)?/);
+    if (!m) return fallback;
+    const n = Number(m[0]);
+    return Number.isFinite(n) ? n : fallback;
+  }
+
+  window.drawCockpitVoacapCanvas = function(zone, solar) {
+    const canvas = document.getElementById('ck-voacap-canvas');
+    const meta = document.getElementById('ck-voacap-meta');
+    if (!canvas) return;
+
+    const parent = canvas.parentElement;
+    const panel = canvas.closest('.ck-panel');
+    const usableWidth = (parent && parent.clientWidth) || (panel ? panel.clientWidth - 22 : 360) || 360;
+    const w = Math.max(245, Math.floor(usableWidth));
+    const h = 230;
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = '100%';
+    canvas.style.height = h + 'px';
+
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, '#061a33');
+    gradient.addColorStop(1, '#020814');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+
+    const selectedZone = zone || 'EU';
+    const sfi = numFromSolar(solar && solar.sfi, 120);
+    const kpRaw = solar && (solar.kp ?? solar.k ?? solar.k_index);
+    const kp = numFromSolar(kpRaw, 2);
+    const zoneOffsetMap = {EU:0.10, NA:0.02, AS:-0.02, OC:-0.08, SA:0.04, AF:0.06};
+    const zoneOffset = zoneOffsetMap[selectedZone] || 0;
+    const base = Math.max(0.08, Math.min(0.92, (sfi - 70) / 130 - Math.max(0, kp - 2) * 0.08 + zoneOffset));
+
+    const left = 42;
+    const right = 12;
+    const top = 34;
+    const bottom = 28;
+    const gridW = Math.max(160, w - left - right);
+    const cellW = gridW / 6;
+    const cellH = 30;
+    const rowGap = 7;
+    const bands = ['50', '70', '144', '432'];
+    const hours = ['06', '09', '12', '15', '18', '21'];
+
+    ctx.strokeStyle = 'rgba(125,211,252,.12)';
+    ctx.lineWidth = 1;
+    for (let x = left; x <= w - right; x += Math.max(30, cellW)) {
+      ctx.beginPath(); ctx.moveTo(x, 26); ctx.lineTo(x, h - bottom); ctx.stroke();
+    }
+    for (let y = top; y <= top + 4 * (cellH + rowGap); y += cellH + rowGap) {
+      ctx.beginPath(); ctx.moveTo(left - 5, y); ctx.lineTo(w - right, y); ctx.stroke();
+    }
+
+    ctx.font = "12px 'Share Tech Mono', monospace";
+    ctx.fillStyle = '#7dd3fc';
+    ctx.fillText('6 m propagation probability · ' + selectedZone, 10, 17);
+
+    ctx.fillStyle = '#8aa6c8';
+    bands.forEach((b, i) => ctx.fillText(b + 'MHz', 3, top + 20 + i * (cellH + rowGap)));
+    hours.forEach((hr, i) => ctx.fillText(hr + 'z', left + 4 + i * cellW, h - 8));
+
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 6; c++) {
+        const diurnal = Math.sin((c / 5) * Math.PI);
+        const bandPenalty = r === 0 ? 0 : r === 1 ? .22 : r === 2 ? .42 : .58;
+        const rel = Math.max(0.02, Math.min(0.98, base * (.55 + diurnal * .55) - bandPenalty));
+        let color;
+        if (rel >= .70) color = [34, 220, 110];
+        else if (rel >= .48) color = [245, 190, 40];
+        else if (rel >= .25) color = [45, 150, 255];
+        else color = [15, 48, 92];
+
+        const x = left + c * cellW;
+        const y = top + r * (cellH + rowGap);
+        ctx.fillStyle = `rgba(${color[0]},${color[1]},${color[2]},${0.58 + rel * .34})`;
+        ctx.fillRect(x, y, Math.max(18, cellW - 6), cellH);
+        ctx.strokeStyle = 'rgba(255,255,255,.16)';
+        ctx.strokeRect(x + .5, y + .5, Math.max(17, cellW - 7), cellH - 1);
+        ctx.fillStyle = rel > .45 ? '#031329' : '#eaf6ff';
+        ctx.font = "bold 11px 'Share Tech Mono', monospace";
+        ctx.textAlign = 'center';
+        ctx.fillText(Math.round(rel * 100) + '%', x + Math.max(18, cellW - 6) / 2, y + 20);
+        ctx.textAlign = 'left';
+      }
+    }
+
+    if (meta) meta.textContent = 'Zone ' + selectedZone + ' · SFI ' + sfi + ' · Kp ' + kp.toFixed(1) + ' · generated locally';
+  };
+
+  window.loadCockpitVoacap = async function(zone) {
+    window.ckVoacapZone = zone || window.ckVoacapZone || localStorage.getItem('ck_voacap_zone') || 'EU';
+    localStorage.setItem('ck_voacap_zone', window.ckVoacapZone);
+
+    document.querySelectorAll('[data-ckzone]').forEach(btn => {
+      const active = btn.dataset.ckzone === window.ckVoacapZone;
+      btn.style.background = active ? 'rgba(0,243,255,.18)' : 'rgba(0,0,0,.3)';
+      btn.style.borderColor = active ? 'rgba(0,243,255,.55)' : '#333';
+      btn.style.color = active ? 'var(--accent)' : '#556';
+    });
+
+    let solar = {};
+    try {
+      const r = await fetch('/api/solar.json', {cache:'no-store'});
+      if (r.ok) solar = await r.json();
+    } catch(e) {
+      console.warn('VOACAP local fallback: /api/solar.json inaccessible', e);
+    }
+    window.drawCockpitVoacapCanvas(window.ckVoacapZone, solar);
+  };
+
+  function invalidateCockpitMaps() {
+    ['ck6mMap','ckHeatmapMap'].forEach(name => {
+      try {
+        if (window[name] && typeof window[name].invalidateSize === 'function') window[name].invalidateSize(true);
+      } catch(e) {}
+    });
+    try { if (typeof map6m !== 'undefined' && map6m && map6m.invalidateSize) map6m.invalidateSize(true); } catch(e) {}
+  }
+
+  function refreshCockpitPatchV3() {
+    if (!document.body.classList.contains('mode-cockpit')) return;
+    invalidateCockpitMaps();
+    window.loadCockpitVoacap(window.ckVoacapZone || localStorage.getItem('ck_voacap_zone') || 'EU');
+    setTimeout(invalidateCockpitMaps, 120);
+    setTimeout(invalidateCockpitMaps, 450);
+  }
+
+  window.addEventListener('resize', refreshCockpitPatchV3);
+  document.addEventListener('DOMContentLoaded', () => setTimeout(refreshCockpitPatchV3, 350));
+
+  const oldSetMode = window.setMode;
+  if (typeof oldSetMode === 'function') {
+    window.setMode = function(mode) {
+      const result = oldSetMode.apply(this, arguments);
+      if (mode === 'cockpit') setTimeout(refreshCockpitPatchV3, 120);
+      return result;
+    };
+  }
+})();
+</script>
 
 </body>
 </html>

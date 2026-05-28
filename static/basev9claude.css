@@ -190,6 +190,10 @@ body {
   margin: 0;
   padding-top: 48px; /* hauteur réelle de ta topbar */
 }
+body {
+  margin: 0;
+  padding-top: 48px; /* hauteur réelle de ta topbar */
+}
 /* ===== FORCE TOPBAR VISIBILITY & INTERACTION ===== */
 .topbar,
 .topbar a {
@@ -204,71 +208,3 @@ body[data-page="world"] .topbar {
   z-index: 2147483647 !important;
 }
 
-
-
-
-/* ===== COCKPIT 6 m external safety patch v2 ===== */
-body.mode-cockpit [data-panel-id="ck-heatmap"] {
-  display: none !important;
-}
-body.mode-cockpit #cockpit-layout {
-  grid-template-columns: minmax(270px,.58fr) minmax(760px,1.95fr) minmax(330px,.82fr) !important;
-}
-body.mode-cockpit #ck-6m-body.ck6m-broadcast {
-  display: grid !important;
-  grid-template-columns: minmax(0,1fr) !important;
-  grid-auto-rows: auto !important;
-}
-body.mode-cockpit .ck6m-hero-broadcast,
-body.mode-cockpit .ck6m-world-stage,
-body.mode-cockpit .ck6m-bottom-grid {
-  grid-column: 1 / -1 !important;
-  min-width: 0 !important;
-}
-body.mode-cockpit .ck6m-world-shell {
-  height: clamp(350px,40vh,560px) !important;
-  min-height: 350px !important;
-}
-body.mode-cockpit #ck-6m-map {
-  position: absolute !important;
-  inset: 10px 16px !important;
-  width: auto !important;
-  height: auto !important;
-  border-radius: 18px !important;
-}
-body.mode-cockpit .ck6m-bottom-grid {
-  grid-template-columns: repeat(2, minmax(260px,1fr)) !important;
-}
-body.mode-cockpit #ck-voacap-canvas {
-  width: 100% !important;
-  height: 210px !important;
-  min-height: 210px !important;
-  display: block !important;
-}
-@media (max-width:1250px) {
-  body.mode-cockpit #cockpit-layout { grid-template-columns: 1fr !important; height:auto !important; overflow-y:auto !important; }
-}
-
-
-/* ===== PATCH COCKPIT v3 — naturel / lisibilité / VOACAP ===== */
-body.mode-cockpit #ck-6m-map .leaflet-tile {
-  filter: saturate(1.08) contrast(1.02) brightness(.94) !important;
-}
-body.mode-cockpit #ck-6m-map {
-  filter: none !important;
-  background: #07345d !important;
-}
-body.mode-cockpit #ck-stats-row {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-}
-body.mode-cockpit #ck-stats-row .ck-stats-drag-handle {
-  grid-column: 1 / -1 !important;
-}
-body.mode-cockpit .ck-stat-v {
-  font-size: clamp(1.55rem, 3.2vw, 2.15rem) !important;
-  white-space: nowrap !important;
-}
-body.mode-cockpit #ck-voacap-canvas {
-  height: 230px !important;
-  min-height: 230px !important;
-}

@@ -55,7 +55,7 @@ tn_lock = threading.Lock()
 tn_current = None  # socket.socket when connected
 # --- FIN CLUSTER TX ---
 # --- CONFIGURATION GENERALE ---
-APP_VERSION = "8.2"
+APP_VERSION = "9.0"
 MY_CALL = "F1SMV"
 WEB_PORT = 8000
 KEEP_ALIVE = 60
@@ -3487,10 +3487,22 @@ def lotw_opportunities():
 
     # Trier : priorité puis jours restants
     opportunities.sort(key=lambda o: (o['_priority'], o.get('days_left') or 999))
-    for o in opportunities:
-        o.pop('_priority', None)
 
-    return jsonify({'logged_in': True, 'opportunities': opportunities[:20]})
+    # Déduplication finale par DXCC et call de base (filet de sécurité)
+    seen_dxcc = set()
+    seen_calls = set()
+    unique_opps = []
+    for o in opportunities:
+        base = o['call'].split('/')[0]
+        if base in seen_calls or o['dxcc'] in seen_dxcc:
+            continue
+        seen_calls.add(base)
+        if o['dxcc']:
+            seen_dxcc.add(o['dxcc'])
+        o.pop('_priority', None)
+        unique_opps.append(o)
+
+    return jsonify({'logged_in': True, 'opportunities': unique_opps[:20]})
 
 # ============================================================
 # PAGE SATELLITES — Tracking orbital temps réel

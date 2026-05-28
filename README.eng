@@ -1,4 +1,6 @@
-# 📡 Radio Spot Watcher DX — v8.2
+# 📡 Radio Spot Watcher DX — v9.0
+
+> Now badged **NEURAL DX WATCHER v9.0** in the interface.
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -132,6 +134,45 @@ No cloud dependency.
 ---
 
 ## 🗂️ Version History
+
+### v9.0 — NEURAL DX & COCKPIT 6 m mode
+
+**Rebranding**
+
+- The application becomes **NEURAL DX WATCHER v9.0** (page title and header)
+
+**New mode selector (3 modes in the header)**
+
+The 🧠 toggle is replaced by three exclusive buttons:
+
+- ⚡ **CLASSIC** — classic layout (former BASIC mode)
+- 🧠 **SMART** — intelligent analysis / scored Top Spots (former SMART mode)
+- 🎛 **COCKPIT 6 m** — new full-screen dashboard dedicated to the 6 m band
+
+The active mode is persisted in localStorage.
+
+**COCKPIT 6 m mode — full rewrite**
+
+A dense, dark "radio cockpit" interface (cyan/orange neon), laid out in 3 columns, hiding the classic dashboard. Panels:
+
+- 📌 **6 m SUMMARY / 24H** — 24h spots, unique DXCC, SFI, K-index
+- ☀️ **SOLAR & GEOMAGNETIC DATA** — SFI, A-index, K-index
+- 📊 **BAND CONDITIONS · HF** — band status
+- ⚡ **MAGIC BAND 6 m · DX ACTIVITY HEATMAP** — full-frame "broadcast" panel:
+  - **E-Layer Hotspots** world map (Leaflet) with animated scan and HIGH/LOW legend
+  - circular **Opening Strength** gauge (CLOSED → OPEN, 0–100 %)
+  - **E-Layer Hotspots** list by zone (Europe, East Coast NA, Japan, Australia)
+  - animated 🔴 **OPEN** badge when an opening is detected
+- 📡 **HF PROPAGATION · VOACAP** — forecast with zone selector (EU / NA / AS / OC)
+- 🧠 **INTELLIGENT 6 m TOP SPOTS** — dedicated scored 6 m selection
+- **DX SPOT FEED · 6 m · 20 MIN** — feed of the latest 6 m spots
+- 🎯 **DXCC OPPORTUNITIES** — LoTW cross-check
+- 📡 **MANUAL SPOT** — direct send to the cluster
+
+**Misc**
+
+- Refined 6 m detection and visual harmonization with the rest of the app
+- Cockpit layout patches (responsive ≤ 1250 px, VOACAP readability)
 
 ### v8.2 — LoTW persistence + 6m Magic Band panel + fixes
 

@@ -1,4 +1,6 @@
-# 📡 Radio Spot Watcher DX — v8.2
+# 📡 Radio Spot Watcher DX — v9.0
+
+> Désormais badgée **NEURAL DX WATCHER v9.0** dans l'interface.
 
 **DX Cluster Dashboard & Advanced Radio Analysis Engine**
 
@@ -132,6 +134,45 @@ Aucune dépendance cloud.
 ---
 
 ### 🗂️ Historique des versions
+
+### v9.0 — NEURAL DX & Mode COCKPIT 6 m
+
+**Rebranding**
+
+- L'application devient **NEURAL DX WATCHER v9.0** (titre de page et en-tête)
+
+**Nouveau sélecteur de modes (3 modes dans le header)**
+
+Le curseur 🧠 est remplacé par trois boutons exclusifs :
+
+- ⚡ **CLASSIC** — affichage classique (ex-mode BASIC)
+- 🧠 **SMART** — analyse intelligente / Top Spots scorés (ex-mode SMART)
+- 🎛 **COCKPIT 6 m** — nouveau tableau de bord plein écran dédié à la bande 6 m
+
+Le mode actif est persisté en localStorage.
+
+**Mode COCKPIT 6 m — réécriture complète**
+
+Interface « cockpit radio » dense et sombre (néon cyan/orange), organisée en 3 colonnes, masquant le dashboard classique. Pavés :
+
+- 📌 **SYNTHÈSE 6 m / 24H** — Spots 24h, DXCC uniques, SFI, K-index
+- ☀️ **SOLAR & GEOMAGNETIC DATA** — SFI, A-index, K-index
+- 📊 **BAND CONDITIONS · HF** — état des bandes
+- ⚡ **MAGIC BAND 6 m · HEATMAP ACTIVITÉ DX** — pavé « broadcast » plein cadre :
+  - carte monde **E-Layer Hotspots** (Leaflet) avec scan animé et légende HIGH/LOW
+  - jauge circulaire **Opening Strength** (CLOSED → OPEN, 0–100 %)
+  - liste **E-Layer Hotspots** par zone (Europe, East Coast NA, Japan, Australia)
+  - badge 🔴 **OPEN** animé en cas d'ouverture
+- 📡 **PROPAGATION HF · VOACAP** — prévision avec sélecteur de zone (EU / NA / AS / OC)
+- 🧠 **TOP SPOTS 6 m INTELLIGENTS** — sélection scorée dédiée 6 m
+- **DX SPOT FEED · 6 m · 20 MIN** — flux des derniers spots 6 m
+- 🎯 **OPPORTUNITÉS DXCC** — croisement LoTW
+- 📡 **SPOT MANUEL** — envoi direct au cluster
+
+**Divers**
+
+- Détection 6 m affinée et harmonisation visuelle avec le reste de l'application
+- Patches de mise en page cockpit (responsive ≤ 1250 px, lisibilité VOACAP)
 
 ### v8.2 — LoTW persistance + Pavé 6m Magic Band + corrections
 
